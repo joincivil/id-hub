@@ -1,2 +1,2 @@
-# Civil ID Server
-The Civil ID Server
+# Civil ID Hub
+The Civil ID Hub
