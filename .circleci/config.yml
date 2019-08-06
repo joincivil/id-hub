@@ -1,0 +1,213 @@
+version: 2
+defaults: &defaults
+    docker:
+      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
+      - image: circleci/golang:1.12.7
+      # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_DB: circle_test
+      # Run the Google Pub Sub emulator
+      - image: kinok/google-pubsub-emulator:latest
+jobs:
+  build:
+    <<: *defaults
+    working_directory: /go/src/github.com/joincivil/id-hub
+    environment:
+    steps:
+      - run:
+          name: Local docker sudo
+          command: |
+            if [[ $CIRCLE_BUILD_NUM -gt 0 ]]; then
+              echo "This is not a local build. Disabling sudo for docker"
+              touch ~/sudo
+            else
+              echo "This is a local build. Enabling sudo for docker"
+              echo sudo > ~/sudo
+            fi
+      - checkout
+      - setup_remote_docker:   # (2)
+          docker_layer_caching: true # (3)
+      - run:
+           name: Setting up tools
+           command: make check-go-env
+      - run:
+          name: Waiting for Postgres to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Postgres && exit 1
+      - run:
+          name: Building code
+          command: make build
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - build
+            - pkg
+            - Makefile
+            - vendor
+            - cmd
+            - scripts
+            - .golangci.yml
+
+  lint:
+    <<: *defaults
+    working_directory: /go/src/github.com/joincivil/id-hub
+    environment:
+    steps:
+        - attach_workspace:
+            at: ./
+        - run:
+           name: Setting up tools
+           command: make install-linter
+        - run:
+            name: Run linter
+            command: make lint
+
+  test:
+    <<: *defaults
+    working_directory: /go/src/github.com/joincivil/id-hub
+    environment:
+    steps:
+        - attach_workspace:
+            at: ./
+        - run:
+            name: Run unit tests
+            environment:
+               DB_URL: "postgres://root@localhost:5432/circle_test?sslmode=disable"
+               DB_MIGRATIONS: /go/src/github.com/joincivil/id-hub/migrations
+            command: |
+               make test
+
+  setup-gcp:
+    docker:
+      - image: civilmedia/gcloud-node:latest
+    working_directory: /go/src/github.com/joincivil/id-hub
+    steps:
+       - run:
+          name: Dump Google Cloud Credentials to file
+          command: |
+            echo ${GOOGLE_AUTH} | base64 -d > ${HOME}/gcp-key.json
+            gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+            gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME}
+            gcloud docker --authorize-only
+       - persist_to_workspace:
+          root: /root
+          paths:
+            - gcp-key.json
+            - .config/gcloud
+            - .docker
+            - .dockercfg
+            - .kubernetes_ns
+            - .kube
+
+  push-container:
+    docker:
+      - image: civilmedia/gcloud-node:latest
+    working_directory: /go/src/github.com/joincivil/id-hub
+    steps:
+      - attach_workspace:
+          at: /root
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Container
+          command: |
+            TAG=`echo $CIRCLE_BRANCH | sed 's/\\//_/g'`
+
+            mv /root/build ./build
+
+            docker build . \
+              -t gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME:$TAG \
+              -t gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME:$TAG-$CIRCLE_SHA1
+      - deploy:
+          name: Push Containers to Registry
+          command: |
+           gcloud config list
+           echo "pushing $GOOGLE_PROJECT_ID"
+           docker push gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME
+  deploy-staging:
+    docker:
+      - image: civilmedia/gcloud-node:latest
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: /root
+      - deploy:
+          name: Update Kubernetes Deployment on STAGING
+          command: |
+            # TAG=`echo $CIRCLE_BRANCH | sed 's/\\//_/g'`
+
+            # kubectl set image deployment/$CIRCLE_PROJECT_REPONAME $CIRCLE_PROJECT_REPONAME=gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME:master-$CIRCLE_SHA1 --namespace staging
+            echo "Staging push not implemented"
+  deploy-production:
+    docker:
+      - image: civilmedia/gcloud-node:latest
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: /root
+      - deploy:
+          name: Update Kubernetes Deployment on PRODUCTION
+          command: |
+            # kubectl set image deployment/$CIRCLE_PROJECT_REPONAME $CIRCLE_PROJECT_REPONAME=gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME:production-$CIRCLE_SHA1 --namespace production
+            echo "Production push not implemented"
+
+workflows:
+  version: 2
+  build_test_deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - lint:
+          requires:
+            - build
+      - setup-gcp:
+          context: gcp-common
+          requires:
+            - build
+            - test
+            - lint
+          filters:
+            branches:
+              only:
+                - master
+                - production
+                # - /staging.*/
+      - push-container:
+          context: gcp-common
+          requires:
+            - setup-gcp
+          filters:
+            branches:
+              only:
+                - master
+                - production
+                # - /staging.*/
+      - deploy-staging:
+          context: gcp-common
+          requires:
+            - push-container
+          filters:
+            branches:
+              only:
+                - master
+                # - /staging.*/
+      - deploy-production:
+          context: gcp-common
+          requires:
+            - push-container
+          filters:
+            branches:
+              only:
+                - production
