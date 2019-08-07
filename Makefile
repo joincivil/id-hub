@@ -129,8 +129,7 @@ lint: check-go-env ## Runs linting.
 
 .PHONY: build
 build: check-go-env ## Builds the code.
-	# @$(GOBUILD) -o ./build/idhub cmd/idhub/main.go
-	@$(GOBUILD) ./...
+	@$(GOBUILD) -o ./build/idhub cmd/idhub/main.go
 
 .PHONY: test
 test: check-go-env ## Runs unit tests and tests code coverage.

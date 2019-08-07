@@ -13,7 +13,8 @@ defaults: &defaults
 jobs:
   build:
     <<: *defaults
-    working_directory: /go/src/github.com/joincivil/id-hub
+    # working_directory: /go/src/github.com/joincivil/id-hub
+    working_directory: ~/repos/id-hub
     environment:
     steps:
       - run:
@@ -42,53 +43,78 @@ jobs:
               sleep 1
             done
             echo Failed waiting for Postgres && exit 1
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Building code
           command: make build
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - persist_to_workspace:
           root: ./
           paths:
             - build
+            - cmd
             - pkg
             - Makefile
-            - vendor
-            - cmd
+            - go.mod
+            - go.sum
             - scripts
             - .golangci.yml
 
   lint:
     <<: *defaults
-    working_directory: /go/src/github.com/joincivil/id-hub
+    # working_directory: /go/src/github.com/joincivil/id-hub
+    working_directory: ~/repos/id-hub
     environment:
     steps:
         - attach_workspace:
             at: ./
+        - restore_cache:
+            keys:
+              - go-mod-v1-{{ checksum "go.sum" }}
         - run:
            name: Setting up tools
            command: make install-linter
         - run:
             name: Run linter
             command: make lint
+        - save_cache:
+            key: go-mod-v1-{{ checksum "go.sum" }}
+            paths:
+              - "/go/pkg/mod"
 
   test:
     <<: *defaults
-    working_directory: /go/src/github.com/joincivil/id-hub
+    # working_directory: /go/src/github.com/joincivil/id-hub
+    working_directory: ~/repos/id-hub
     environment:
     steps:
         - attach_workspace:
             at: ./
+        - restore_cache:
+            keys:
+              - go-mod-v1-{{ checksum "go.sum" }}
         - run:
             name: Run unit tests
             environment:
                DB_URL: "postgres://root@localhost:5432/circle_test?sslmode=disable"
-               DB_MIGRATIONS: /go/src/github.com/joincivil/id-hub/migrations
+               DB_MIGRATIONS: ~/repos/id-hub/migrations
             command: |
                make test
+        - save_cache:
+            key: go-mod-v1-{{ checksum "go.sum" }}
+            paths:
+              - "/go/pkg/mod"
 
   setup-gcp:
     docker:
       - image: civilmedia/gcloud-node:latest
-    working_directory: /go/src/github.com/joincivil/id-hub
+    # working_directory: /go/src/github.com/joincivil/id-hub
+    working_directory: ~/repos/id-hub
     steps:
        - run:
           name: Dump Google Cloud Credentials to file
@@ -112,7 +138,8 @@ jobs:
   push-container:
     docker:
       - image: civilmedia/gcloud-node:latest
-    working_directory: /go/src/github.com/joincivil/id-hub
+    # working_directory: /go/src/github.com/joincivil/id-hub
+    working_directory: ~/repos/id-hub
     steps:
       - attach_workspace:
           at: /root
@@ -137,7 +164,7 @@ jobs:
   deploy-staging:
     docker:
       - image: civilmedia/gcloud-node:latest
-    working_directory: ~/repo
+    working_directory: ~/repos/id-hub
     steps:
       - attach_workspace:
           at: /root
@@ -151,7 +178,7 @@ jobs:
   deploy-production:
     docker:
       - image: civilmedia/gcloud-node:latest
-    working_directory: ~/repo
+    working_directory: ~/repos/id-hub
     steps:
       - attach_workspace:
           at: /root
