@@ -8,20 +8,46 @@ run:
     - vendor
 
 linters:
+  enable-all: false
   enable:
     - deadcode
+    - dupl
     - errcheck
+    # - gocritic # very critical, but useful as a spot check
+    - goconst
+    - gocyclo
     - gofmt
     - golint
     - gosec
+    - gosimple
     - govet
     - ineffassign
+    # - lll # checks for long lines, needs cleanup first to enable
     - megacheck
     - misspell
     - staticcheck
     - structcheck
+    - typecheck
     - unconvert
+    - unused
     - varcheck
     - vet
     - vetshadow
-  enable-all: false
+
+linters-settings:
+  gocyclo:
+    min-complexity: 20
+
+issues:
+  exclude-rules:
+    - linters:
+      - gosec
+      # Exclude gosec "Errors unhandled"
+      text: "G104:"
+     # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - goconst
+  # Enable all the checks, even with false positives
+  exclude-use-default: false
