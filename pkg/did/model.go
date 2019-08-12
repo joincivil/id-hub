@@ -12,20 +12,40 @@ import (
 	didlib "github.com/ockam-network/did"
 )
 
+const (
+	// DefaultDIDContextV1 is the default context for DID documents
+	DefaultDIDContextV1 = "https://www.w3.org/2019/did/v1"
+
+	// LDSuiteTypeRsaSignature defines LD crypto suite type for RSA signatures
+	LDSuiteTypeRsaSignature = "RsaSignature2018"
+	// LDSuiteTypeRsaVerification defines LD crypto suite type for RSA verifications
+	LDSuiteTypeRsaVerification = "RsaVerificationKey2018"
+	// LDSuiteTypeSecp256k1Signature defines LD crypto suite type for Secp256k signatures
+	LDSuiteTypeSecp256k1Signature = "EcdsaSecp256k1Signature2019"
+	// LDSuiteTypeSecp256k1Verification defines LD crypto suite type for Secp256k verifications
+	LDSuiteTypeSecp256k1Verification = "EcdsaSecp256k1VerificationKey2019"
+	// LDSuiteTypeEd25519Signature defines LD crypto suite type for Ed25519 signatures
+	LDSuiteTypeEd25519Signature = "Ed25519Signature2018"
+	// LDSuiteTypeEd25519Verification defines LD crypto suite type for Ed25519 verifications
+	LDSuiteTypeEd25519Verification = "Ed25519VerificationKey2018"
+	// LDSuiteTypeKoblitzSignature defines a LD crypto suite type for Koblitz signatures
+	LDSuiteTypeKoblitzSignature = "EcdsaKoblitzSignature2016"
+)
+
 // https://github.com/ockam-network/did as base DID parser/handler.
 
 // Document is the base definition of a DID document
 // https://w3c-ccg.github.io/did-spec/#did-documents
 type Document struct {
-	Context        string                    `json:"@context"`
-	ID             didlib.DID                `json:"id"`
-	Controller     *didlib.DID               `json:"controller,omitempty"`
-	PublicKeys     []DocPublicKey            `json:"publicKey"`
-	Authentication []DocAuthenicationWrapper `json:"authentication,omitempty"`
-	Service        []DocService              `json:"service,omitempty"`
-	Created        time.Time                 `json:"created,omitempty"`
-	Updated        time.Time                 `json:"updated,omitempty"`
-	Proof          LinkedDataSignature       `json:"proof,omitempty"`
+	Context         string                    `json:"@context"`
+	ID              didlib.DID                `json:"id"`
+	Controller      *didlib.DID               `json:"controller,omitempty"`
+	PublicKeys      []DocPublicKey            `json:"publicKey"`
+	Authentications []DocAuthenicationWrapper `json:"authentication,omitempty"`
+	Services        []DocService              `json:"service,omitempty"`
+	Created         *time.Time                `json:"created,omitempty"`
+	Updated         *time.Time                `json:"updated,omitempty"`
+	Proof           *LinkedDataSignature      `json:"proof,omitempty"`
 }
 
 func (d Document) String() string {
@@ -36,15 +56,15 @@ func (d Document) String() string {
 	}
 
 	buf.WriteString(fmt.Sprintf("num keys: %v, ", len(d.PublicKeys)))
-	buf.WriteString(fmt.Sprintf("num auth: %v, ", len(d.Authentication)))
+	buf.WriteString(fmt.Sprintf("num auth: %v, ", len(d.Authentications)))
 
-	if d.Proof != (LinkedDataSignature{}) {
+	if d.Proof != nil {
 		buf.WriteString(fmt.Sprintf("proof: %v, ", d.Proof.SignatureValue))
 	}
-	if d.Created != (time.Time{}) {
+	if d.Created != nil {
 		buf.WriteString(fmt.Sprintf("created: %v, ", d.Created))
 	}
-	if d.Updated != (time.Time{}) {
+	if d.Updated != nil {
 		buf.WriteString(fmt.Sprintf("updated: %v, ", d.Updated))
 	}
 
@@ -107,23 +127,24 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 
 // DocPublicKey defines a publickey within a DID document
 type DocPublicKey struct {
-	ID                 didlib.DID `json:"id"`
-	Type               string     `json:"type"`
-	Controller         string     `json:"controller"`
-	PublicKeyPem       string     `json:"publicKeyPem,omitempty"`
-	PublicKeyJwk       string     `json:"publicKeyJwk,omitempty"`
-	PublicKeyHex       string     `json:"publicKeyHex,omitempty"`
-	PublicKeyBase64    string     `json:"publicKeyBase64,omitempty"`
-	PublicKeyBase58    string     `json:"publicKeyBase58,omitempty"`
-	PublicKeyMultibase string     `json:"publicKeyMultibase,omitempty"`
-	EthereumAddress    string     `json:"ethereumAddress,omitempty"`
+	ID                 didlib.DID  `json:"id"`
+	Type               string      `json:"type"`
+	Controller         *didlib.DID `json:"controller"`
+	PublicKeyPem       string      `json:"publicKeyPem,omitempty"`
+	PublicKeyJwk       string      `json:"publicKeyJwk,omitempty"`
+	PublicKeyHex       string      `json:"publicKeyHex,omitempty"`
+	PublicKeyBase64    string      `json:"publicKeyBase64,omitempty"`
+	PublicKeyBase58    string      `json:"publicKeyBase58,omitempty"`
+	PublicKeyMultibase string      `json:"publicKeyMultibase,omitempty"`
+	EthereumAddress    string      `json:"ethereumAddress,omitempty"`
 }
 
 // UnmarshalJSON implements the Unmarshaler interface for DocPublicKey
 func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 	type pkAlias DocPublicKey
 	aux := &struct {
-		ID string `json:"id"`
+		ID         string `json:"id"`
+		Controller string `json:"controller"`
 		*pkAlias
 	}{
 		pkAlias: (*pkAlias)(p),
@@ -141,6 +162,14 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 	}
 	p.ID = *id
 
+	if aux.Controller != "" {
+		controller, err := didlib.Parse(aux.Controller)
+		if err != nil {
+			return errors.Wrap(err, "unable to parse did for public key")
+		}
+		p.Controller = controller
+	}
+
 	return nil
 }
 
@@ -148,11 +177,16 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 	type pkAlias DocPublicKey
 	aux := &struct {
-		ID string `json:"id"`
+		ID         string `json:"id"`
+		Controller string `json:"controller"`
 		*pkAlias
 	}{
 		ID:      p.ID.String(),
 		pkAlias: (*pkAlias)(p),
+	}
+
+	if p.Controller != nil {
+		aux.Controller = p.Controller.String()
 	}
 
 	return json.Marshal(aux)
@@ -162,10 +196,10 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 // value.  This can either be an ID to a public key or a public key.
 type DocAuthenicationWrapper struct {
 	DocPublicKey
-	Partial bool `json:"-"`
+	IDOnly bool `json:"-"`
 }
 
-// UnmarshalJSON implements the Unmarshaler interface for
+// UnmarshalJSON implements the Unmarshaler interface for DocAuthenticationWrapper
 func (a *DocAuthenicationWrapper) UnmarshalJSON(b []byte) error {
 	type awAlias DocAuthenicationWrapper
 	aux := &struct {
@@ -193,14 +227,14 @@ func (a *DocAuthenicationWrapper) UnmarshalJSON(b []byte) error {
 	}
 
 	a.ID = *d
-	a.Partial = true
+	a.IDOnly = true
 
 	return nil
 }
 
-// MarshalJSON implements the Marshaler interface for
+// MarshalJSON implements the Marshaler interface for DocAuthenticationWrapper
 func (a *DocAuthenicationWrapper) MarshalJSON() ([]byte, error) {
-	if a.Partial {
+	if a.IDOnly {
 		// Need to wrap in quotes to make it valid as a JSON string
 		return []byte(fmt.Sprintf("\"%v\"", a.ID.String())), nil
 	}
@@ -219,9 +253,9 @@ func (a *DocAuthenicationWrapper) MarshalJSON() ([]byte, error) {
 
 // DocService defines a service endpoint within a DID document
 type DocService struct {
-	ID          string `json:"id"`
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
+	ID          didlib.DID `json:"id"`
+	Type        string     `json:"type"`
+	Description string     `json:"description,omitempty"`
 	// DocServiceEndpoint could be a JSON-LD object or a URI
 	// https://github.com/piprate/json-gold
 	// string or map[string]interface{}
@@ -237,6 +271,7 @@ type DocService struct {
 func (s *DocService) UnmarshalJSON(b []byte) error {
 	type alias DocService
 	aux := &struct {
+		ID string `json:"id"`
 		*alias
 	}{
 		alias: (*alias)(s),
@@ -247,8 +282,14 @@ func (s *DocService) UnmarshalJSON(b []byte) error {
 		return errors.Wrap(err, "unable to unmarshal public key")
 	}
 
-	// // Validate types for service endpoint.  Can either be a string (URI)
-	// // or a JSON-LD object
+	id, err := didlib.Parse(aux.ID)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse did for service")
+	}
+	s.ID = *id
+
+	// Validate types for service endpoint.  Can either be a string (URI)
+	// or a JSON-LD object
 	switch val := s.ServiceEndpoint.(type) {
 	case string:
 		// valid type for URIs
@@ -258,10 +299,24 @@ func (s *DocService) UnmarshalJSON(b []byte) error {
 		// TODO: do more for validation of JSON-LD
 		s.ServiceEndpointLD = val
 	default:
-		return errors.New("invalid type for serviceendpoint value")
+		return errors.Errorf("invalid type for service endpoint value: %T", val)
 	}
 
 	return nil
+}
+
+// MarshalJSON implements the Marshaler interface for DocService
+func (s *DocService) MarshalJSON() ([]byte, error) {
+	type alias DocService
+	aux := &struct {
+		ID string `json:"id"`
+		*alias
+	}{
+		ID:    s.ID.String(),
+		alias: (*alias)(s),
+	}
+
+	return json.Marshal(aux)
 }
 
 // LinkedDataSignature defines a linked data signature object

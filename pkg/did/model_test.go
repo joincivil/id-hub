@@ -9,7 +9,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/did"
 )
 
-const testDID = `
+const testDIDDoc = `
 {
 	"@context": "https://w3id.org/did/v1",
 	"id": "did:example:123456789abcdefghi",
@@ -33,10 +33,12 @@ const testDID = `
 	],
 	"service": [
 		{
+	  		"id": "did:example:123456789abcdefghi#vcr",
 			"type": "VerifiableCredentialService",
 			"serviceEndpoint": "https://example.com/vc/"
 		},
 		{
+	  		"id": "did:example:123456789abcdefghi#hub",
 			"type": "IdentityHub",
 			"serviceEndpoint": {
 				"@context": "https://schema.identity.foundation/hub",
@@ -56,7 +58,7 @@ const testDID = `
 }
 `
 
-const testDIDNoAuthentication = `
+const testDIDDocNoAuthentication = `
 {
 	"@context": "https://w3id.org/did/v1",
 	"id": "did:example:123456789abcdefghi",
@@ -70,6 +72,7 @@ const testDIDNoAuthentication = `
 		}
 	],
 	"service": [{
+	  "id": "did:example:123456789abcdefghi#vcr",
 	  "type": "VerifiableCredentialService",
 	  "serviceEndpoint": "https://example.com/vc/"
 	}],
@@ -86,7 +89,7 @@ const testDIDNoAuthentication = `
 
 func TestDocumentModelMarshal(t *testing.T) {
 	doc := did.Document{}
-	err := json.Unmarshal([]byte(testDID), &doc)
+	err := json.Unmarshal([]byte(testDIDDoc), &doc)
 	if err != nil {
 		t.Errorf("Should have unmarshalled document from json: err: %v", err)
 	}
@@ -122,7 +125,7 @@ func TestDocumentModelMarshal(t *testing.T) {
 
 func TestDocumentModelUnmarshal(t *testing.T) {
 	doc := &did.Document{}
-	err := json.Unmarshal([]byte(testDID), &doc)
+	err := json.Unmarshal([]byte(testDIDDoc), &doc)
 	if err != nil {
 		t.Errorf("Should have unmarshalled document from json: err: %v", err)
 	}
@@ -153,24 +156,27 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 		if key.ID.String() != "did:example:123456789abcdefghi#keys-1" {
 			t.Errorf("Should have returned correct key id")
 		}
+		if key.Controller.String() != "did:example:123456789abcdefghi" {
+			t.Errorf("Should have returned correct controller")
+		}
 		if key.Type != "RsaVerificationKey2018" {
 			t.Errorf("Should have returned correct type")
 		}
 	}
 
-	if doc.Authentication == nil {
+	if doc.Authentications == nil {
 		t.Errorf("Should have returned authentication items")
 	} else {
-		if len(doc.Authentication) == 0 {
+		if len(doc.Authentications) == 0 {
 			t.Errorf("Should have returned some auth items")
 		}
 		// This is the string id pointer
-		key := doc.Authentication[0]
+		key := doc.Authentications[0]
 		if key.ID.String() != "did:example:123456789abcdefghi#keys-1" {
 			t.Errorf("Should have returned id pointer")
 		}
 		// This is the full public key object
-		key = doc.Authentication[1]
+		key = doc.Authentications[1]
 		if key.ID.String() != "did:example:123456789abcdefghi#keys-2" {
 			t.Errorf("Should have returned auth key id")
 		}
@@ -178,14 +184,14 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 			t.Errorf("Should have returned correct type for auth key id")
 		}
 	}
-	if doc.Service == nil {
+	if doc.Services == nil {
 		t.Errorf("Should have returned service items")
 	} else {
-		if len(doc.Service) == 0 {
+		if len(doc.Services) == 0 {
 			t.Errorf("Should have returned some auth items")
 		}
 		// URI string
-		key := doc.Service[0]
+		key := doc.Services[0]
 		if key.ServiceEndpoint.(string) != "https://example.com/vc/" {
 			t.Errorf("Should have valid URI for service endpoint")
 		}
@@ -196,7 +202,7 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 			t.Errorf("Should have valid URI for service endpoint URI")
 		}
 		// Map for JSONLD
-		key = doc.Service[1]
+		key = doc.Services[1]
 		ld := key.ServiceEndpoint.(map[string]interface{})
 		if ld["@context"] != "https://schema.identity.foundation/hub" {
 			t.Errorf("Should have valid context for service endpoint ld")
@@ -225,23 +231,23 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 
 func TestDocumentModelUnmarshalNoAuth(t *testing.T) {
 	doc := &did.Document{}
-	err := json.Unmarshal([]byte(testDIDNoAuthentication), &doc)
+	err := json.Unmarshal([]byte(testDIDDocNoAuthentication), &doc)
 	if err != nil {
 		t.Errorf("Should have unmarshalled document from json: err: %v", err)
 	}
 
-	if doc.Authentication != nil {
+	if doc.Authentications != nil {
 		t.Errorf("Should have not gotten authentication items")
 	}
 
-	if len(doc.Authentication) > 0 {
+	if len(doc.Authentications) > 0 {
 		t.Errorf("Should have not gotten authentication items")
 	}
 }
 
 func TestDocumentModelStringify(t *testing.T) {
 	doc := did.Document{}
-	err := json.Unmarshal([]byte(testDID), &doc)
+	err := json.Unmarshal([]byte(testDIDDoc), &doc)
 	if err != nil {
 		t.Errorf("Should have unmarshalled document from json: err: %v", err)
 	}
