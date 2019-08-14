@@ -45,7 +45,7 @@ type Document struct {
 	Services        []DocService              `json:"service,omitempty"`
 	Created         *time.Time                `json:"created,omitempty"`
 	Updated         *time.Time                `json:"updated,omitempty"`
-	Proof           *LinkedDataSignature      `json:"proof,omitempty"`
+	Proof           *LinkedDataProof          `json:"proof,omitempty"`
 }
 
 func (d Document) String() string {
@@ -59,7 +59,7 @@ func (d Document) String() string {
 	buf.WriteString(fmt.Sprintf("num auth: %v, ", len(d.Authentications)))
 
 	if d.Proof != nil {
-		buf.WriteString(fmt.Sprintf("proof: %v, ", d.Proof.SignatureValue))
+		buf.WriteString(fmt.Sprintf("proof: %v, ", d.Proof.ProofValue))
 	}
 	if d.Created != nil {
 		buf.WriteString(fmt.Sprintf("created: %v, ", d.Created))
@@ -317,15 +317,4 @@ func (s *DocService) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(aux)
-}
-
-// LinkedDataSignature defines a linked data signature object
-// Spec: https://w3c-dvcg.github.io/ld-signatures/#linked-data-signature-overview
-type LinkedDataSignature struct {
-	Type           string    `json:"type"`
-	Creator        string    `json:"creator"`
-	Created        time.Time `json:"created"`
-	SignatureValue string    `json:"signatureValue"`
-	Domain         string    `json:"domain,omitempty"`
-	Nonce          string    `json:"nonce,omitempty"`
 }
