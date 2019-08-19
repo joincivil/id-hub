@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/joincivil/go-common/pkg/eth"
 	"github.com/pkg/errors"
 
 	didlib "github.com/ockam-network/did"
@@ -15,21 +18,6 @@ import (
 const (
 	// DefaultDIDContextV1 is the default context for DID documents
 	DefaultDIDContextV1 = "https://www.w3.org/2019/did/v1"
-
-	// LDSuiteTypeRsaSignature defines LD crypto suite type for RSA signatures
-	LDSuiteTypeRsaSignature = "RsaSignature2018"
-	// LDSuiteTypeRsaVerification defines LD crypto suite type for RSA verifications
-	LDSuiteTypeRsaVerification = "RsaVerificationKey2018"
-	// LDSuiteTypeSecp256k1Signature defines LD crypto suite type for Secp256k signatures
-	LDSuiteTypeSecp256k1Signature = "EcdsaSecp256k1Signature2019"
-	// LDSuiteTypeSecp256k1Verification defines LD crypto suite type for Secp256k verifications
-	LDSuiteTypeSecp256k1Verification = "EcdsaSecp256k1VerificationKey2019"
-	// LDSuiteTypeEd25519Signature defines LD crypto suite type for Ed25519 signatures
-	LDSuiteTypeEd25519Signature = "Ed25519Signature2018"
-	// LDSuiteTypeEd25519Verification defines LD crypto suite type for Ed25519 verifications
-	LDSuiteTypeEd25519Verification = "Ed25519VerificationKey2018"
-	// LDSuiteTypeKoblitzSignature defines a LD crypto suite type for Koblitz signatures
-	LDSuiteTypeKoblitzSignature = "EcdsaKoblitzSignature2016"
 )
 
 // https://github.com/ockam-network/did as base DID parser/handler.
@@ -125,10 +113,103 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
+// AddPublicKey adds another public key.
+// If addRefToAuth is true, also adds a reference to the key in the authentication field.
+func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool) error {
+	if pk.ID.Fragment == "" {
+		return errors.Errorf("no key id fragment found: %v", pk.ID.String())
+	}
+
+	// Add new key to end of the list of keys
+	d.PublicKeys = append(d.PublicKeys, *pk)
+
+	if addRefToAuth {
+		auth := DocAuthenicationWrapper{
+			DocPublicKey: *pk,
+			IDOnly:       true,
+		}
+		d.Authentications = append(d.Authentications, auth)
+	}
+
+	updated := time.Now().UTC()
+	d.Updated = &updated
+
+	return nil
+}
+
+// AddAuthentication adds another authentication value to the list.  Could be
+// just a reference to an existing key or a key only used for authentication
+func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper) error {
+	if auth.ID.Fragment == "" {
+		return errors.Errorf("no auth key id fragment found: %v", auth.ID.String())
+	}
+
+	if auth.IDOnly {
+		found := false
+		// Ensure our public key exists for this reference
+		for _, k := range d.PublicKeys {
+			if auth.ID.String() == k.ID.String() {
+				found = true
+			}
+		}
+		if !found {
+			return errors.Errorf("authentication reference has no matching key: %v", auth.ID.String())
+		}
+	}
+
+	// Add authentication to the list of authentications
+	d.Authentications = append(d.Authentications, *auth)
+
+	updated := time.Now().UTC()
+	d.Updated = &updated
+
+	return nil
+}
+
+// NextKeyFragment looks at all the authentication and public keys and
+// finds the next incremented key fragment to use when adding a publicKey or
+// authentication. Only supports key fragments (#key-*) right now.
+func (d *Document) NextKeyFragment() string {
+	keys := []string{}
+	keyPrefix := "keys-"
+
+	// Look at all the possible keys
+	for _, k := range d.PublicKeys {
+		if strings.HasPrefix(k.ID.Fragment, keyPrefix) {
+			keys = append(keys, k.ID.Fragment)
+		}
+	}
+	for _, k := range d.Authentications {
+		if !k.IDOnly && strings.HasPrefix(k.ID.Fragment, keyPrefix) {
+			keys = append(keys, k.ID.Fragment)
+		}
+	}
+
+	if len(keys) == 0 {
+		// keys-1
+		return fmt.Sprintf("%v1", keyPrefix)
+	}
+
+	// Sort to get the max value
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] > keys[j]
+	})
+
+	// Pull off value from last key and increment it
+	recentKey := keys[0]
+	spl := strings.SplitAfter(recentKey, keyPrefix)
+	keyIncr := spl[1]
+
+	incrInt, _ := strconv.Atoi(keyIncr)
+	incrInt++
+
+	return fmt.Sprintf("%v%v", keyPrefix, incrInt)
+}
+
 // DocPublicKey defines a publickey within a DID document
 type DocPublicKey struct {
 	ID                 didlib.DID  `json:"id"`
-	Type               string      `json:"type"`
+	Type               LDSuiteType `json:"type"`
 	Controller         *didlib.DID `json:"controller"`
 	PublicKeyPem       string      `json:"publicKeyPem,omitempty"`
 	PublicKeyJwk       string      `json:"publicKeyJwk,omitempty"`
@@ -137,6 +218,13 @@ type DocPublicKey struct {
 	PublicKeyBase58    string      `json:"publicKeyBase58,omitempty"`
 	PublicKeyMultibase string      `json:"publicKeyMultibase,omitempty"`
 	EthereumAddress    string      `json:"ethereumAddress,omitempty"`
+}
+
+// SetIDFragment sets the ID fragment of the public key.  For convenience,
+// returns the DocPublicKey for inline-ing.
+func (p *DocPublicKey) SetIDFragment(fragment string) *DocPublicKey {
+	p.ID.Fragment = fragment
+	return p
 }
 
 // UnmarshalJSON implements the Unmarshaler interface for DocPublicKey
@@ -168,6 +256,10 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 			return errors.Wrap(err, "unable to parse did for public key")
 		}
 		p.Controller = controller
+	}
+
+	if p.EthereumAddress != "" {
+		p.EthereumAddress = eth.NormalizeEthAddress(p.EthereumAddress)
 	}
 
 	return nil
