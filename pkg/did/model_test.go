@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/joincivil/id-hub/pkg/did"
+	didlib "github.com/ockam-network/did"
 )
 
 const testDIDDoc = `
@@ -263,4 +264,121 @@ func TestDocumentModelStringify(t *testing.T) {
 		t.Errorf("Should have returned the correct string")
 	}
 	t.Logf("string = %v", stringified)
+}
+
+func TestNextKeyFragment(t *testing.T) {
+	doc := did.Document{}
+	err := json.Unmarshal([]byte(testDIDDoc), &doc)
+	if err != nil {
+		t.Errorf("Should have unmarshalled document from json: err: %v", err)
+	}
+
+	frag := doc.NextKeyFragment()
+	if frag != "keys-3" {
+		t.Errorf("Should have gotten keys-3, got %v", frag)
+	}
+
+	// Empty keys, should get keys-1
+	doc = did.Document{}
+	frag = doc.NextKeyFragment()
+	if frag != "keys-1" {
+		t.Errorf("Should have gotten keys-1, got %v", frag)
+	}
+}
+
+func TestAddPublicKey(t *testing.T) {
+	doc := did.Document{}
+	d, _ := didlib.Parse("did:example:123456789abcdefghi")
+	doc.ID = *d
+
+	firstPK := &did.DocPublicKey{
+		ID:              doc.ID,
+		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Controller:      &doc.ID,
+		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
+	}
+
+	// Adding first PK and authentication
+	err := doc.AddPublicKey(firstPK.SetIDFragment(doc.NextKeyFragment()), true)
+	if err != nil {
+		t.Errorf("Should have added first public key")
+	}
+
+	if len(doc.PublicKeys) != 1 {
+		t.Errorf("Should have 1 key")
+	}
+
+	secondPK := &did.DocPublicKey{
+		ID:              doc.ID,
+		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Controller:      &doc.ID,
+		EthereumAddress: "0xf5a27f027125f07fef36871db3c0f68015370589",
+	}
+
+	// Adding second PK
+	err = doc.AddPublicKey(secondPK.SetIDFragment(doc.NextKeyFragment()), false)
+	if err != nil {
+		t.Errorf("Should have added second public key")
+	}
+
+	if len(doc.PublicKeys) != 2 {
+		t.Errorf("Should have 2 keys")
+	}
+	pk2 := doc.PublicKeys[1]
+	if !strings.HasSuffix(pk2.ID.String(), "#keys-2") {
+		t.Errorf("Should have keys-2 fragment")
+	}
+
+	thirdPK := &did.DocPublicKey{
+		ID:              doc.ID,
+		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Controller:      &doc.ID,
+		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
+	}
+
+	// Adding third PK and second authentication
+	err = doc.AddPublicKey(thirdPK.SetIDFragment(doc.NextKeyFragment()), true)
+	if err != nil {
+		t.Errorf("Should have added second public key")
+	}
+
+	if len(doc.PublicKeys) != 3 {
+		t.Errorf("Should have 3 keys")
+	}
+	pk2 = doc.PublicKeys[2]
+	t.Logf("pk = %v\n", pk2.ID.String())
+	if !strings.HasSuffix(pk2.ID.String(), "#keys-3") {
+		t.Errorf("Should have keys-3 fragment")
+	}
+	if len(doc.Authentications) != 2 {
+		t.Errorf("Should have 2 authentications")
+	}
+	auth2 := doc.Authentications[1]
+	if !strings.HasSuffix(auth2.ID.String(), "#keys-3") {
+		t.Errorf("Auth should have keys-3 fragment")
+	}
+
+	d, _ = didlib.Parse("did:example:testme#keys-1")
+	fourthPK := &did.DocPublicKey{
+		ID:              *d,
+		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Controller:      &doc.ID,
+		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
+	}
+
+	// Adding fourth PK
+	err = doc.AddPublicKey(fourthPK.SetIDFragment(doc.NextKeyFragment()), false)
+	if err != nil {
+		t.Errorf("Should have added second public key")
+	}
+	if len(doc.PublicKeys) != 4 {
+		t.Errorf("Should have 4 keys")
+	}
+	pk2 = doc.PublicKeys[3]
+	if !strings.HasSuffix(pk2.ID.String(), "#keys-4") {
+		t.Errorf("Should have keys-4 fragment")
+	}
+
+	bys, _ := json.Marshal(doc)
+	t.Logf("%v", string(bys))
 }
