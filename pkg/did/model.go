@@ -208,7 +208,7 @@ func (d *Document) NextKeyFragment() string {
 
 // DocPublicKey defines a publickey within a DID document
 type DocPublicKey struct {
-	ID                 didlib.DID  `json:"id"`
+	ID                 *didlib.DID `json:"id"`
 	Type               LDSuiteType `json:"type"`
 	Controller         *didlib.DID `json:"controller"`
 	PublicKeyPem       string      `json:"publicKeyPem,omitempty"`
@@ -248,7 +248,7 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to parse did for public key")
 	}
-	p.ID = *id
+	p.ID = id
 
 	if aux.Controller != "" {
 		controller, err := didlib.Parse(aux.Controller)
@@ -291,6 +291,13 @@ type DocAuthenicationWrapper struct {
 	IDOnly bool `json:"-"`
 }
 
+// SetIDFragment sets the ID fragment of the authentication.  For convenience,
+// returns the DocAuthenticationWrapper for inline-ing.
+func (a *DocAuthenicationWrapper) SetIDFragment(fragment string) *DocAuthenicationWrapper {
+	a.ID.Fragment = fragment
+	return a
+}
+
 // UnmarshalJSON implements the Unmarshaler interface for DocAuthenticationWrapper
 func (a *DocAuthenicationWrapper) UnmarshalJSON(b []byte) error {
 	type awAlias DocAuthenicationWrapper
@@ -318,7 +325,7 @@ func (a *DocAuthenicationWrapper) UnmarshalJSON(b []byte) error {
 		return errors.Wrapf(err, "unable to parse auth did: %v", string(b))
 	}
 
-	a.ID = *d
+	a.ID = d
 	a.IDOnly = true
 
 	return nil
