@@ -1,9 +1,6 @@
 package did_test
 
 import (
-	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -101,67 +98,4 @@ func TestServiceSaveGetDocumentErr(t *testing.T) {
 	if doc != nil {
 		t.Errorf("Should have gotten nil document: err: %v", err)
 	}
-}
-
-func TestGenerateEthURIDID(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
-
-	newDID, err := service.GenerateEthURIDID()
-	if err != nil {
-		t.Errorf("Should have not gotten error on DID generation")
-	}
-	if newDID == nil {
-		t.Errorf("Should have not gotten nil DID")
-	}
-	if !strings.HasPrefix(newDID.String(), "did:ethuri:") {
-		t.Errorf("Should have gotten did:ethuri: prefix, '%v'", newDID.String())
-	}
-}
-
-func TestInitializeNewDocument(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
-
-	newDID, err := service.GenerateEthURIDID()
-	if err != nil {
-		t.Errorf("Should have not gotten error on DID generation")
-	}
-	firstPK := &did.DocPublicKey{
-		ID:              *newDID,
-		Type:            did.LDSuiteTypeSecp256k1Verification,
-		Controller:      newDID,
-		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
-	}
-	newDoc, err := service.InitializeNewDocument(newDID, firstPK)
-	if err != nil {
-		t.Errorf("Should not have gotten error generating new doc")
-	}
-
-	if newDoc.ID.String() != newDID.String() {
-		t.Errorf("Should not have gotten same DID")
-	}
-
-	if len(newDoc.PublicKeys) != 1 {
-		t.Errorf("Should have gotten 1 key")
-	}
-
-	pk := newDoc.PublicKeys[0]
-	if pk.ID.String() != fmt.Sprintf("%v#keys-1", newDID.String()) {
-		t.Errorf("Should have gotten key-1 in public key id")
-	}
-
-	if len(newDoc.Authentications) != 1 {
-		t.Errorf("Should have gotten 1 authentication")
-	}
-	auth := newDoc.Authentications[0]
-	if !auth.IDOnly {
-		t.Errorf("Should have gotten ID only")
-	}
-	if auth.ID.String() != fmt.Sprintf("%v#keys-1", newDID.String()) {
-		t.Errorf("Should have gotten key-1 in public key id")
-	}
-
-	bys, _ := json.Marshal(newDoc)
-	t.Logf("%v", string(bys))
 }

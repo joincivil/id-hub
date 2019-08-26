@@ -1,6 +1,7 @@
 POSTGRES_DATA_DIR=postgresdata
 POSTGRES_DOCKER_IMAGE=circleci/postgres:9.6-alpine
 POSTGRES_PORT=5432
+POSTGRES_LOCAL_PORT=5432
 POSTGRES_DB_NAME=development
 POSTGRES_USER=docker
 POSTGRES_PSWD=docker
@@ -83,7 +84,7 @@ ifeq ("$(wildcard $(POSTGRES_DATA_DIR))", "")
 		/bin/bash -c "cp -rp /var/lib/postgresql /tmp/$(POSTGRES_DATA_DIR)"
 endif
 	docker run -e "POSTGRES_USER="$(POSTGRES_USER) -e "POSTGRES_PASSWORD"=$(POSTGRES_PSWD) -e "POSTGRES_DB"=$(POSTGRES_DB_NAME) \
-	    -v $$PWD/$(POSTGRES_DATA_DIR)/postgresql:/var/lib/postgresql -d -p $(POSTGRES_PORT):$(POSTGRES_PORT) \
+	    -v $$PWD/$(POSTGRES_DATA_DIR)/postgresql:/var/lib/postgresql -d -p $(POSTGRES_LOCAL_PORT):$(POSTGRES_PORT) \
 		$(POSTGRES_DOCKER_IMAGE);
 
 .PHONY: postgres-check-available

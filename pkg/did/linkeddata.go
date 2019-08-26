@@ -31,7 +31,7 @@ type LinkedDataProof struct {
 	Type       string    `json:"type"`
 	Creator    string    `json:"creator"`
 	Created    time.Time `json:"created"`
-	ProofValue string    `json:"proofValue"`
+	ProofValue string    `json:"proofValue,omitempty"`
 	Domain     *string   `json:"domain,omitempty"`
 	Nonce      *string   `json:"nonce,omitempty"`
 }

@@ -52,7 +52,7 @@ func BuildTestDocument() *Document {
 	pk1 := DocPublicKey{}
 	pk1ID := fmt.Sprintf("%v#keys-1", testDID)
 	d, _ := didlib.Parse(pk1ID)
-	pk1.ID = *d
+	pk1.ID = d
 	pk1.Type = LDSuiteTypeRsaSignature
 	pk1.Controller = mainDID
 	pk1.PublicKeyPem = "thisisapem"
@@ -73,13 +73,13 @@ func BuildTestDocument() *Document {
 	aw1 := DocAuthenicationWrapper{}
 	aw1ID := fmt.Sprintf("%v#keys-1", testDID)
 	d, _ = didlib.Parse(aw1ID)
-	aw1.ID = *d
+	aw1.ID = d
 	aw1.IDOnly = true
 
 	aw2 := DocAuthenicationWrapper{}
 	aw2ID := fmt.Sprintf("%v#keys-2", testDID)
 	d, _ = didlib.Parse(aw2ID)
-	aw2.ID = *d
+	aw2.ID = d
 	aw2.Type = LDSuiteTypeRsaSignature
 	aw2.Controller = mainDID
 	aw2.PublicKeyPem = "thisisanotherpem"

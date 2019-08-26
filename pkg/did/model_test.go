@@ -292,7 +292,7 @@ func TestAddPublicKey(t *testing.T) {
 	doc.ID = *d
 
 	firstPK := &did.DocPublicKey{
-		ID:              doc.ID,
+		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
 		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
@@ -309,7 +309,7 @@ func TestAddPublicKey(t *testing.T) {
 	}
 
 	secondPK := &did.DocPublicKey{
-		ID:              doc.ID,
+		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
 		EthereumAddress: "0xf5a27f027125f07fef36871db3c0f68015370589",
@@ -330,7 +330,7 @@ func TestAddPublicKey(t *testing.T) {
 	}
 
 	thirdPK := &did.DocPublicKey{
-		ID:              doc.ID,
+		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
 		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
@@ -360,7 +360,7 @@ func TestAddPublicKey(t *testing.T) {
 
 	d, _ = didlib.Parse("did:example:testme#keys-1")
 	fourthPK := &did.DocPublicKey{
-		ID:              *d,
+		ID:              d,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
 		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
@@ -381,4 +381,36 @@ func TestAddPublicKey(t *testing.T) {
 
 	bys, _ := json.Marshal(doc)
 	t.Logf("%v", string(bys))
+}
+
+func TestAddAuthentication(t *testing.T) {
+	doc := did.Document{}
+	d, _ := didlib.Parse("did:example:123456789abcdefghi")
+	doc.ID = *d
+
+	firstPK := did.DocPublicKey{
+		ID:              &doc.ID,
+		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Controller:      &doc.ID,
+		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
+	}
+	firstAuth := &did.DocAuthenicationWrapper{
+		DocPublicKey: firstPK,
+		IDOnly:       false,
+	}
+
+	// Adding first PK and authentication
+	err := doc.AddAuthentication(firstAuth.SetIDFragment(doc.NextKeyFragment()))
+	if err != nil {
+		t.Errorf("Should have added first public key")
+	}
+
+	if len(doc.Authentications) != 1 {
+		t.Errorf("Should have 1 authentication")
+	}
+
+	auth := doc.Authentications[0]
+	if auth.ID.String() != "did:example:123456789abcdefghi#keys-1" {
+		t.Errorf("Should have matching key-1 id: %v", auth.ID.String())
+	}
 }
