@@ -24,6 +24,7 @@ const (
 
 // Document is the base definition of a DID document
 // https://w3c-ccg.github.io/did-spec/#did-documents
+//proteus:generate
 type Document struct {
 	Context         string                    `json:"@context"`
 	ID              didlib.DID                `json:"id"`
@@ -207,6 +208,7 @@ func (d *Document) NextKeyFragment() string {
 }
 
 // DocPublicKey defines a publickey within a DID document
+// proteus:generate
 type DocPublicKey struct {
 	ID                 *didlib.DID `json:"id"`
 	Type               LDSuiteType `json:"type"`
@@ -286,6 +288,7 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 
 // DocAuthenicationWrapper allows us to handle two different types for an authentication
 // value.  This can either be an ID to a public key or a public key.
+// proteus:generate
 type DocAuthenicationWrapper struct {
 	DocPublicKey
 	IDOnly bool `json:"-"`
@@ -351,6 +354,7 @@ func (a *DocAuthenicationWrapper) MarshalJSON() ([]byte, error) {
 }
 
 // DocService defines a service endpoint within a DID document
+// proteus:generate
 type DocService struct {
 	ID          didlib.DID `json:"id"`
 	Type        string     `json:"type"`

@@ -1,0 +1,8 @@
+# https://grpc-ecosystem.github.io/grpc-gateway/docs/grpcapiconfiguration.html
+# Configures the grpc-gateway without altering idhub.proto file
+type: google.api.Service
+config_version: 3
+http:
+  rules:
+    - selector: api.IdHub.GetDID
+      get: /v1/did/{did}

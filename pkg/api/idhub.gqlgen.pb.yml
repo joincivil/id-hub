@@ -1,0 +1,13 @@
+schema:
+- idhub.pb.graphqls
+exec:
+  filename: exec.go
+model:
+  filename: models.go
+models:
+  DidDocument:
+    model:
+    - pkg/api.DidDocument
+  DidInput:
+    model:
+    - pkg/api.Did

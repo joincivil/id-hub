@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package api;
+
+// Interface representing the ID Hub
+service IdHub {
+    rpc GetDID(Did) returns (DidDocument);
+}
+
+// Represents a DID
+message Did {
+    // The DID string itself
+    string did = 1;
+}
+
+message DidDocument {
+    // The DID of the document
+    string id = 1;
+}

@@ -1,0 +1,55 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "idhub.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/did/{did}": {
+      "get": {
+        "operationId": "GetDID",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDidDocument"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "did",
+            "description": "The DID string itself",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "IdHub"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "apiDidDocument": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "The DID of the document"
+        }
+      }
+    }
+  }
+}
