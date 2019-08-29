@@ -1,0 +1,10 @@
+# Base file to allow us to merge and extend these types from multiple graphqls
+# files
+
+type Query {
+    version: String!
+}
+
+type Mutation {
+    version: String!
+}

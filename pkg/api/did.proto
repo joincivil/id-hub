@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package did;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "google/api/annotations.proto";
+import "github.com/danielvladco/go-proto-gql/pb@v0.6.1/gql.proto";
+
+option go_package = "github.com/joincivil/id-hub/pkg/generated/api";
+
+// DID related services
+service DidService {
+    rpc Get(DidGetRequest) returns (DidGetResponse) {
+        option (gql.rpc_type) = QUERY;
+        option (google.api.http) = {
+            get: "/v1/did"
+        };
+    }
+    rpc Save(DidSaveRequest) returns (DidSaveResponse) {
+        option (google.api.http) = {
+            post: "/v1/did"
+            body: "doc"
+        };
+    }
+}
+
+// Represents a request to retrieve a specific DID
+message DidGetRequest {
+    string did = 1;
+}
+
+// Represents a response to retrieve a specific DID
+message DidGetResponse {
+    DidDocument doc = 1;
+}
+
+// Represents a request to save a DID
+message DidSaveRequest {
+    string did = 1;
+    DidDocument doc = 2;
+}
+
+// Represents a response to save a DID
+message DidSaveResponse {
+    DidDocument doc = 1;
+}
+
+// Represents a DID document
+message DidDocument {
+    string id = 1;
+    string context = 2;
+    string controller = 3;
+    repeated DidDocPublicKey public_keys = 4;
+    repeated DidDocAuthentication authentications = 5;
+    repeated DidDocService services = 6;
+    google.protobuf.Timestamp created = 7;
+    google.protobuf.Timestamp updated = 8;
+    LinkedDataProof proof = 9;
+}
+
+// Represents a public key in a DID document
+message DidDocPublicKey {
+    string id = 1;
+    string type = 2;
+    string controller = 3;
+    string public_key_pem = 4;
+    string public_key_jwk  = 5;
+    string public_key_hex  = 6;
+    string public_key_base64 = 7;
+    string public_key_base58 = 8;
+    string public_key_multibase = 9;
+    string ethereum_address = 10;
+}
+
+// Represents an authentication item in a DID document
+message DidDocAuthentication {
+    DidDocPublicKey public_key = 1;
+    bool id_only = 2;
+}
+
+// Represents a service item in a DID document
+message DidDocService {
+    string id = 1;
+    string type = 2;
+    string description = 3;
+    string public_key = 4;
+    google.protobuf.Any service_endpoint = 5;
+}
+
+// Represents a generic LD proof data in a DID document
+message LinkedDataProof {
+    string type = 1;
+    string creator = 2;
+    google.protobuf.Timestamp created = 3;
+    string proof_value = 4;
+    string domain = 5;
+    string nonce = 6;
+}

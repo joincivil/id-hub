@@ -1,0 +1,16 @@
+schema:
+- claim.pb.graphqls
+exec:
+  filename: exec.go
+model:
+  filename: models.go
+models:
+  Claim:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.Claim
+  ClaimGetRequestInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.ClaimGetRequest
+  ClaimGetResponse:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.ClaimGetResponse

@@ -3,6 +3,7 @@ package idhubmain
 import (
 	"fmt"
 
+	"github.com/joincivil/id-hub/pkg/utils"
 	"github.com/pkg/errors"
 
 	log "github.com/golang/glog"
@@ -14,6 +15,16 @@ const (
 	defaultMaxIdleConns = 5
 	defaultMaxOpenConns = 10
 )
+
+func initGorm(config *utils.IDHubConfig) (*gorm.DB, error) {
+	return NewGormPostgres(GormPostgresConfig{
+		Host:     config.PersisterPostgresAddress,
+		Port:     config.PersisterPostgresPort,
+		Dbname:   config.PersisterPostgresDbname,
+		User:     config.PersisterPostgresUser,
+		Password: config.PersisterPostgresPw,
+	})
+}
 
 // GormPostgresConfig is the config struct for initializing a GORM object for
 // Postgres.

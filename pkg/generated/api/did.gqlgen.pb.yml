@@ -1,0 +1,64 @@
+schema:
+- did.pb.graphqls
+exec:
+  filename: exec.go
+model:
+  filename: models.go
+models:
+  Any:
+    model:
+    - github.com/danielvladco/go-proto-gql/pb.Any
+  DidDocAuthentication:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocAuthentication
+  DidDocAuthenticationInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocAuthentication
+  DidDocPublicKey:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocPublicKey
+  DidDocPublicKeyInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocPublicKey
+  DidDocService:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocService
+  DidDocServiceInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocService
+  DidDocument:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocument
+  DidDocumentInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidDocument
+  DidGetRequestInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidGetRequest
+  DidGetResponse:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidGetResponse
+  DidSaveRequestInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidSaveRequest
+  DidSaveResponse:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.DidSaveResponse
+  Int32:
+    model:
+    - github.com/danielvladco/go-proto-gql/pb.Int32
+  Int64:
+    model:
+    - github.com/danielvladco/go-proto-gql/pb.Int64
+  LinkedDataProof:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.LinkedDataProof
+  LinkedDataProofInput:
+    model:
+    - github.com/joincivil/id-hub/pkg/generated/api.LinkedDataProof
+  Timestamp:
+    model:
+    - github.com/golang/protobuf/ptypes/timestamp.Timestamp
+  TimestampInput:
+    model:
+    - github.com/golang/protobuf/ptypes/timestamp.Timestamp

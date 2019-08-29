@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package claim;
+
+// import "google/protobuf/timestamp.proto";
+// import "google/protobuf/any.proto";
+import "google/api/annotations.proto";
+import "github.com/danielvladco/go-proto-gql/pb@v0.6.1/gql.proto";
+
+option go_package = "github.com/joincivil/id-hub/pkg/generated/api";
+
+// Claim related services
+service ClaimService {
+    rpc Get(ClaimGetRequest) returns (ClaimGetResponse) {
+        option (gql.rpc_type) = QUERY;
+        option (google.api.http) = {
+            get: "/v1/claim"
+        };
+    }
+    // rpc Save(ClaimSaveRequest) returns (ClaimSaveResponse) {
+    //     option (google.api.http) = {
+    //         post: "/v1/claim"
+    //         body: "claim"
+    //     };
+    // }
+}
+
+// Represents a request to retrieve a specific claim
+message ClaimGetRequest {
+    string id = 1;
+}
+
+// Represents a response to retrieve a specific claim
+message ClaimGetResponse {
+    Claim claim = 1;
+}
+
+// Represents a verifiable claim
+message Claim {
+    string id = 1;
+    string context = 2;
+    repeated string types = 3;
+}

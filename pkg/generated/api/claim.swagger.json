@@ -1,0 +1,72 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "claim.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/claim": {
+      "get": {
+        "operationId": "Get",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/claimClaimGetResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClaimService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "claimClaim": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Represents a verifiable claim"
+    },
+    "claimClaimGetResponse": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/claimClaim"
+        }
+      },
+      "title": "Represents a response to retrieve a specific claim"
+    }
+  }
+}
