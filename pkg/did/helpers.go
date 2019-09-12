@@ -87,6 +87,12 @@ func CopyDID(d *didlib.DID) *didlib.DID {
 	return cpy
 }
 
+// ValidDid returns true if the given did string is of a valid DID format
+func ValidDid(did string) bool {
+	_, err := didlib.Parse(did)
+	return err == nil
+}
+
 // ValidateBuildDocPublicKey is a convenience function to validate the DocPublicKey
 // and populate a new DocPublicKey with the type and key value. Returns a pre-populated
 // DocPublicKey with the correct type and PublicKey* field populated for that type.

@@ -2,11 +2,14 @@ package api
 
 import (
 	context "context"
-	"fmt"
 	"time"
+
+	log "github.com/golang/glog"
 
 	"github.com/golang/protobuf/ptypes"
 	pwrap "github.com/golang/protobuf/ptypes/wrappers"
+	didlib "github.com/ockam-network/did"
+	"google.golang.org/appengine/log"
 	"google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
@@ -32,8 +35,6 @@ type DidImplementedServer struct {
 
 // Get implements the Get func in the DidServer interface
 func (d *DidImplementedServer) Get(ctx context.Context, req *gapi.DidGetRequest) (*gapi.DidGetResponse, error) {
-	fmt.Println("GET")
-	// TODO(PN): Auth needed here?
 	requestedDid := req.Did
 	if requestedDid == "" {
 		return nil, status.Error(codes.InvalidArgument, "did is empty string")
@@ -59,14 +60,68 @@ func (d *DidImplementedServer) Get(ctx context.Context, req *gapi.DidGetRequest)
 }
 
 // Save implements Save func in the DidServer interface
-func (d *DidImplementedServer) Save(ctx context.Context, req *gapi.DidSaveRequest) (*gapi.DidSaveResponse, error) {
-	// TODO(PN): Auth needed here?
-	response := &gapi.DidSaveResponse{
-		Doc: &gapi.DidDocument{
-			Id: "did:ethuri:12345",
-		},
+func (d *DidImplementedServer) Save(ctx context.Context, req *gapi.DidSaveRequest) (
+	*gapi.DidSaveResponse, error) {
+	// TODO(PN): Auth needed here. Only DID owner (or authorized users in DID doc)
+	// can save and update.
+
+	theDid := req.Did
+	if theDid == "" {
+		return nil, status.Error(codes.InvalidArgument, "did is empty string")
 	}
-	return response, nil
+
+	// Validate the DID
+	if !did.ValidDid(theDid) {
+		return nil, status.Error(codes.InvalidArgument, "did is invalid")
+	}
+
+	// Validate all the PKs in the public key list
+	var pk *did.DocPublicKey
+	pkMap := map[string]int{}
+	for _, pbPk := range req.Doc.PublicKeys {
+		pk = PbPublicKeyToPublicKey(pbPk)
+		if !did.ValidDocPublicKey(pk) {
+			return nil, status.Errorf(codes.InvalidArgument, "pk is invalid: %v", pk.ID.String())
+		}
+		pkMap[pk.ID.String()] = 1
+	}
+
+	// Validate all the PKs in the authentications key list
+	var auth *did.DocAuthenicationWrapper
+	var authDid string
+	for _, pbAuth := range req.Doc.Authentications {
+		auth = PbAuthToAuth(pbAuth)
+		authDid = auth.DocPublicKey.ID.String()
+		if auth.IDOnly {
+			_, ok := pkMap[authDid]
+			if !ok {
+				return nil, status.Errorf(codes.InvalidArgument, "auth pk is not in public keys: %v", authDid)
+			}
+		} else if !did.ValidDocPublicKey(&auth.DocPublicKey) {
+			return nil, status.Errorf(codes.InvalidArgument, "auth pk is invalid: %v", authDid)
+		}
+	}
+
+	doc, err := d.didService.GetDocument(theDid)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get document for did")
+	}
+
+	// If doc is not found for DID, create a new one with a first key
+	if doc == nil {
+		// Validate the first public key, ignore all others for now.
+		// If valid, then save it
+	}
+
+	// If doc is found for DID, add the new key
+
+	// doc := PbDocToDoc(req.Doc)
+	// err := d.didService.SaveDocument(doc)
+	// if err != nil {
+	// 	return nil, status.Error(codes.Internal, "error saving did document")
+	// }
+
+	return nil, nil
 }
 
 // DocToPbDoc converts a core DID document to Protobufs DID document
@@ -149,6 +204,37 @@ func PublicKeyToPbPublicKey(pk *did.DocPublicKey) *gapi.DidDocPublicKey {
 	return pbPk
 }
 
+// PbPublicKeyToPublicKey converts a protobuf public key to core public key
+func PbPublicKeyToPublicKey(pbPk *gapi.DidDocPublicKey) *did.DocPublicKey {
+	pk := &did.DocPublicKey{}
+
+	d, err := didlib.Parse(pbPk.Id)
+	if err != nil {
+		log.Errorf("Did not parse DID properly: err: %v", err)
+	}
+
+	pk.ID = d
+	pk.Type = did.LDSuiteType(pbPk.Type)
+
+	if pbPk.Controller != "" {
+		d, err = didlib.Parse(pbPk.Controller)
+		if err != nil {
+			log.Errorf("Did not parse controller DID properly: err: %v", err)
+		}
+		pk.Controller = d
+	}
+
+	pk.PublicKeyPem = pbPk.PublicKeyPem
+	pk.PublicKeyJwk = pbPk.PublicKeyJwk
+	pk.PublicKeyHex = pbPk.PublicKeyHex
+	pk.PublicKeyBase64 = pbPk.PublicKeyBase64
+	pk.PublicKeyBase58 = pbPk.PublicKeyBase58
+	pk.PublicKeyMultibase = pbPk.PublicKeyMultibase
+	pk.EthereumAddress = pbPk.EthereumAddress
+
+	return pk
+}
+
 // AuthToPbAuth converts a core auth to a protobuf auth
 func AuthToPbAuth(auth *did.DocAuthenicationWrapper) *gapi.DidDocAuthentication {
 	pbAuth := &gapi.DidDocAuthentication{}
@@ -157,6 +243,16 @@ func AuthToPbAuth(auth *did.DocAuthenicationWrapper) *gapi.DidDocAuthentication 
 	pbAuth.IdOnly = auth.IDOnly
 
 	return pbAuth
+}
+
+// PbAuthToAuth converts a protobuf auth to a core auth struct
+func PbAuthToAuth(pbAuth *gapi.DidDocAuthentication) *did.DocAuthenicationWrapper {
+	pb := &did.DocAuthenicationWrapper{}
+
+	pb.DocPublicKey = *PbPublicKeyToPublicKey(pbAuth.PublicKey)
+	pb.IDOnly = pbAuth.IdOnly
+
+	return pb
 }
 
 // ServiceToPbService converts a core service to a protobuf auth

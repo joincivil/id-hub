@@ -32,7 +32,7 @@ require (
 	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b // indirect
 	golang.org/x/tools v0.0.0-20190910165522-3cd124fa3ebb // indirect
 	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/appengine v1.6.2 // indirect
+	google.golang.org/appengine v1.6.2
 	google.golang.org/genproto v0.0.0-20190905072037-92dd089d5514
 	google.golang.org/grpc v1.23.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect

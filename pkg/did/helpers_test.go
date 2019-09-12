@@ -105,6 +105,21 @@ func TestCopyDID(t *testing.T) {
 	}
 }
 
+func TestValidDid(t *testing.T) {
+	if did.ValidDid("notavaliddid") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if did.ValidDid("") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if did.ValidDid("uri:123345") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if !did.ValidDid("did:uri:123345") {
+		t.Errorf("Should have returned true as valid did")
+	}
+}
+
 func TestValidDocPublicKey(t *testing.T) {
 	valid := did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
