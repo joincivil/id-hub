@@ -1,0 +1,38 @@
+schema:
+  - base.graphql
+  - did.graphql
+  - claim.graphql
+
+exec:
+  filename: exec_gen.go
+  package: graphql
+
+model:
+  filename: model_gen.go
+  package: graphql
+
+models:
+  DidDocument:
+    model:
+      - github.com/joincivil/id-hub/pkg/did.Document
+  DidDocAuthentication:
+    model:
+      - github.com/joincivil/id-hub/pkg/did.DocAuthenicationWrapper
+  DidDocPublicKey:
+    model:
+      - github.com/joincivil/id-hub/pkg/did.DocPublicKey
+  DidDocService:
+    model:
+      - github.com/joincivil/id-hub/pkg/did.DocService
+  LinkedDataProof:
+    model:
+      - github.com/joincivil/id-hub/pkg/did.LinkedDataProof
+  AnyValue:
+    model:
+      - github.com/joincivil/id-hub/pkg/utils.AnyValue
+  DidGetResponse:
+    model:
+      - github.com/joincivil/id-hub/pkg/graphql.DidGetResponse
+  DidSaveResponse:
+    model:
+      - github.com/joincivil/id-hub/pkg/graphql.DidSaveResponse

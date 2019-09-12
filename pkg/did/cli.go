@@ -22,7 +22,7 @@ func GenerateDIDCli(pubKeyType LDSuiteType, pubKeyFile string, didPersister Pers
 		return nil, errors.New("invalid pub key type")
 	}
 
-	doc, err := GenerateNewDocument(firstPK)
+	doc, err := GenerateNewDocument(firstPK, true, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing new did document")
 	}

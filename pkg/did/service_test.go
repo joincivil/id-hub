@@ -99,3 +99,44 @@ func TestServiceSaveGetDocumentErr(t *testing.T) {
 		t.Errorf("Should have gotten nil document: err: %v", err)
 	}
 }
+
+func TestCreateOrUpdateDocumentCreate(t *testing.T) {
+	service, db := initService(t)
+	defer db.DropTable(&did.PostgresDocument{})
+
+	doc := did.BuildTestDocument()
+
+	newDoc, err := service.CreateOrUpdateDocument(
+		&did.CreateOrUpdateParams{
+			PublicKeys:       doc.PublicKeys,
+			Auths:            doc.Authentications,
+			Services:         doc.Services,
+			KeepKeyFragments: true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+	}
+
+	if len(doc.PublicKeys) != len(newDoc.PublicKeys) {
+		t.Error("Should have had same number of public keys")
+	}
+	if len(doc.Authentications) != len(newDoc.Authentications) {
+		t.Error("Should have had same number of authentications")
+	}
+	if len(newDoc.Authentications) != 2 {
+		t.Error("Should have had 2 authentications")
+	}
+	if newDoc.Authentications[0].ID.Fragment != "keys-1" {
+		t.Error("Should have had been keys-1")
+	}
+	if newDoc.Authentications[1].ID.Fragment != "keys-2" {
+		t.Error("Should have had been keys-2")
+	}
+	if len(doc.Services) != len(newDoc.Services) {
+		t.Error("Should have had same number of services")
+	}
+	if doc.ID.String() == "" {
+		t.Error("Should have initialized a DID")
+	}
+}

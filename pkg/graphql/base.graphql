@@ -1,0 +1,10 @@
+# Base GraphQL Schema
+# All the other schemas will extend on this base schema
+
+type Query {
+    version: String!
+}
+
+type Mutation {
+    version: String!
+}

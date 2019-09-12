@@ -1,0 +1,19 @@
+# Claim specific schema
+
+extend type Query {
+	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
+}
+
+input ClaimGetRequestInput {
+	id: String
+}
+
+type Claim {
+	id: String
+	context: String
+	types: [String!]
+}
+
+type ClaimGetResponse {
+	claim: Claim
+}

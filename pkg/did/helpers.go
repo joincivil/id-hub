@@ -18,7 +18,8 @@ import (
 // key for the DID. Sets the public key into the publicKeys field and adds a
 // reference to the key to the authentication field. If firstPK has an empty ID
 // field, will populate it with the new DID.
-func GenerateNewDocument(firstPK *DocPublicKey) (*Document, error) {
+func GenerateNewDocument(firstPK *DocPublicKey, addRefToAuth bool,
+	addFragment bool) (*Document, error) {
 	if !ValidDocPublicKey(firstPK) {
 		return nil, errors.New("invalid doc public key")
 	}
@@ -34,7 +35,7 @@ func GenerateNewDocument(firstPK *DocPublicKey) (*Document, error) {
 		firstPK.Controller = CopyDID(newDID)
 	}
 
-	doc, err := InitializeNewDocument(newDID, firstPK)
+	doc, err := InitializeNewDocument(newDID, firstPK, addRefToAuth, addFragment)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing new did document")
 	}
@@ -52,7 +53,8 @@ func GenerateEthURIDID() (*didlib.DID, error) {
 
 // InitializeNewDocument generates a simple version of a DID document given
 // the DID and an initial public key.
-func InitializeNewDocument(did *didlib.DID, firstPK *DocPublicKey) (*Document, error) {
+func InitializeNewDocument(did *didlib.DID, firstPK *DocPublicKey, addRefToAuth bool,
+	addFragment bool) (*Document, error) {
 	if !ValidDocPublicKey(firstPK) {
 		return nil, errors.New("invalid doc public key")
 	}
@@ -66,11 +68,12 @@ func InitializeNewDocument(did *didlib.DID, firstPK *DocPublicKey) (*Document, e
 		Controller:      did,
 		PublicKeys:      []DocPublicKey{},
 		Authentications: []DocAuthenicationWrapper{},
+		Services:        []DocService{},
 		Created:         &created,
 		Updated:         &updated,
 	}
 
-	err := doc.AddPublicKey(firstPK.SetIDFragment(doc.NextKeyFragment()), true)
+	err := doc.AddPublicKey(firstPK, addRefToAuth, addFragment)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +90,12 @@ func CopyDID(d *didlib.DID) *didlib.DID {
 	return cpy
 }
 
+// ValidDid returns true if the given did string is of a valid DID format
+func ValidDid(did string) bool {
+	_, err := didlib.Parse(did)
+	return err == nil
+}
+
 // ValidateBuildDocPublicKey is a convenience function to validate the DocPublicKey
 // and populate a new DocPublicKey with the type and key value. Returns a pre-populated
 // DocPublicKey with the correct type and PublicKey* field populated for that type.
@@ -94,7 +103,7 @@ func CopyDID(d *didlib.DID) *didlib.DID {
 func ValidateBuildDocPublicKey(keyType LDSuiteType, keyValue string) *DocPublicKey {
 	pk := &DocPublicKey{
 		Type:         keyType,
-		PublicKeyHex: keyValue,
+		PublicKeyHex: &keyValue,
 	}
 	if !ValidDocPublicKey(pk) {
 		return nil
@@ -109,12 +118,12 @@ func ValidDocPublicKey(pk *DocPublicKey) bool {
 	// Supports only Secp256k1 hex keys for now
 	switch pk.Type {
 	case LDSuiteTypeSecp256k1Verification:
-		if pk.PublicKeyHex == "" {
+		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
 			log.Errorf("publicKeyHex is not populated for SECP256k1")
 			return false
 		}
 		// Hex keys do not have 0x prefix
-		bys, err := hex.DecodeString(pk.PublicKeyHex)
+		bys, err := hex.DecodeString(*pk.PublicKeyHex)
 		if err != nil {
 			log.Errorf("unable to decode pub key hex str for SECP256k1: err: %v", err)
 			return false

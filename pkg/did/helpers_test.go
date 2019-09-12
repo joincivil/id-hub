@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/utils"
 )
 
 const (
@@ -16,10 +17,10 @@ const (
 func TestGenerateNewDocument(t *testing.T) {
 	pk := &did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
-		PublicKeyHex: testKeyVal,
+		PublicKeyHex: utils.StrToPtr(testKeyVal),
 	}
 
-	doc, err := did.GenerateNewDocument(pk)
+	doc, err := did.GenerateNewDocument(pk, true, true)
 	if err != nil {
 		t.Fatalf("Should not have returned error for generating a new doc: err: %v", err)
 	}
@@ -59,9 +60,9 @@ func TestInitializeNewDocument(t *testing.T) {
 		ID:           did.CopyDID(newDID),
 		Type:         did.LDSuiteTypeSecp256k1Verification,
 		Controller:   did.CopyDID(newDID),
-		PublicKeyHex: testKeyVal,
+		PublicKeyHex: utils.StrToPtr(string(testKeyVal)),
 	}
-	newDoc, err := did.InitializeNewDocument(newDID, firstPK)
+	newDoc, err := did.InitializeNewDocument(newDID, firstPK, true, true)
 	if err != nil {
 		t.Errorf("Should not have gotten error generating new doc")
 	}
@@ -105,10 +106,25 @@ func TestCopyDID(t *testing.T) {
 	}
 }
 
+func TestValidDid(t *testing.T) {
+	if did.ValidDid("notavaliddid") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if did.ValidDid("") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if did.ValidDid("uri:123345") {
+		t.Errorf("Should not have returned true as valid did")
+	}
+	if !did.ValidDid("did:uri:123345") {
+		t.Errorf("Should have returned true as valid did")
+	}
+}
+
 func TestValidDocPublicKey(t *testing.T) {
 	valid := did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
-		PublicKeyHex: testKeyVal,
+		PublicKeyHex: utils.StrToPtr(testKeyVal),
 	})
 	if !valid {
 		t.Errorf("Should have been a valid key")
@@ -116,7 +132,7 @@ func TestValidDocPublicKey(t *testing.T) {
 
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
-		PublicKeyHex: "thisisinvalid",
+		PublicKeyHex: utils.StrToPtr("thisisinvalid"),
 	})
 	if valid {
 		t.Errorf("Should have been a invalid key")
@@ -125,7 +141,7 @@ func TestValidDocPublicKey(t *testing.T) {
 	// malformed public hex key value
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
-		PublicKeyHex: "046539bd140ab14032735641692cbc3e7b52ef9e367887f4f2fd53942c870a5279c8639a511d9965c56c13fc7b00e636ecf0ea77237dd3e363a31ce95a06e58081",
+		PublicKeyHex: utils.StrToPtr("046539bd140ab14032735641692cbc3e7b52ef9e367887f4f2fd53942c870a5279c8639a511d9965c56c13fc7b00e636ecf0ea77237dd3e363a31ce95a06e58081"),
 	})
 	if valid {
 		t.Errorf("Should have been a invalid key")
@@ -133,7 +149,7 @@ func TestValidDocPublicKey(t *testing.T) {
 
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeSecp256k1Verification,
-		PublicKeyHex: "",
+		PublicKeyHex: utils.StrToPtr(""),
 	})
 	if valid {
 		t.Errorf("Should have been a invalid key")
@@ -141,7 +157,7 @@ func TestValidDocPublicKey(t *testing.T) {
 
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
 		Type:         did.LDSuiteTypeEd25519Signature,
-		PublicKeyHex: testKeyVal,
+		PublicKeyHex: utils.StrToPtr(testKeyVal),
 	})
 	if valid {
 		t.Errorf("Should have been a invalid key")
@@ -162,7 +178,7 @@ func TestValidateBuildDocPublicKey(t *testing.T) {
 		t.Errorf("should have been set to secp251k verification")
 	}
 
-	if docPK.PublicKeyHex != testKeyVal {
+	if *docPK.PublicKeyHex != testKeyVal {
 		t.Errorf("should have been set to hex field")
 	}
 

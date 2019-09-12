@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/utils"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -295,11 +296,11 @@ func TestAddPublicKey(t *testing.T) {
 		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
-		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
+		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
 	}
 
 	// Adding first PK and authentication
-	err := doc.AddPublicKey(firstPK.SetIDFragment(doc.NextKeyFragment()), true)
+	err := doc.AddPublicKey(firstPK, true, true)
 	if err != nil {
 		t.Errorf("Should have added first public key")
 	}
@@ -312,11 +313,11 @@ func TestAddPublicKey(t *testing.T) {
 		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
-		EthereumAddress: "0xf5a27f027125f07fef36871db3c0f68015370589",
+		EthereumAddress: utils.StrToPtr("0xf5a27f027125f07fef36871db3c0f68015370589"),
 	}
 
 	// Adding second PK
-	err = doc.AddPublicKey(secondPK.SetIDFragment(doc.NextKeyFragment()), false)
+	err = doc.AddPublicKey(secondPK, false, true)
 	if err != nil {
 		t.Errorf("Should have added second public key")
 	}
@@ -333,11 +334,11 @@ func TestAddPublicKey(t *testing.T) {
 		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
-		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
+		EthereumAddress: utils.StrToPtr("0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
 
 	// Adding third PK and second authentication
-	err = doc.AddPublicKey(thirdPK.SetIDFragment(doc.NextKeyFragment()), true)
+	err = doc.AddPublicKey(thirdPK, true, true)
 	if err != nil {
 		t.Errorf("Should have added second public key")
 	}
@@ -346,7 +347,6 @@ func TestAddPublicKey(t *testing.T) {
 		t.Errorf("Should have 3 keys")
 	}
 	pk2 = doc.PublicKeys[2]
-	t.Logf("pk = %v\n", pk2.ID.String())
 	if !strings.HasSuffix(pk2.ID.String(), "#keys-3") {
 		t.Errorf("Should have keys-3 fragment")
 	}
@@ -363,11 +363,11 @@ func TestAddPublicKey(t *testing.T) {
 		ID:              d,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
-		EthereumAddress: "0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3",
+		EthereumAddress: utils.StrToPtr("0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
 
 	// Adding fourth PK
-	err = doc.AddPublicKey(fourthPK.SetIDFragment(doc.NextKeyFragment()), false)
+	err = doc.AddPublicKey(fourthPK, false, true)
 	if err != nil {
 		t.Errorf("Should have added second public key")
 	}
@@ -378,9 +378,6 @@ func TestAddPublicKey(t *testing.T) {
 	if !strings.HasSuffix(pk2.ID.String(), "#keys-4") {
 		t.Errorf("Should have keys-4 fragment")
 	}
-
-	bys, _ := json.Marshal(doc)
-	t.Logf("%v", string(bys))
 }
 
 func TestAddAuthentication(t *testing.T) {
@@ -392,7 +389,7 @@ func TestAddAuthentication(t *testing.T) {
 		ID:              &doc.ID,
 		Type:            did.LDSuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
-		EthereumAddress: "0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB",
+		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
 	}
 	firstAuth := &did.DocAuthenicationWrapper{
 		DocPublicKey: firstPK,
@@ -400,13 +397,13 @@ func TestAddAuthentication(t *testing.T) {
 	}
 
 	// Adding first PK and authentication
-	err := doc.AddAuthentication(firstAuth.SetIDFragment(doc.NextKeyFragment()))
+	err := doc.AddAuthentication(firstAuth, true)
 	if err != nil {
-		t.Errorf("Should have added first public key")
+		t.Errorf("Should have added first auth: err: %v", err)
 	}
 
 	if len(doc.Authentications) != 1 {
-		t.Errorf("Should have 1 authentication")
+		t.Fatalf("Should have 1 authentication: err: %v", len(doc.Authentications))
 	}
 
 	auth := doc.Authentications[0]

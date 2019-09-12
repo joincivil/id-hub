@@ -25,17 +25,6 @@ DOCKER:=$(shell command -v docker 2> /dev/null)
 APT:=$(shell command -v apt-get 2> /dev/null)
 GOVERCURRENT=$(shell go version |awk {'print $$3'})
 
-## List of expected dirs for generated code
-GENERATED_DIR=pkg/generated
-GENERATED_WATCHER_DIR=$(GENERATED_DIR)/watcher
-GENERATED_FILTERER_DIR=$(GENERATED_DIR)/filterer
-GENERATED_COMMON_DIR=$(GENERATED_DIR)/common
-GENERATED_HANDLER_LIST_DIR=$(GENERATED_DIR)/handlerlist
-
-## Civil specific commands
-EVENTHANDLER_GEN_MAIN=cmd/eventhandlergen/main.go
-HANDLERLIST_GEN_MAIN=cmd/handlerlistgen/main.go
-
 # curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin vX.Y.Z
 GOLANGCILINT_URL=https://install.goreleaser.com/github.com/golangci/golangci-lint.sh
 GOLANGCILINT_VERSION_TAG=v1.16.0
