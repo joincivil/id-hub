@@ -68,6 +68,7 @@ func BuildTestDocument() *Document {
 	ep1.ID = *d2
 	ep1.Type = "CredentialRepositoryService"
 	ep1.ServiceEndpoint = "https://repository.example.com/service/8377464"
+	ep1.ServiceEndpointURI = utils.StrToPtr("https://repository.example.com/service/8377464")
 
 	doc.Services = []DocService{ep1}
 

@@ -264,7 +264,6 @@ func TestDocumentModelStringify(t *testing.T) {
 	if !strings.Contains(stringified, "updated") {
 		t.Errorf("Should have returned the correct string")
 	}
-	t.Logf("string = %v", stringified)
 }
 
 func TestNextKeyFragment(t *testing.T) {
@@ -293,9 +292,9 @@ func TestAddPublicKey(t *testing.T) {
 	doc.ID = *d
 
 	firstPK := &did.DocPublicKey{
-		ID:              &doc.ID,
+		ID:              did.CopyDID(&doc.ID),
 		Type:            did.LDSuiteTypeSecp256k1Verification,
-		Controller:      &doc.ID,
+		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
 	}
 
@@ -310,9 +309,9 @@ func TestAddPublicKey(t *testing.T) {
 	}
 
 	secondPK := &did.DocPublicKey{
-		ID:              &doc.ID,
+		ID:              did.CopyDID(&doc.ID),
 		Type:            did.LDSuiteTypeSecp256k1Verification,
-		Controller:      &doc.ID,
+		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0xf5a27f027125f07fef36871db3c0f68015370589"),
 	}
 
@@ -331,11 +330,12 @@ func TestAddPublicKey(t *testing.T) {
 	}
 
 	thirdPK := &did.DocPublicKey{
-		ID:              &doc.ID,
+		ID:              did.CopyDID(&doc.ID),
 		Type:            did.LDSuiteTypeSecp256k1Verification,
-		Controller:      &doc.ID,
+		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
+	fmt.Printf("thirdpk: %+v\n", thirdPK)
 
 	// Adding third PK and second authentication
 	err = doc.AddPublicKey(thirdPK, true, true)
@@ -360,11 +360,12 @@ func TestAddPublicKey(t *testing.T) {
 
 	d, _ = didlib.Parse("did:example:testme#keys-1")
 	fourthPK := &did.DocPublicKey{
-		ID:              d,
+		ID:              did.CopyDID(d),
 		Type:            did.LDSuiteTypeSecp256k1Verification,
-		Controller:      &doc.ID,
-		EthereumAddress: utils.StrToPtr("0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
+		Controller:      did.CopyDID(&doc.ID),
+		EthereumAddress: utils.StrToPtr("0xaad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
+	fmt.Printf("fourthpk: %+v\n", fourthPK)
 
 	// Adding fourth PK
 	err = doc.AddPublicKey(fourthPK, false, true)
@@ -372,7 +373,7 @@ func TestAddPublicKey(t *testing.T) {
 		t.Errorf("Should have added second public key")
 	}
 	if len(doc.PublicKeys) != 4 {
-		t.Errorf("Should have 4 keys")
+		t.Errorf("Should have 4 keys: %v", len(doc.PublicKeys))
 	}
 	pk2 = doc.PublicKeys[3]
 	if !strings.HasSuffix(pk2.ID.String(), "#keys-4") {

@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/testutils"
+	"github.com/joincivil/id-hub/pkg/utils"
 )
 
 func initPersister(t *testing.T) (did.Persister, *gorm.DB) {
@@ -122,7 +123,7 @@ func TestCreateOrUpdateDocumentCreate(t *testing.T) {
 		t.Error("Should have had same number of public keys")
 	}
 	if len(doc.Authentications) != len(newDoc.Authentications) {
-		t.Error("Should have had same number of authentications")
+		t.Errorf("Should have had same number of authentications")
 	}
 	if len(newDoc.Authentications) != 2 {
 		t.Error("Should have had 2 authentications")
@@ -139,4 +140,41 @@ func TestCreateOrUpdateDocumentCreate(t *testing.T) {
 	if doc.ID.String() == "" {
 		t.Error("Should have initialized a DID")
 	}
+}
+
+func TestCreateOrUpdateDocumentUpdate(t *testing.T) {
+	service, db := initService(t)
+	defer db.DropTable(&did.PostgresDocument{})
+
+	doc := did.BuildTestDocument()
+
+	newDoc, err := service.CreateOrUpdateDocument(
+		&did.CreateOrUpdateParams{
+			PublicKeys:       doc.PublicKeys,
+			Auths:            doc.Authentications,
+			Services:         doc.Services,
+			KeepKeyFragments: true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+	}
+
+	updatedDoc, err := service.CreateOrUpdateDocument(
+		&did.CreateOrUpdateParams{
+			Did:              utils.StrToPtr(newDoc.ID.String()),
+			PublicKeys:       newDoc.PublicKeys,
+			Auths:            newDoc.Authentications,
+			Services:         newDoc.Services,
+			KeepKeyFragments: true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+	}
+
+	if len(updatedDoc.PublicKeys) != len(doc.PublicKeys) {
+		t.Errorf("Should have not added additional public keys")
+	}
+
 }

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/golang/glog"
+
 	"github.com/joincivil/go-common/pkg/eth"
 	"github.com/joincivil/id-hub/pkg/utils"
 	"github.com/pkg/errors"
@@ -125,7 +127,11 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment
 		pk.SetIDFragment(d.NextKeyFragment())
 	}
 
-	// TODO(PN): Check to see if the keys already exists, if so, don't add it
+	// If pk already exists, return
+	if PublicKeyInSlice(*pk, d.PublicKeys) {
+		log.Infof("Public key is already in document: %+v", *pk)
+		return nil
+	}
 
 	// Add new key to end of the list of keys
 	d.PublicKeys = append(d.PublicKeys, *pk)
@@ -154,7 +160,12 @@ func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment 
 		auth.SetIDFragment(d.NextKeyFragment())
 	}
 
-	// TODO(PN): Check to see if the auth already exists, if so, don't add it
+	// If auth already exists, return
+	if AuthInSlice(*auth, d.Authentications) {
+		log.Infof("Auth is already in document: %+v", *auth)
+		return nil
+	}
+
 	if auth.IDOnly {
 		found := false
 		// Ensure our public key exists for this reference
@@ -184,7 +195,11 @@ func (d *Document) AddService(srv *DocService) error {
 		return errors.Errorf("no service fragment found, required: %v", srv.ID.String())
 	}
 
-	// TODO(PN): Check to see if the service already exists, if so, don't add it
+	// If service already exists, return
+	if ServiceInSlice(*srv, d.Services) {
+		log.Infof("Service is already in document: %+v", *srv)
+		return nil
+	}
 
 	// Add service to the list of services
 	d.Services = append(d.Services, *srv)

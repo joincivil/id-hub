@@ -139,3 +139,129 @@ func ValidDocPublicKey(pk *DocPublicKey) bool {
 	}
 	return false
 }
+
+// PublicKeyInSlice checks to see if a DocPublicKey is in a slice of DocPublicKeys
+// XXX(PN): ugh, should be an easier way to handle the key fields here.
+func PublicKeyInSlice(pk DocPublicKey, pks []DocPublicKey) bool {
+	keyFields := []*string{
+		pk.PublicKeyPem,
+		pk.PublicKeyJwk,
+		pk.PublicKeyHex,
+		pk.PublicKeyBase64,
+		pk.PublicKeyBase58,
+		pk.PublicKeyMultibase,
+		pk.EthereumAddress,
+	}
+
+	var sKeyFields []*string
+	var skf *string
+
+	for _, sPk := range pks {
+		sKeyFields = []*string{
+			sPk.PublicKeyPem,
+			sPk.PublicKeyJwk,
+			sPk.PublicKeyHex,
+			sPk.PublicKeyBase64,
+			sPk.PublicKeyBase58,
+			sPk.PublicKeyMultibase,
+			sPk.EthereumAddress,
+		}
+
+		if pk.Type == sPk.Type {
+			for ind, kf := range keyFields {
+				skf = sKeyFields[ind]
+				if kf != nil && *kf != "" && *kf == *skf {
+					return true
+				}
+
+			}
+		}
+	}
+	return false
+}
+
+// AuthInSlice checks to see if a DocAuthenticationWrapper is in a slice of
+// DocAuthenticationWrapper
+// XXX(PN): ugh, there should be an easier way to handle the key fields here.
+func AuthInSlice(auth DocAuthenicationWrapper, auths []DocAuthenicationWrapper) bool {
+	if auth.IDOnly {
+		for _, sAuth := range auths {
+			if auth.DocPublicKey.ID.String() == sAuth.DocPublicKey.ID.String() {
+				return true
+			}
+		}
+		return false
+	}
+
+	keyFields := []*string{
+		auth.DocPublicKey.PublicKeyPem,
+		auth.DocPublicKey.PublicKeyJwk,
+		auth.DocPublicKey.PublicKeyHex,
+		auth.DocPublicKey.PublicKeyBase64,
+		auth.DocPublicKey.PublicKeyBase58,
+		auth.DocPublicKey.PublicKeyMultibase,
+		auth.DocPublicKey.EthereumAddress,
+	}
+
+	var sKeyFields []*string
+	var skf *string
+	var authKey DocPublicKey
+	var sAuthKey DocPublicKey
+
+	for _, sAuth := range auths {
+		sKeyFields = []*string{
+			sAuth.DocPublicKey.PublicKeyPem,
+			sAuth.DocPublicKey.PublicKeyJwk,
+			sAuth.DocPublicKey.PublicKeyHex,
+			sAuth.DocPublicKey.PublicKeyBase64,
+			sAuth.DocPublicKey.PublicKeyBase58,
+			sAuth.DocPublicKey.PublicKeyMultibase,
+			sAuth.DocPublicKey.EthereumAddress,
+		}
+
+		authKey = auth.DocPublicKey
+		sAuthKey = sAuth.DocPublicKey
+
+		if authKey.Type == sAuthKey.Type {
+			for ind, kf := range keyFields {
+				skf = sKeyFields[ind]
+				if kf != nil && *kf != "" && *kf == *skf {
+					return true
+				}
+
+			}
+		}
+	}
+	return false
+}
+
+// ServiceInSlice checks to see if a DocService is in a slice of
+// DocService
+func ServiceInSlice(srv DocService, srvs []DocService) bool {
+	var matches bool
+
+	for _, sSrv := range srvs {
+		if srv.Type == sSrv.Type {
+			if srv.ServiceEndpointURI != nil && srv.ServiceEndpointURI == sSrv.ServiceEndpointURI {
+				return true
+
+			} else if srv.ServiceEndpointLD != nil && sSrv.ServiceEndpointLD != nil {
+				if len(sSrv.ServiceEndpointLD) == len(srv.ServiceEndpointLD) {
+					return true
+				}
+
+				matches = true
+				for key := range sSrv.ServiceEndpointLD {
+					if srv.ServiceEndpointLD[key] != sSrv.ServiceEndpointLD[key] {
+						matches = false
+					}
+				}
+
+				if matches {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

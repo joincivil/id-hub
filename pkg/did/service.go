@@ -1,8 +1,6 @@
 package did
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
 	didlib "github.com/ockam-network/did"
@@ -116,10 +114,29 @@ func (s *Service) updateDocumentFromParams(p *CreateOrUpdateParams) (*Document, 
 		return nil, errors.New("no did found to update")
 	}
 
-	// TODO(PN): Add public keys
-	// TODO(PN): Add auths
-	// TODO(PN): Add services
-	// TODO(PN): Add proof
+	for _, pk := range p.PublicKeys {
+		err = doc.AddPublicKey(&pk, false, !p.KeepKeyFragments)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add public key")
+		}
+	}
+
+	for _, auth := range p.Auths {
+		err = doc.AddAuthentication(&auth, !p.KeepKeyFragments)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add authentication")
+		}
+	}
+
+	for _, srv := range p.Services {
+		err = doc.AddService(&srv)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add service")
+		}
+	}
+
+	// Update proof
+	doc.Proof = p.Proof
 
 	return doc, nil
 }
@@ -145,10 +162,9 @@ func (s *Service) createNewDocumentFromParams(p *CreateOrUpdateParams) (*Documen
 
 	// Add the auths
 	for _, auth := range p.Auths {
-		fmt.Printf("pete10: auth: %v\n", auth.ID.String())
 		err = doc.AddAuthentication(&auth, !p.KeepKeyFragments)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to add authentication")
+			return nil, errors.Wrap(err, "unable to add auth")
 		}
 	}
 
