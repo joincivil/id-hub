@@ -20,9 +20,6 @@ import (
 // field, will populate it with the new DID.
 func GenerateNewDocument(firstPK *DocPublicKey, addRefToAuth bool,
 	addFragment bool) (*Document, error) {
-	if !ValidDocPublicKey(firstPK) {
-		return nil, errors.New("invalid doc public key")
-	}
 
 	newDID, err := GenerateEthURIDID()
 	if err != nil {
@@ -33,6 +30,10 @@ func GenerateNewDocument(firstPK *DocPublicKey, addRefToAuth bool,
 	if firstPK.ID == nil {
 		firstPK.ID = newDID
 		firstPK.Controller = CopyDID(newDID)
+	}
+
+	if !ValidDocPublicKey(firstPK) {
+		return nil, errors.New("invalid doc public key")
 	}
 
 	doc, err := InitializeNewDocument(newDID, firstPK, addRefToAuth, addFragment)
@@ -96,27 +97,13 @@ func ValidDid(did string) bool {
 	return err == nil
 }
 
-// ValidateBuildDocPublicKey is a convenience function to validate the DocPublicKey
-// and populate a new DocPublicKey with the type and key value. Returns a pre-populated
-// DocPublicKey with the correct type and PublicKey* field populated for that type.
-// ID and other fields are not set.
-func ValidateBuildDocPublicKey(keyType LDSuiteType, keyValue string) *DocPublicKey {
-	pk := &DocPublicKey{
-		Type:         keyType,
-		PublicKeyHex: &keyValue,
-	}
-	if !ValidDocPublicKey(pk) {
-		return nil
-	}
-	return pk
-}
-
 // ValidDocPublicKey ensures that the given DocPublicKey is of a supported type,
 // has a valid key for that type and is using the correct public key field.
 // Returns true if it is valid, false if not.
 func ValidDocPublicKey(pk *DocPublicKey) bool {
 	// Supports only Secp256k1 hex keys for now
 	// TODO(PN): Add more support here based on our needs
+	goodKey := false
 	switch pk.Type {
 	case LDSuiteTypeSecp256k1Verification:
 		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
@@ -135,10 +122,21 @@ func ValidDocPublicKey(pk *DocPublicKey) bool {
 			log.Errorf("invalid pub key value for SECP256k1: err: %v", err)
 			return false
 		}
-
-		return true
+		goodKey = true
 	}
-	return false
+
+	// Controller is required for public keys
+	if pk.Controller == nil || pk.Controller.String() == "" {
+		log.Errorf("controller is required for public key")
+		return false
+	}
+
+	if pk.ID == nil || pk.ID.String() == "" {
+		log.Errorf("id is required for public key")
+		return false
+	}
+
+	return true && goodKey
 }
 
 // PublicKeyInSlice checks to see if a DocPublicKey is in a slice of DocPublicKeys

@@ -110,7 +110,7 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 		docAlias: (*docAlias)(d),
 	}
 
-	if d.Controller != nil {
+	if d.Controller != nil && d.Controller.String() != "" {
 		aux.Controller = d.Controller.String()
 	}
 
@@ -120,8 +120,8 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 // AddPublicKey adds another public key.
 // If addRefToAuth is true, also adds a reference to the key in the authentication field.
 func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment bool) error {
-	// If key is not given on public key,
-	// then add it with the next available key fragment
+	// If ID is not given on public key, then add the doc owner ID by default and
+	// add the next available key fragment value.
 	// Overrides addFragment bool. if specific ID is needed, set ID/fragment before adding.
 	if pk.ID == nil {
 		pk.ID = CopyDID(&d.ID)
@@ -135,6 +135,12 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment
 			// Increment the standard "keys-"
 			pk.SetIDFragment(d.NextKeyFragment())
 		}
+	}
+
+	// If controller is not set, set it to the doc owner ID by default. If you want
+	// something else, needs to be passed in.
+	if pk.Controller == nil {
+		pk.Controller = CopyDID(&d.ID)
 	}
 
 	// If pk already exists, return
@@ -176,6 +182,14 @@ func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment 
 		} else if addFragment {
 			// Increment the standard "keys-"
 			auth.SetIDFragment(d.NextKeyFragment())
+		}
+	}
+
+	if !auth.IDOnly {
+		// If controller is not set if auth is key, set it to the doc owner ID
+		// by default. If you want something else, needs to be passed in.
+		if auth.Controller == nil {
+			auth.Controller = CopyDID(&d.ID)
 		}
 	}
 
@@ -348,7 +362,7 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 		pkAlias: (*pkAlias)(p),
 	}
 
-	if p.Controller != nil {
+	if p.Controller != nil && p.Controller.String() != "" {
 		aux.Controller = p.Controller.String()
 	}
 

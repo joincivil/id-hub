@@ -123,7 +123,12 @@ func TestValidDid(t *testing.T) {
 }
 
 func TestValidDocPublicKey(t *testing.T) {
+	d, _ := didlib.Parse("did:ethuri:123456#keys-1")
+	controller1, _ := didlib.Parse("did:ethuri:123456")
+
 	valid := did.ValidDocPublicKey(&did.DocPublicKey{
+		ID:           d,
+		Controller:   controller1,
 		Type:         did.LDSuiteTypeSecp256k1Verification,
 		PublicKeyHex: utils.StrToPtr(testKeyVal),
 	})
@@ -132,6 +137,8 @@ func TestValidDocPublicKey(t *testing.T) {
 	}
 
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
+		ID:           d,
+		Controller:   controller1,
 		Type:         did.LDSuiteTypeSecp256k1Verification,
 		PublicKeyHex: utils.StrToPtr("thisisinvalid"),
 	})
@@ -141,6 +148,8 @@ func TestValidDocPublicKey(t *testing.T) {
 
 	// malformed public hex key value
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
+		ID:           d,
+		Controller:   controller1,
 		Type:         did.LDSuiteTypeSecp256k1Verification,
 		PublicKeyHex: utils.StrToPtr("046539bd140ab14032735641692cbc3e7b52ef9e367887f4f2fd53942c870a5279c8639a511d9965c56c13fc7b00e636ecf0ea77237dd3e363a31ce95a06e58081"),
 	})
@@ -149,8 +158,20 @@ func TestValidDocPublicKey(t *testing.T) {
 	}
 
 	valid = did.ValidDocPublicKey(&did.DocPublicKey{
+		ID:           d,
+		Controller:   controller1,
 		Type:         did.LDSuiteTypeSecp256k1Verification,
 		PublicKeyHex: utils.StrToPtr(""),
+	})
+	if valid {
+		t.Errorf("Should have been a invalid key")
+	}
+
+	valid = did.ValidDocPublicKey(&did.DocPublicKey{
+		ID:           d,
+		Controller:   controller1,
+		Type:         did.LDSuiteTypeEd25519Signature,
+		PublicKeyHex: utils.StrToPtr(testKeyVal),
 	})
 	if valid {
 		t.Errorf("Should have been a invalid key")
@@ -163,26 +184,15 @@ func TestValidDocPublicKey(t *testing.T) {
 	if valid {
 		t.Errorf("Should have been a invalid key")
 	}
-}
 
-func TestValidateBuildDocPublicKey(t *testing.T) {
-	docPK := did.ValidateBuildDocPublicKey(
-		did.LDSuiteTypeSecp256k1Verification,
-		testKeyVal,
-	)
-
-	if docPK == nil {
-		t.Errorf("should not have received nil doc public key")
+	valid = did.ValidDocPublicKey(&did.DocPublicKey{
+		Controller:   controller1,
+		Type:         did.LDSuiteTypeEd25519Signature,
+		PublicKeyHex: utils.StrToPtr(testKeyVal),
+	})
+	if valid {
+		t.Errorf("Should have been a invalid key")
 	}
-
-	if docPK.Type != did.LDSuiteTypeSecp256k1Verification {
-		t.Errorf("should have been set to secp251k verification")
-	}
-
-	if *docPK.PublicKeyHex != testKeyVal {
-		t.Errorf("should have been set to hex field")
-	}
-
 }
 
 func TestPublicKeyInSlice(t *testing.T) {

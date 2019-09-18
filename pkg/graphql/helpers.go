@@ -96,9 +96,9 @@ func InputServiceToDocService(in *DidDocServiceInput) *did.DocService {
 	return srv
 }
 
-// ValidateConvertInputPublicKeys validates and converts public key input to core
+// ConvertInputPublicKeys validates and converts public key input to core
 // did.DocPublicKey values. Also returns a map of public key ids for lookup
-func ValidateConvertInputPublicKeys(in []*DidDocPublicKeyInput) ([]did.DocPublicKey,
+func ConvertInputPublicKeys(in []*DidDocPublicKeyInput) ([]did.DocPublicKey,
 	map[string]int, error) {
 	if in == nil {
 		return nil, nil, nil
@@ -110,10 +110,6 @@ func ValidateConvertInputPublicKeys(in []*DidDocPublicKeyInput) ([]did.DocPublic
 
 	for ind, inPk := range in {
 		pk = InputPkToDocPublicKey(inPk)
-		if !did.ValidDocPublicKey(pk) {
-			return nil, nil, errors.New("pk is invalid")
-		}
-
 		if pk.ID != nil {
 			pkMap[pkMapKey(pk)] = 1
 		}
@@ -124,10 +120,10 @@ func ValidateConvertInputPublicKeys(in []*DidDocPublicKeyInput) ([]did.DocPublic
 	return pks, pkMap, nil
 }
 
-// ValidateConvertInputAuthentications validates and converts auth key input to core
+// ConvertInputAuthentications validates and converts auth key input to core
 // did.DocAuthenticationWrapper values. Take map of pk to verify they exist for use
 // with auth.
-func ValidateConvertInputAuthentications(in []*DidDocAuthenticationInput,
+func ConvertInputAuthentications(in []*DidDocAuthenticationInput,
 	pkMap map[string]int) ([]did.DocAuthenicationWrapper, error) {
 	if in == nil {
 		return nil, nil
@@ -146,8 +142,6 @@ func ValidateConvertInputAuthentications(in []*DidDocAuthenticationInput,
 					return nil, errors.Errorf("auth pk is not in public keys: %v", authDid)
 				}
 			}
-		} else if !did.ValidDocPublicKey(&auth.DocPublicKey) {
-			return nil, errors.Errorf("auth pk is invalid: %v", authDid)
 		}
 		auths[ind] = *auth
 	}
@@ -155,17 +149,15 @@ func ValidateConvertInputAuthentications(in []*DidDocAuthenticationInput,
 	return auths, nil
 }
 
-// ValidateConvertInputServices validates and converts input services to core did.DocService
+// ConvertInputServices validates and converts input services to core did.DocService
 // objects.
-func ValidateConvertInputServices(in []*DidDocServiceInput) ([]did.DocService, error) {
+func ConvertInputServices(in []*DidDocServiceInput) ([]did.DocService, error) {
 	if in == nil {
 		return nil, nil
 	}
 
 	var srv *did.DocService
 	srvs := make([]did.DocService, len(in))
-
-	// TODO(PN): validation
 
 	for ind, inAuth := range in {
 		srv = InputServiceToDocService(inAuth)
@@ -175,16 +167,14 @@ func ValidateConvertInputServices(in []*DidDocServiceInput) ([]did.DocService, e
 	return srvs, nil
 }
 
-// ValidateConvertInputProof validates and converts linked data proof input to
+// ConvertInputProof validates and converts linked data proof input to
 // a core linked data proof.
-func ValidateConvertInputProof(in *LinkedDataProofInput) (*did.LinkedDataProof, error) {
+func ConvertInputProof(in *LinkedDataProofInput) (*did.LinkedDataProof, error) {
 	if in == nil {
 		return nil, nil
 	}
 
 	ldp := &did.LinkedDataProof{}
-
-	// TODO(PN): validation
 
 	ldp.Type = utils.StrOrEmptyStr(in.Type)
 	ldp.Creator = utils.StrOrEmptyStr(in.Creator)
@@ -200,5 +190,9 @@ func ValidateConvertInputProof(in *LinkedDataProofInput) (*did.LinkedDataProof, 
 }
 
 func pkMapKey(pk *did.DocPublicKey) string {
-	return fmt.Sprintf("%v-%v", pk.ID.String(), pk.Type)
+	id := "new"
+	if pk.ID != nil && pk.ID.String() != "" {
+		id = pk.ID.String()
+	}
+	return fmt.Sprintf("%v-%v", id, pk.Type)
 }

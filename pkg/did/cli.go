@@ -17,9 +17,9 @@ func GenerateDIDCli(pubKeyType LDSuiteType, pubKeyFile string, didPersister Pers
 		return nil, errors.Wrap(err, "error getting key from file")
 	}
 
-	firstPK := ValidateBuildDocPublicKey(pubKeyType, pubKeyValue)
-	if firstPK == nil {
-		return nil, errors.New("invalid pub key type")
+	firstPK := &DocPublicKey{
+		Type:         pubKeyType,
+		PublicKeyHex: &pubKeyValue,
 	}
 
 	doc, err := GenerateNewDocument(firstPK, true, true)

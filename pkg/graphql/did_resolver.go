@@ -55,25 +55,25 @@ func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput)
 	// Auth needed here, DID owner only
 
 	// Validate/convert all the PKs in the public key list and create a slice of pks
-	pks, pkMap, err := ValidateConvertInputPublicKeys(in.PublicKeys)
+	pks, pkMap, err := ConvertInputPublicKeys(in.PublicKeys)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate/convert all the PKs in the authentications key list
-	auths, err := ValidateConvertInputAuthentications(in.Authentications, pkMap)
+	auths, err := ConvertInputAuthentications(in.Authentications, pkMap)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate/convert all the doc services in the services key list
-	srvs, err := ValidateConvertInputServices(in.Services)
+	srvs, err := ConvertInputServices(in.Services)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate/convert proof
-	proof, err := ValidateConvertInputProof(in.Proof)
+	proof, err := ConvertInputProof(in.Proof)
 	if err != nil {
 		return nil, err
 	}
