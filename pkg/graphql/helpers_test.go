@@ -8,7 +8,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
-func TestValidateConvertInputPublicKeys(t *testing.T) {
+func TestConvertInputPublicKeys(t *testing.T) {
 	inputPk1 := &graphql.DidDocPublicKeyInput{
 		ID:           utils.StrToPtr("did:ethuri:123456"),
 		Controller:   utils.StrToPtr("did:ethuri:123456"),
@@ -17,7 +17,7 @@ func TestValidateConvertInputPublicKeys(t *testing.T) {
 	}
 	inputPks := []*graphql.DidDocPublicKeyInput{inputPk1}
 
-	pks, pkMap, err := graphql.ValidateConvertInputPublicKeys(inputPks)
+	pks, pkMap, err := graphql.ConvertInputPublicKeys(inputPks)
 	if err != nil {
 		t.Errorf("Should not have gotten error: err: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestValidateConvertInputPublicKeys(t *testing.T) {
 	}
 }
 
-func TestValidateConvertInputAuthentications(t *testing.T) {
+func TestConvertInputAuthentications(t *testing.T) {
 	inputPk1 := &graphql.DidDocPublicKeyInput{
 		ID:           utils.StrToPtr("did:ethuri:123456"),
 		Controller:   utils.StrToPtr("did:ethuri:123456"),
@@ -43,7 +43,7 @@ func TestValidateConvertInputAuthentications(t *testing.T) {
 	}
 	inputAuths := []*graphql.DidDocAuthenticationInput{inputAuth1}
 
-	auths, err := graphql.ValidateConvertInputAuthentications(inputAuths, map[string]int{})
+	auths, err := graphql.ConvertInputAuthentications(inputAuths, map[string]int{})
 	if err != nil {
 		t.Errorf("Should not have gotten error: err: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestValidateConvertInputAuthentications(t *testing.T) {
 	}
 }
 
-func TestValidateConvertInputServices(t *testing.T) {
+func TestConvertInputServices(t *testing.T) {
 	inputSrv1 := &graphql.DidDocServiceInput{
 		ID:              utils.StrToPtr("did:ethuri:123456#vcr"),
 		Type:            utils.StrToPtr("CredentialRepositoryService"),
@@ -61,7 +61,7 @@ func TestValidateConvertInputServices(t *testing.T) {
 	}
 	inputSrvs := []*graphql.DidDocServiceInput{inputSrv1}
 
-	srvs, err := graphql.ValidateConvertInputServices(inputSrvs)
+	srvs, err := graphql.ConvertInputServices(inputSrvs)
 	if err != nil {
 		t.Errorf("Should not have gotten error: err: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestValidateConvertInputServices(t *testing.T) {
 	}
 }
 
-func TestValidateConvertInputProof(t *testing.T) {
+func TestConvertInputProof(t *testing.T) {
 	ts := time.Now()
 	inputProof := &graphql.LinkedDataProofInput{
 		Type:       utils.StrToPtr("LinkedDataSignature2015"),
@@ -79,7 +79,7 @@ func TestValidateConvertInputProof(t *testing.T) {
 		ProofValue: utils.StrToPtr("thisisasignature value"),
 	}
 
-	_, err := graphql.ValidateConvertInputProof(inputProof)
+	_, err := graphql.ConvertInputProof(inputProof)
 	if err != nil {
 		t.Errorf("Should not have gotten error: err: %v", err)
 	}

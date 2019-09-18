@@ -241,7 +241,8 @@ func ServiceInSlice(srv DocService, srvs []DocService) bool {
 
 	for _, sSrv := range srvs {
 		if srv.Type == sSrv.Type {
-			if srv.ServiceEndpointURI != nil && srv.ServiceEndpointURI == sSrv.ServiceEndpointURI {
+			if srv.ServiceEndpointURI != nil && sSrv.ServiceEndpointURI != nil &&
+				*srv.ServiceEndpointURI == *sSrv.ServiceEndpointURI {
 				return true
 
 			} else if srv.ServiceEndpointLD != nil && sSrv.ServiceEndpointLD != nil {
