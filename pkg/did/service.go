@@ -147,7 +147,7 @@ func (s *Service) createNewDocumentFromParams(p *CreateOrUpdateParams) (*Documen
 	}
 
 	// Generate a new document with the first key
-	doc, err := GenerateNewDocument(&p.PublicKeys[0], false, !p.KeepKeyFragments)
+	doc, err := GenerateNewDocument(&p.PublicKeys[0], true, !p.KeepKeyFragments)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to generate new did document")
 	}

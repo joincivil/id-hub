@@ -116,6 +116,7 @@ func ValidateBuildDocPublicKey(keyType LDSuiteType, keyValue string) *DocPublicK
 // Returns true if it is valid, false if not.
 func ValidDocPublicKey(pk *DocPublicKey) bool {
 	// Supports only Secp256k1 hex keys for now
+	// TODO(PN): Add more support here based on our needs
 	switch pk.Type {
 	case LDSuiteTypeSecp256k1Verification:
 		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {

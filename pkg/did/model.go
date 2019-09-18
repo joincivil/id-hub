@@ -120,11 +120,21 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 // AddPublicKey adds another public key.
 // If addRefToAuth is true, also adds a reference to the key in the authentication field.
 func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment bool) error {
-	if !addFragment && pk.ID.Fragment == "" {
-		return errors.Errorf("no key id fragment found: %v", pk.ID.String())
-	} else if addFragment {
-		// Increment the standard "keys-"
+	// If key is not given on public key,
+	// then add it with the next available key fragment
+	// Overrides addFragment bool. if specific ID is needed, set ID/fragment before adding.
+	if pk.ID == nil {
+		pk.ID = CopyDID(&d.ID)
 		pk.SetIDFragment(d.NextKeyFragment())
+
+	} else {
+		if !addFragment && pk.ID.Fragment == "" {
+			return errors.Errorf("no key id fragment found: %v", pk.ID.String())
+
+		} else if addFragment {
+			// Increment the standard "keys-"
+			pk.SetIDFragment(d.NextKeyFragment())
+		}
 	}
 
 	// If pk already exists, return
@@ -153,11 +163,20 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment
 // AddAuthentication adds another authentication value to the list.  Could be
 // just a reference to an existing key or a key only used for authentication
 func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment bool) error {
-	if !addFragment && auth.ID.Fragment == "" {
-		return errors.Errorf("no auth key id fragment found: %v", auth.ID.String())
-	} else if addFragment {
-		// Increment the standard "keys-"
+	// If key is not given on public key,
+	// then add it with the next available key fragment
+	// Overrides addFragment bool. if specific ID is needed, set ID/fragment before adding.
+	if auth.ID == nil {
+		auth.ID = CopyDID(&d.ID)
 		auth.SetIDFragment(d.NextKeyFragment())
+
+	} else {
+		if !addFragment && auth.ID.Fragment == "" {
+			return errors.Errorf("no auth key id fragment found: %v", auth.ID.String())
+		} else if addFragment {
+			// Increment the standard "keys-"
+			auth.SetIDFragment(d.NextKeyFragment())
+		}
 	}
 
 	// If auth already exists, return
@@ -191,6 +210,10 @@ func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment 
 
 // AddService adds another service value to the doc.
 func (d *Document) AddService(srv *DocService) error {
+	if srv.ID.String() == "" {
+		return errors.Errorf("no service id found, required")
+	}
+
 	if srv.ID.Fragment == "" {
 		return errors.Errorf("no service fragment found, required: %v", srv.ID.String())
 	}
@@ -267,6 +290,10 @@ type DocPublicKey struct {
 // SetIDFragment sets the ID fragment of the public key.  For convenience,
 // returns the DocPublicKey for inline-ing.
 func (p *DocPublicKey) SetIDFragment(fragment string) *DocPublicKey {
+	// if p.ID == nil {
+	// 	log.Errorf("public key ID is nil, not setting ID fragment")
+	// 	return p
+	// }
 	p.ID.Fragment = fragment
 	return p
 }
