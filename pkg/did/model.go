@@ -9,7 +9,10 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/golang/glog"
+
 	"github.com/joincivil/go-common/pkg/eth"
+	"github.com/joincivil/id-hub/pkg/utils"
 	"github.com/pkg/errors"
 
 	didlib "github.com/ockam-network/did"
@@ -44,7 +47,8 @@ func (d Document) String() string {
 	}
 
 	buf.WriteString(fmt.Sprintf("num keys: %v, ", len(d.PublicKeys)))
-	buf.WriteString(fmt.Sprintf("num auth: %v, ", len(d.Authentications)))
+	buf.WriteString(fmt.Sprintf("num auths: %v, ", len(d.Authentications)))
+	buf.WriteString(fmt.Sprintf("num services: %v, ", len(d.Services)))
 
 	if d.Proof != nil {
 		buf.WriteString(fmt.Sprintf("proof: %v, ", d.Proof.ProofValue))
@@ -106,7 +110,7 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 		docAlias: (*docAlias)(d),
 	}
 
-	if d.Controller != nil {
+	if d.Controller != nil && d.Controller.String() != "" {
 		aux.Controller = d.Controller.String()
 	}
 
@@ -115,9 +119,34 @@ func (d *Document) MarshalJSON() ([]byte, error) {
 
 // AddPublicKey adds another public key.
 // If addRefToAuth is true, also adds a reference to the key in the authentication field.
-func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool) error {
-	if pk.ID.Fragment == "" {
-		return errors.Errorf("no key id fragment found: %v", pk.ID.String())
+func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment bool) error {
+	// If ID is not given on public key, then add the doc owner ID by default and
+	// add the next available key fragment value.
+	// Overrides addFragment bool. if specific ID is needed, set ID/fragment before adding.
+	if pk.ID == nil {
+		pk.ID = CopyDID(&d.ID)
+		pk.SetIDFragment(d.NextKeyFragment())
+
+	} else {
+		if !addFragment && pk.ID.Fragment == "" {
+			return errors.Errorf("no key id fragment found: %v", pk.ID.String())
+
+		} else if addFragment {
+			// Increment the standard "keys-"
+			pk.SetIDFragment(d.NextKeyFragment())
+		}
+	}
+
+	// If controller is not set, set it to the doc owner ID by default. If you want
+	// something else, needs to be passed in.
+	if pk.Controller == nil {
+		pk.Controller = CopyDID(&d.ID)
+	}
+
+	// If pk already exists, return
+	if PublicKeyInSlice(*pk, d.PublicKeys) {
+		log.Infof("Public key is already in document: %+v", *pk)
+		return nil
 	}
 
 	// Add new key to end of the list of keys
@@ -139,9 +168,35 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool) error {
 
 // AddAuthentication adds another authentication value to the list.  Could be
 // just a reference to an existing key or a key only used for authentication
-func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper) error {
-	if auth.ID.Fragment == "" {
-		return errors.Errorf("no auth key id fragment found: %v", auth.ID.String())
+func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment bool) error {
+	// If key is not given on public key,
+	// then add it with the next available key fragment
+	// Overrides addFragment bool. if specific ID is needed, set ID/fragment before adding.
+	if auth.ID == nil {
+		auth.ID = CopyDID(&d.ID)
+		auth.SetIDFragment(d.NextKeyFragment())
+
+	} else {
+		if !addFragment && auth.ID.Fragment == "" {
+			return errors.Errorf("no auth key id fragment found: %v", auth.ID.String())
+		} else if addFragment {
+			// Increment the standard "keys-"
+			auth.SetIDFragment(d.NextKeyFragment())
+		}
+	}
+
+	if !auth.IDOnly {
+		// If controller is not set if auth is key, set it to the doc owner ID
+		// by default. If you want something else, needs to be passed in.
+		if auth.Controller == nil {
+			auth.Controller = CopyDID(&d.ID)
+		}
+	}
+
+	// If auth already exists, return
+	if AuthInSlice(*auth, d.Authentications) {
+		log.Infof("Auth is already in document: %+v", *auth)
+		return nil
 	}
 
 	if auth.IDOnly {
@@ -150,15 +205,41 @@ func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper) error {
 		for _, k := range d.PublicKeys {
 			if auth.ID.String() == k.ID.String() {
 				found = true
+				break
 			}
 		}
 		if !found {
-			return errors.Errorf("authentication reference has no matching key: %v", auth.ID.String())
+			return errors.Errorf("auth ref reference has no matching key: %v", auth.ID.String())
 		}
 	}
 
 	// Add authentication to the list of authentications
 	d.Authentications = append(d.Authentications, *auth)
+
+	updated := time.Now().UTC()
+	d.Updated = &updated
+
+	return nil
+}
+
+// AddService adds another service value to the doc.
+func (d *Document) AddService(srv *DocService) error {
+	if srv.ID.String() == "" {
+		return errors.Errorf("no service id found, required")
+	}
+
+	if srv.ID.Fragment == "" {
+		return errors.Errorf("no service fragment found, required: %v", srv.ID.String())
+	}
+
+	// If service already exists, return
+	if ServiceInSlice(*srv, d.Services) {
+		log.Infof("Service is already in document: %+v", *srv)
+		return nil
+	}
+
+	// Add service to the list of services
+	d.Services = append(d.Services, *srv)
 
 	updated := time.Now().UTC()
 	d.Updated = &updated
@@ -211,18 +292,22 @@ type DocPublicKey struct {
 	ID                 *didlib.DID `json:"id"`
 	Type               LDSuiteType `json:"type"`
 	Controller         *didlib.DID `json:"controller"`
-	PublicKeyPem       string      `json:"publicKeyPem,omitempty"`
-	PublicKeyJwk       string      `json:"publicKeyJwk,omitempty"`
-	PublicKeyHex       string      `json:"publicKeyHex,omitempty"`
-	PublicKeyBase64    string      `json:"publicKeyBase64,omitempty"`
-	PublicKeyBase58    string      `json:"publicKeyBase58,omitempty"`
-	PublicKeyMultibase string      `json:"publicKeyMultibase,omitempty"`
-	EthereumAddress    string      `json:"ethereumAddress,omitempty"`
+	PublicKeyPem       *string     `json:"publicKeyPem,omitempty"`
+	PublicKeyJwk       *string     `json:"publicKeyJwk,omitempty"`
+	PublicKeyHex       *string     `json:"publicKeyHex,omitempty"`
+	PublicKeyBase64    *string     `json:"publicKeyBase64,omitempty"`
+	PublicKeyBase58    *string     `json:"publicKeyBase58,omitempty"`
+	PublicKeyMultibase *string     `json:"publicKeyMultibase,omitempty"`
+	EthereumAddress    *string     `json:"ethereumAddress,omitempty"`
 }
 
 // SetIDFragment sets the ID fragment of the public key.  For convenience,
 // returns the DocPublicKey for inline-ing.
 func (p *DocPublicKey) SetIDFragment(fragment string) *DocPublicKey {
+	// if p.ID == nil {
+	// 	log.Errorf("public key ID is nil, not setting ID fragment")
+	// 	return p
+	// }
 	p.ID.Fragment = fragment
 	return p
 }
@@ -258,8 +343,8 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 		p.Controller = controller
 	}
 
-	if p.EthereumAddress != "" {
-		p.EthereumAddress = eth.NormalizeEthAddress(p.EthereumAddress)
+	if p.EthereumAddress != nil && *p.EthereumAddress != "" {
+		p.EthereumAddress = utils.StrToPtr(eth.NormalizeEthAddress(*p.EthereumAddress))
 	}
 
 	return nil
@@ -277,7 +362,7 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 		pkAlias: (*pkAlias)(p),
 	}
 
-	if p.Controller != nil {
+	if p.Controller != nil && p.Controller.String() != "" {
 		aux.Controller = p.Controller.String()
 	}
 
@@ -355,6 +440,7 @@ type DocService struct {
 	ID          didlib.DID `json:"id"`
 	Type        string     `json:"type"`
 	Description string     `json:"description,omitempty"`
+	PublicKey   string     `json:"publicKey,omitempty"`
 	// DocServiceEndpoint could be a JSON-LD object or a URI
 	// https://github.com/piprate/json-gold
 	// string or map[string]interface{}
@@ -364,6 +450,25 @@ type DocService struct {
 	// Use these to access the values for DocServiceEndpoint
 	ServiceEndpointURI *string                `json:"-"`
 	ServiceEndpointLD  map[string]interface{} `json:"-"`
+}
+
+// PopulateServiceEndpointVals populate the ServiceEndpointURI or ServiceEdnpointLD
+// based on the ServiceEndpoint interface{} value.
+func (s *DocService) PopulateServiceEndpointVals() error {
+	// Validate types for service endpoint.  Can either be a string (URI)
+	// or a JSON-LD object
+	switch val := s.ServiceEndpoint.(type) {
+	case string:
+		// valid type for URIs
+		s.ServiceEndpointURI = &val
+	case map[string]interface{}:
+		// valid type
+		// TODO: do more for validation of JSON-LD
+		s.ServiceEndpointLD = val
+	default:
+		return errors.Errorf("invalid type for service endpoint value: %T", val)
+	}
+	return nil
 }
 
 // UnmarshalJSON implements the Unmarshaler interface for DocService
@@ -387,18 +492,9 @@ func (s *DocService) UnmarshalJSON(b []byte) error {
 	}
 	s.ID = *id
 
-	// Validate types for service endpoint.  Can either be a string (URI)
-	// or a JSON-LD object
-	switch val := s.ServiceEndpoint.(type) {
-	case string:
-		// valid type for URIs
-		s.ServiceEndpointURI = &val
-	case map[string]interface{}:
-		// valid type
-		// TODO: do more for validation of JSON-LD
-		s.ServiceEndpointLD = val
-	default:
-		return errors.Errorf("invalid type for service endpoint value: %T", val)
+	err = s.PopulateServiceEndpointVals()
+	if err != nil {
+		return errors.Wrap(err, "unable to populate endpoint values")
 	}
 
 	return nil
