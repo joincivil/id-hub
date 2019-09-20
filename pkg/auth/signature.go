@@ -77,5 +77,8 @@ func SignEcdsaRequestMessage(privKey *ecdsa.PrivateKey, did string, reqTs int) (
 // RequestMessage returns the default message to be signed for API
 // requests
 func RequestMessage(did string, reqTs int) string {
+	if did == "" {
+		return fmt.Sprintf("request @ %v", reqTs)
+	}
 	return fmt.Sprintf("%v request @ %v", did, reqTs)
 }
