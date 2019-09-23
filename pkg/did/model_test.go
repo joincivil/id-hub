@@ -121,8 +121,6 @@ func TestDocumentModelMarshal(t *testing.T) {
 	if !strings.Contains(jsonStr, "controller") {
 		t.Errorf("Should have contained controller")
 	}
-
-	t.Logf("jsonstr = %v", jsonStr)
 }
 
 func TestDocumentModelUnmarshal(t *testing.T) {

@@ -101,30 +101,6 @@ func ValidDid(did string) bool {
 // has a valid key for that type and is using the correct public key field.
 // Returns true if it is valid, false if not.
 func ValidDocPublicKey(pk *DocPublicKey) bool {
-	// Supports only Secp256k1 hex keys for now
-	// TODO(PN): Add more support here based on our needs
-	goodKey := false
-	switch pk.Type {
-	case LDSuiteTypeSecp256k1Verification:
-		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
-			log.Errorf("publicKeyHex is not populated for SECP256k1")
-			return false
-		}
-		// Hex keys do not have 0x prefix
-		bys, err := hex.DecodeString(*pk.PublicKeyHex)
-		if err != nil {
-			log.Errorf("unable to decode pub key hex str for SECP256k1: err: %v", err)
-			return false
-		}
-		// Try to unmarshal to ensure valid key
-		_, err = crypto.UnmarshalPubkey(bys)
-		if err != nil {
-			log.Errorf("invalid pub key value for SECP256k1: err: %v", err)
-			return false
-		}
-		goodKey = true
-	}
-
 	// Controller is required for public keys
 	if pk.Controller == nil || pk.Controller.String() == "" {
 		log.Errorf("controller is required for public key")
@@ -136,7 +112,45 @@ func ValidDocPublicKey(pk *DocPublicKey) bool {
 		return false
 	}
 
-	return true && goodKey
+	// Supports only Secp256k1 hex keys for now
+	keyBys, err := KeyFromType(pk)
+	if err != nil {
+		log.Errorf("error getting key from type: err: %v", err)
+		return false
+	}
+	if keyBys == nil {
+		log.Errorf("error getting key from type")
+		return false
+	}
+
+	return keyBys != nil
+}
+
+// KeyFromType returns the correct key as a string given the public key type.
+// For instance, get the PublicKeyHex field if the key type is
+// LDSuiteTypeSecp256k1Verification
+func KeyFromType(pk *DocPublicKey) (*string, error) {
+	// Supports only Secp256k1 hex keys for now
+	// TODO(PN): Add more support here based on our needs
+	switch pk.Type {
+	case LDSuiteTypeSecp256k1Verification:
+		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
+			return nil, errors.New("publicKeyHex is not populated for SECP256k1")
+		}
+		bys, err := hex.DecodeString(*pk.PublicKeyHex)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not decode the hex for SECP256k1")
+		}
+		// Try to unmarshal to ensure valid key
+		_, err = crypto.UnmarshalPubkey(bys)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid pub key value for SECP256k1: err: %v", err)
+		}
+
+		return pk.PublicKeyHex, nil
+	}
+
+	return nil, errors.Errorf("unsupported key type: %v", pk.Type)
 }
 
 // PublicKeyInSlice checks to see if a DocPublicKey is in a slice of DocPublicKeys

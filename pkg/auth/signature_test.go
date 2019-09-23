@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -26,9 +27,10 @@ func TestSignVerifyEcdsaRequestSignature(t *testing.T) {
 
 	// Verify this signature is valid
 	pubKeyBys := crypto.FromECDSAPub(&pk.PublicKey)
-	verified, err := auth.VerifyEcdsaRequestSignature(string(pubKeyBys), signature, did, reqTs)
+	pubKeyHex := hex.EncodeToString(pubKeyBys)
+	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
 	if err != nil {
-		t.Errorf("Should not have returned error when verifying")
+		t.Errorf("Should not have returned error when verifying: err: %v", err)
 	}
 	if !verified {
 		t.Errorf("Should have verified this signature")
@@ -51,9 +53,10 @@ func TestSignVerifyEcdsaRequestSignatureGracePeriod(t *testing.T) {
 	}
 
 	pubKeyBys := crypto.FromECDSAPub(&pk.PublicKey)
-	verified, err := auth.VerifyEcdsaRequestSignature(string(pubKeyBys), signature, did, reqTs)
+	pubKeyHex := hex.EncodeToString(pubKeyBys)
+	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
 	if err != nil {
-		t.Errorf("Should not have returned error when verifying")
+		t.Errorf("Should not have returned error when verifying: err: %v", err)
 	}
 	if verified {
 		t.Errorf("Should have not verified this signature")
@@ -69,7 +72,7 @@ func TestSignVerifyEcdsaRequestSignatureGracePeriod(t *testing.T) {
 		t.Fatalf("Should have returned a non-empty signature")
 	}
 
-	verified, err = auth.VerifyEcdsaRequestSignature(string(pubKeyBys), signature, did, reqTs)
+	verified, err = auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
 	if err != nil {
 		t.Errorf("Should not have returned error when verifying")
 	}

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 
 	log "github.com/golang/glog"
@@ -12,7 +13,76 @@ import (
 
 	ceth "github.com/joincivil/go-common/pkg/eth"
 	ctime "github.com/joincivil/go-common/pkg/time"
+
+	"github.com/joincivil/id-hub/pkg/did"
 )
+
+const (
+	defaultGracePeriod = 60 * 5 // 5 mins
+)
+
+// VerifyEcdsaRequestSignatureWithDid checks the did document for keys and
+// verifies the signatures using the public keys
+func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType did.LDSuiteType,
+	signature string, ts int, didStr string) error {
+	doc, err := ds.GetDocument(didStr)
+	if err != nil {
+		return errors.Wrapf(err, "did not found for %v", didStr)
+	}
+	if doc == nil {
+		return errors.Errorf("did doc not found for %v", didStr)
+	}
+	return VerifyEcdsaRequestSignatureWithPks(doc.PublicKeys, keyType, signature, ts, didStr)
+}
+
+// VerifyEcdsaRequestSignatureWithPks checks a slice of public keys for a
+// verification key type and verifies the signature against keys of those types.
+// didStr only affects the signed request message value and can be omitted (look at
+// RequestMessage for more details).
+func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType did.LDSuiteType,
+	signature string, ts int, didStr string) error {
+	var err error
+	var retErr error
+	var pubKey *string
+	var valid bool
+	verified := false
+
+	if len(pks) == 0 {
+		return errors.New("no publickeys found")
+	}
+
+KeyLoop:
+	for _, key := range pks {
+		if key.Type == keyType {
+			pubKey, err = did.KeyFromType(&key)
+			if err != nil {
+				log.Errorf("Error getting key from type: err: %v", err)
+				retErr = err
+				continue
+			}
+
+			valid, err = VerifyEcdsaRequestSignature(*pubKey, signature, didStr, ts)
+			if err != nil {
+				log.Errorf("Error verifying signature: err: %v", err)
+				retErr = err
+			}
+
+			if valid {
+				verified = true
+				break KeyLoop
+			}
+		}
+	}
+
+	if retErr != nil {
+		return errors.Wrap(retErr, "error when verifying signature")
+	}
+
+	if !verified {
+		return errors.New("signature is invalid")
+	}
+	return nil
+}
 
 // VerifyEcdsaRequestSignature determines if a signature is valid given the public key
 // and a message derived from a message containing a did and the request timestamp.
@@ -21,14 +91,21 @@ import (
 // The message to be verified is "<did> request @ <timestamp>"
 func VerifyEcdsaRequestSignature(pubKey string, signature string,
 	did string, reqTs int) (bool, error) {
-	_, err := didlib.Parse(did)
-	if err != nil {
-		return false, errors.Wrap(err, "error parsing did for signature")
+	if did != "" {
+		_, err := didlib.Parse(did)
+		if err != nil {
+			return false, errors.Wrap(err, "error parsing did for signature")
+		}
 	}
 
 	// Signed message should be did and timestamp related
 	msg := RequestMessage(did, reqTs)
-	pk, err := crypto.UnmarshalPubkey([]byte(pubKey))
+
+	pubKeyBys, err := hex.DecodeString(pubKey)
+	if err != nil {
+		return false, errors.Wrap(err, "error decoding pubkey hex")
+	}
+	pk, err := crypto.UnmarshalPubkey(pubKeyBys)
 	if err != nil {
 		return false, errors.Wrap(err, "error unmarshalling to public key")
 	}
@@ -62,9 +139,11 @@ func VerifyEcdsaRequestSignature(pubKey string, signature string,
 // SignEcdsaRequestMessage is a convenience function to sign a message used for
 // API requests
 func SignEcdsaRequestMessage(privKey *ecdsa.PrivateKey, did string, reqTs int) (string, error) {
-	_, err := didlib.Parse(did)
-	if err != nil {
-		return "", errors.Wrap(err, "invalid did for signing")
+	if did != "" {
+		_, err := didlib.Parse(did)
+		if err != nil {
+			return "", errors.Wrap(err, "invalid did for signing")
+		}
 	}
 
 	signature, err := ceth.SignEthMessage(privKey, RequestMessage(did, reqTs))
