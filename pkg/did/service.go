@@ -50,6 +50,17 @@ func (s *Service) GetDocumentFromDID(did *didlib.DID) (*Document, error) {
 	return doc, nil
 }
 
+// GetKeyFromDIDDocument returns a public document with did fragment if it can be found
+func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) {
+	fragment := did.Fragment
+	did.Fragment = ""
+	doc, err := s.GetDocumentFromDID(did)
+	if err != nil {
+		return nil, err
+	}
+	return doc.GetPublicKeyFromFragment(fragment)
+}
+
 // SaveDocument saves the DID document given the DID as a string id
 func (s *Service) SaveDocument(doc *Document) error {
 	return s.persister.SaveDocument(doc)

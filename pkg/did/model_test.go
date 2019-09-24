@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/utils"
 	didlib "github.com/ockam-network/did"
@@ -408,5 +409,21 @@ func TestAddAuthentication(t *testing.T) {
 	auth := doc.Authentications[0]
 	if auth.ID.String() != "did:example:123456789abcdefghi#keys-1" {
 		t.Errorf("Should have matching key-1 id: %v", auth.ID.String())
+	}
+}
+
+func TestGetPublicKeyFromFragment(t *testing.T) {
+	ethaddress := "0x284fF5f4B31EE6e292e01Fc2685d5774DcfCDDDb"
+	userPubAddress := common.HexToAddress(ethaddress)
+	fmt.Printf("%v\n", len(userPubAddress))
+	doc := did.Document{}
+	err := json.Unmarshal([]byte(testDIDDoc), &doc)
+	if err != nil {
+		t.Errorf("Should have unmarshalled document from json: err: %v", err)
+	}
+
+	_, err = doc.GetPublicKeyFromFragment("keys-1")
+	if err != nil {
+		t.Errorf("couldnt find the public key: %v", err)
 	}
 }

@@ -25,7 +25,7 @@ type PGTX struct {
 
 // Get returns the data from a node that is either in the cache or in the db
 func (t *PGTX) Get(b []byte) ([]byte, error) {
-	fullkey := concat(t.prefix, b)
+	fullkey := Concat(t.prefix, b)
 
 	if value, ok := t.cache.Get(fullkey); ok {
 		return value, nil
@@ -43,7 +43,7 @@ func (t *PGTX) Get(b []byte) ([]byte, error) {
 
 // Put adds a new node to the cache
 func (t *PGTX) Put(k, v []byte) {
-	t.cache.Put(concat(t.prefix, k[:]), v)
+	t.cache.Put(Concat(t.prefix, k[:]), v)
 }
 
 // Add copies all nodes from one transaction to this one

@@ -25,12 +25,12 @@ func (s *PGStore) NewTx() (db.Tx, error) {
 
 // WithPrefix returns a new instance of the pgstore using the passed in prefix
 func (s *PGStore) WithPrefix(prefix []byte) db.Storage {
-	return &PGStore{NodePersister: s.NodePersister, prefix: concat(s.prefix, prefix)}
+	return &PGStore{NodePersister: s.NodePersister, prefix: Concat(s.prefix, prefix)}
 }
 
 // Get gets the data from a node with the given key from the db
 func (s *PGStore) Get(b []byte) ([]byte, error) {
-	key := concat(s.prefix, b)
+	key := Concat(s.prefix, b)
 
 	value, err := s.NodePersister.Get(key)
 	if gorm.IsRecordNotFoundError(err) {
@@ -61,7 +61,7 @@ func (s *PGStore) Info() string {
 }
 
 // Iterate performs a function on all nodes in all trees
-func (s *PGStore) Iterate(f func([]byte, []byte)) error {
+func (s *PGStore) Iterate(f func([]byte, []byte) (bool, error)) error {
 	// WARNING iterate doesn't use the prefix
 
 	// in the future probably want to do this in a way that doesn't load them all into memory
@@ -71,7 +71,11 @@ func (s *PGStore) Iterate(f func([]byte, []byte)) error {
 	}
 
 	for _, kv := range kvs {
-		f(kv.K, kv.V)
+		if cont, err := f(kv.K, kv.V); err != nil {
+			return err
+		} else if !cont {
+			break
+		}
 	}
 	return nil
 }
