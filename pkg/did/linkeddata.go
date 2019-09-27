@@ -25,6 +25,18 @@ const (
 	LDSuiteTypeKoblitzSignature LDSuiteType = "EcdsaKoblitzSignature2016"
 )
 
+// IsEcdsaKeySuiteType returns true if key cryptographic suite type is of elliptic curve,
+// namely secp251k1
+func IsEcdsaKeySuiteType(keytype LDSuiteType) bool {
+	switch keytype {
+	case LDSuiteTypeSecp256k1Signature:
+		return true
+	case LDSuiteTypeSecp256k1Verification:
+		return true
+	}
+	return false
+}
+
 // LinkedDataProof defines a linked data proof object
 // Spec https://w3c-dvcg.github.io/ld-proofs/#linked-data-proof-overview
 type LinkedDataProof struct {

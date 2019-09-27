@@ -22,9 +22,13 @@ const (
 )
 
 // VerifyEcdsaRequestSignatureWithDid checks the did document for keys and
-// verifies the signatures using the public keys
+// verifies the signatures using the dids ECDSA public keys
 func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType did.LDSuiteType,
 	signature string, ts int, didStr string) error {
+	if !did.IsEcdsaKeySuiteType(keyType) {
+		return errors.New("supports ecdsa only")
+	}
+
 	doc, err := ds.GetDocument(didStr)
 	if err != nil {
 		return errors.Wrapf(err, "did not found for %v", didStr)
@@ -32,24 +36,28 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType did.LDSuiteType
 	if doc == nil {
 		return errors.Errorf("did doc not found for %v", didStr)
 	}
+
 	return VerifyEcdsaRequestSignatureWithPks(doc.PublicKeys, keyType, signature, ts, didStr)
 }
 
-// VerifyEcdsaRequestSignatureWithPks checks a slice of public keys for a
-// verification key type and verifies the signature against keys of those types.
-// didStr only affects the signed request message value and can be omitted (look at
-// RequestMessage for more details).
+// VerifyEcdsaRequestSignatureWithPks checks a slice of public keys and verifies
+// the signature against keys of key suite type ECDSA. didStr only affects the
+// signed request message value and can be omitted (look at RequestMessage for more details).
 func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType did.LDSuiteType,
 	signature string, ts int, didStr string) error {
+	if !did.IsEcdsaKeySuiteType(keyType) {
+		return errors.New("supports ecdsa only")
+	}
+
+	if len(pks) == 0 {
+		return errors.New("no publickeys found")
+	}
+
 	var err error
 	var retErr error
 	var pubKey *string
 	var valid bool
 	verified := false
-
-	if len(pks) == 0 {
-		return errors.New("no publickeys found")
-	}
 
 KeyLoop:
 	for _, key := range pks {
@@ -84,7 +92,7 @@ KeyLoop:
 	return nil
 }
 
-// VerifyEcdsaRequestSignature determines if a signature is valid given the public key
+// VerifyEcdsaRequestSignature determines if a signature is valid given the ECDSA public key
 // and a message derived from a message containing a did and the request timestamp.
 // NOTE: The did is only validated for correctness, but has not validated to see if
 // there is a corresponding did document.  That should occur before this method is called.

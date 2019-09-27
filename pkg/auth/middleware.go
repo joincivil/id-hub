@@ -61,11 +61,11 @@ func Middleware() func(http.Handler) http.Handler {
 // ForContext checks signature based on the header data.
 // REQUIRES Middleware to have run.
 func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) error {
-	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
-	signature, _ := ctx.Value(signatureCtxKey).(string)
-
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
 	keyType := did.LDSuiteTypeSecp256k1Verification
+
+	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
+	signature, _ := ctx.Value(signatureCtxKey).(string)
 	didStr, _ := ctx.Value(didCtxKey).(string)
 
 	ts, err := strconv.Atoi(reqTs)
