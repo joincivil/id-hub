@@ -122,6 +122,45 @@ func TestValidDid(t *testing.T) {
 	}
 }
 
+func TestKeyFromType(t *testing.T) {
+	pkey := "04f3df3cea421eac2a7f5dbd8e8d505470d42150334f512bd6383c7dc91bf8fa4d5458d498b4dcd05574c902fb4c233005b3f5f3ff3904b41be186ddbda600580b"
+	pk := &did.DocPublicKey{
+		Type:         did.LDSuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pkey,
+	}
+	key, err := did.KeyFromType(pk)
+	if err != nil {
+		t.Errorf("Should not have returned an error: err: %v", err)
+	}
+	if *key != pkey {
+		t.Errorf("Should have returned the hex field")
+	}
+
+	pk = &did.DocPublicKey{
+		Type:         did.LDSuiteTypeSecp256k1Verification,
+		PublicKeyJwk: &pkey,
+	}
+	key, err = did.KeyFromType(pk)
+	if err == nil {
+		t.Errorf("Should have returned an error: err: %v", err)
+	}
+	if key != nil {
+		t.Errorf("Should have returned a nil key")
+	}
+
+	pk = &did.DocPublicKey{
+		Type:         did.LDSuiteTypeRsaVerification,
+		PublicKeyHex: &pkey,
+	}
+	key, err = did.KeyFromType(pk)
+	if err == nil {
+		t.Errorf("Should have returned an error: err: %v", err)
+	}
+	if key != nil {
+		t.Errorf("Should have returned a nil key")
+	}
+}
+
 func TestValidDocPublicKey(t *testing.T) {
 	d, _ := didlib.Parse("did:ethuri:123456#keys-1")
 	controller1, _ := didlib.Parse("did:ethuri:123456")
