@@ -2,13 +2,11 @@ module github.com/joincivil/id-hub
 
 require (
 	github.com/99designs/gqlgen v0.10.0
-	github.com/appleboy/gin-jwt/v2 v2.6.2 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20190924011532-60b7b74727fd // indirect
 	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190909000816-272160613861 // indirect
 	github.com/elastic/gosigar v0.10.5 // indirect
 	github.com/ethereum/go-ethereum v1.9.5
-	github.com/gin-contrib/cors v1.3.0 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/uuid v1.1.1
@@ -23,11 +21,11 @@ require (
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
+	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/ockam-network/did v0.1.3
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
-	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.21.0

@@ -178,32 +178,3 @@ func TestCreateOrUpdateDocumentUpdate(t *testing.T) {
 	}
 
 }
-
-func TestGetKeyFromDIDDocument(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
-
-	doc := did.BuildTestDocument()
-
-	newDoc, err := service.CreateOrUpdateDocument(
-		&did.CreateOrUpdateParams{
-			PublicKeys:       doc.PublicKeys,
-			Auths:            doc.Authentications,
-			Services:         doc.Services,
-			KeepKeyFragments: true,
-		},
-	)
-	if err != nil {
-		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
-	}
-
-	pubkeydo, err := service.GetKeyFromDIDDocument(doc.ID)
-	if err == nil {
-		t.Errorf("should have errored with no fragment")
-	}
-	pubkeydoc, err = service.GetKeyFromDIDDocument(doc.PublicKeys[0].ID)
-	if err != nil {
-		t.Errorf("should not have failed getting first key")
-	}
-
-}
