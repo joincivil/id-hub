@@ -50,9 +50,13 @@ func (s *Service) GetDocumentFromDID(did *didlib.DID) (*Document, error) {
 	return doc, nil
 }
 
-// GetKeyFromDIDDocument returns a public document with did fragment if it can be found
+// GetKeyFromDIDDocument returns a public key document froma a did with a fragment if it can be found
+// errors if fragment is empty
 func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) {
 	fragment := did.Fragment
+	if fragment == "" {
+		return nil, errors.New("no fragment on did")
+	}
 	did.Fragment = ""
 	doc, err := s.GetDocumentFromDID(did)
 	if err != nil {
