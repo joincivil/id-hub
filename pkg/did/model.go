@@ -166,6 +166,16 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment
 	return nil
 }
 
+// GetPublicKeyFromFragment returns the public key doc with the given fragment if it exists
+func (d *Document) GetPublicKeyFromFragment(fragment string) (*DocPublicKey, error) {
+	for _, v := range d.PublicKeys {
+		if v.ID.Fragment == fragment {
+			return &v, nil
+		}
+	}
+	return nil, errors.New("DID does not have a key that matches the fragment")
+}
+
 // AddAuthentication adds another authentication value to the list.  Could be
 // just a reference to an existing key or a key only used for authentication
 func (d *Document) AddAuthentication(auth *DocAuthenicationWrapper, addFragment bool) error {

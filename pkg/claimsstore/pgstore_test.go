@@ -14,7 +14,6 @@ func setupDBConnection() (*claimsstore.NodePGPersister, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	err = db.AutoMigrate(&claimsstore.Node{}).Error
 	if err != nil {
 		return nil, err
@@ -158,8 +157,6 @@ func testList(t *testing.T, sto db.Storage) {
 
 func TestPGStore(t *testing.T) {
 	store, persister := pgStore(t)
-	defer store.Close()
-
 	cleaner := testutils.DeleteCreatedEntities(persister.DB)
 	defer cleaner()
 

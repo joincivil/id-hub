@@ -1,6 +1,7 @@
 package claimsstore
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 
@@ -24,7 +25,7 @@ type storageInfo struct {
 // Node is node in the merkle tree stored in this table
 type Node struct {
 	gorm.Model
-	DID      string
+	DID      string `gorm:"column:did"`
 	NodeData string
 	NodeKey  string `gorm:"unique_index;not null;"`
 	NodeType string
@@ -53,7 +54,7 @@ func (c *Node) ToKV() (db.KV, error) {
 }
 
 // UpdateKVAndPrefix takes a KV and updates the values on the node
-func (c *Node) UpdateKVAndPrefix(kv db.KV, prefix []byte) {
+func (c *Node) UpdateKVAndPrefix(kv db.KV, prefix []byte) error {
 	nodetType := merkletree.NodeType(kv.V[0])
 	var typeName string
 	if nodetType == merkletree.NodeTypeMiddle {
@@ -61,9 +62,18 @@ func (c *Node) UpdateKVAndPrefix(kv db.KV, prefix []byte) {
 	} else if nodetType == merkletree.NodeTypeLeaf {
 		typeName = LeafNode
 	}
-	c.DID = string(prefix)
+	if bytes.Equal(prefix, PrefixRootMerkleTree) || len(prefix) != 32 {
+		c.DID = string(prefix)
+	} else {
+		recoveredDid, err := BinaryToDID(prefix)
+		if err != nil {
+			return err
+		}
+		c.DID = recoveredDid.String()
+	}
 	c.NodeData = hex.EncodeToString(kv.V)
 	c.NodeType = typeName
+	return nil
 }
 
 // TableName sets the name of the corresponding table in the db
@@ -112,7 +122,10 @@ func (c *NodePGPersister) Batch(cache kvMap, prefix []byte) error {
 			tx.Rollback()
 			return err
 		}
-		node.UpdateKVAndPrefix(v, prefix)
+		err := node.UpdateKVAndPrefix(v, prefix)
+		if err != nil {
+			return err
+		}
 		if err := tx.Save(&node).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -148,7 +161,7 @@ func (c *NodePGPersister) GetAllForDID(didBytes []byte, limit int) ([]db.KV, err
 	did := string(didBytes)
 	var nodes []Node
 	var kvs []db.KV
-	if err := c.DB.Limit(limit).Order("created_at").Where(&Node{DID: did}).Find(&nodes).Error; err != nil {
+	if err := c.DB.Limit(limit).Order("created_at asc").Where(&Node{DID: did}).Find(&nodes).Error; err != nil {
 		return kvs, err
 	}
 	return convertNodesToKVs(nodes)
