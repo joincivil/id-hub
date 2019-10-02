@@ -12,6 +12,18 @@
 
 The Civil ID Hub is free and open-source. We are looking to evolve this into something the identity ecosystem will find helpful and effortless to use. We encourage your input via PRs, issues and general communication. Please don't be shy.
 
+## Roadmap
+
+Some high level items:
+
+* Server UI v1 to access credentials and identities, along with credential verification and proofs.
+* Integration with [Kirby](https://github.com/joincivil/kirby-web3).
+* Work on generically handling DIDs and credentials from other sources.
+* Peer-to-peer data sync to ensure redundancy and data consistency.
+* Ensuring the cost of running and maintaining an ID Hub is as low as possible.
+* As standards in this ecosystem emerge, moving ID Hub towards those standards.
+
+
 ## Install Requirements
 
 This project is using `make` to run setup, builds, tests, etc and has been tested and running on `go 1.12.7`.  This repo supports go modules so adding it to your `GOPATH` is unnecessary.
