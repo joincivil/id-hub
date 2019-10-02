@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
 
@@ -45,19 +46,19 @@ func TestGenerateDIDCli(t *testing.T) {
 	}()
 
 	// Happy case
-	_, err = GenerateDIDCli(LDSuiteTypeSecp256k1Verification, testKeyFilename, nil)
+	_, err = GenerateDIDCli(linkeddata.SuiteTypeSecp256k1Verification, testKeyFilename, nil)
 	if err != nil {
 		t.Fatalf("Should have not gotten error for did cli: %v", err)
 	}
 
 	// Wrong signature type
-	_, err = GenerateDIDCli(LDSuiteTypeRsaSignature, testKeyFilename, nil)
+	_, err = GenerateDIDCli(linkeddata.SuiteTypeRsaSignature, testKeyFilename, nil)
 	if err == nil {
 		t.Fatalf("Should have gotten error for did cli")
 	}
 
 	// Wrong key file name
-	_, err = GenerateDIDCli(LDSuiteTypeRsaSignature, "wrong.key.file", nil)
+	_, err = GenerateDIDCli(linkeddata.SuiteTypeRsaSignature, "wrong.key.file", nil)
 	if err == nil {
 		t.Fatalf("Should have gotten error for did cli")
 	}
@@ -68,7 +69,7 @@ func TestGenerateDIDCli(t *testing.T) {
 	// postgrespersister_test
 	defer deleteTestTable(p) // nolint: errcheck
 
-	doc, err := GenerateDIDCli(LDSuiteTypeSecp256k1Verification, testKeyFilename, p)
+	doc, err := GenerateDIDCli(linkeddata.SuiteTypeSecp256k1Verification, testKeyFilename, p)
 	if err != nil {
 		t.Fatalf("Should have not gotten error for did cli gen")
 	}

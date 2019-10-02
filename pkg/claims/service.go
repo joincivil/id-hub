@@ -6,12 +6,16 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/crypto"
+
 	icore "github.com/iden3/go-iden3-core/core"
 	"github.com/iden3/go-iden3-core/db"
 	"github.com/iden3/go-iden3-core/merkletree"
 	isrv "github.com/iden3/go-iden3-core/services/claimsrv"
+
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
+
 	didlib "github.com/ockam-network/did"
 )
 
@@ -82,14 +86,14 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPk *ecdsa.PublicKey)
 }
 
 func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree, signerDid *didlib.DID) (bool, error) {
-	if cred.Proof.Type != string(did.LDSuiteTypeSecp256k1Signature) {
+	if cred.Proof.Type != string(linkeddata.SuiteTypeSecp256k1Signature) {
 		return false, errors.New("Only Secp256k1 signature types are implemented")
 	}
 	pubkey, err := s.didService.GetKeyFromDIDDocument(signerDid)
 	if err != nil {
 		return false, err
 	}
-	if pubkey.Type != did.LDSuiteTypeSecp256k1Verification {
+	if pubkey.Type != linkeddata.SuiteTypeSecp256k1Verification {
 		return false, errors.New("Only secp256k1 signatures are currently supported")
 	}
 	pubbytes, err := hex.DecodeString(*pubkey.PublicKeyHex)

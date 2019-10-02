@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 // GenerateDIDCli is the logic to handle the generatedid command for CLI
-func GenerateDIDCli(pubKeyType LDSuiteType, pubKeyFile string, didPersister Persister) (*Document, error) {
+func GenerateDIDCli(pubKeyType linkeddata.SuiteType, pubKeyFile string, didPersister Persister) (*Document, error) {
 	pubKeyValue, err := pubKeyFromFile(pubKeyFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting key from file")

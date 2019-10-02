@@ -12,7 +12,10 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/joincivil/go-common/pkg/eth"
+
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
+
 	"github.com/pkg/errors"
 
 	didlib "github.com/ockam-network/did"
@@ -36,7 +39,7 @@ type Document struct {
 	Services        []DocService              `json:"service,omitempty"`
 	Created         *time.Time                `json:"created,omitempty"`
 	Updated         *time.Time                `json:"updated,omitempty"`
-	Proof           *LinkedDataProof          `json:"proof,omitempty"`
+	Proof           *linkeddata.Proof         `json:"proof,omitempty"`
 }
 
 func (d Document) String() string {
@@ -299,16 +302,16 @@ func (d *Document) NextKeyFragment() string {
 
 // DocPublicKey defines a publickey within a DID document
 type DocPublicKey struct {
-	ID                 *didlib.DID `json:"id"`
-	Type               LDSuiteType `json:"type"`
-	Controller         *didlib.DID `json:"controller"`
-	PublicKeyPem       *string     `json:"publicKeyPem,omitempty"`
-	PublicKeyJwk       *string     `json:"publicKeyJwk,omitempty"`
-	PublicKeyHex       *string     `json:"publicKeyHex,omitempty"`
-	PublicKeyBase64    *string     `json:"publicKeyBase64,omitempty"`
-	PublicKeyBase58    *string     `json:"publicKeyBase58,omitempty"`
-	PublicKeyMultibase *string     `json:"publicKeyMultibase,omitempty"`
-	EthereumAddress    *string     `json:"ethereumAddress,omitempty"`
+	ID                 *didlib.DID          `json:"id"`
+	Type               linkeddata.SuiteType `json:"type"`
+	Controller         *didlib.DID          `json:"controller"`
+	PublicKeyPem       *string              `json:"publicKeyPem,omitempty"`
+	PublicKeyJwk       *string              `json:"publicKeyJwk,omitempty"`
+	PublicKeyHex       *string              `json:"publicKeyHex,omitempty"`
+	PublicKeyBase64    *string              `json:"publicKeyBase64,omitempty"`
+	PublicKeyBase58    *string              `json:"publicKeyBase58,omitempty"`
+	PublicKeyMultibase *string              `json:"publicKeyMultibase,omitempty"`
+	EthereumAddress    *string              `json:"ethereumAddress,omitempty"`
 }
 
 // SetIDFragment sets the ID fragment of the public key.  For convenience,

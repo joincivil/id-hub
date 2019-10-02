@@ -14,6 +14,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
 	"github.com/vektah/gqlparser"
 	"github.com/vektah/gqlparser/ast"
@@ -1820,10 +1821,10 @@ func (ec *executionContext) _DidDocument_proof(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*did.LinkedDataProof)
+	res := resTmp.(*linkeddata.Proof)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐLinkedDataProof(ctx, field.Selections, res)
+	return ec.marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DidGetResponse_doc(ctx context.Context, field graphql.CollectedField, obj *DidGetResponse) (ret graphql.Marshaler) {
@@ -1962,7 +1963,7 @@ func (ec *executionContext) _DidSaveResponse_docRaw(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_type(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_type(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1996,7 +1997,7 @@ func (ec *executionContext) _LinkedDataProof_type(ctx context.Context, field gra
 	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_creator(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_creator(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2030,7 +2031,7 @@ func (ec *executionContext) _LinkedDataProof_creator(ctx context.Context, field 
 	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_created(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_created(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2064,7 +2065,7 @@ func (ec *executionContext) _LinkedDataProof_created(ctx context.Context, field 
 	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_proofValue(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_proofValue(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2098,7 +2099,7 @@ func (ec *executionContext) _LinkedDataProof_proofValue(ctx context.Context, fie
 	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_domain(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_domain(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2132,7 +2133,7 @@ func (ec *executionContext) _LinkedDataProof_domain(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LinkedDataProof_nonce(ctx context.Context, field graphql.CollectedField, obj *did.LinkedDataProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _LinkedDataProof_nonce(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4179,7 +4180,7 @@ func (ec *executionContext) _DidSaveResponse(ctx context.Context, sel ast.Select
 
 var linkedDataProofImplementors = []string{"LinkedDataProof"}
 
-func (ec *executionContext) _LinkedDataProof(ctx context.Context, sel ast.SelectionSet, obj *did.LinkedDataProof) graphql.Marshaler {
+func (ec *executionContext) _LinkedDataProof(ctx context.Context, sel ast.SelectionSet, obj *linkeddata.Proof) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, linkedDataProofImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5198,11 +5199,11 @@ func (ec *executionContext) marshalODidSaveResponse2ᚖgithubᚗcomᚋjoincivil�
 	return ec._DidSaveResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOLinkedDataProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐLinkedDataProof(ctx context.Context, sel ast.SelectionSet, v did.LinkedDataProof) graphql.Marshaler {
+func (ec *executionContext) marshalOLinkedDataProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx context.Context, sel ast.SelectionSet, v linkeddata.Proof) graphql.Marshaler {
 	return ec._LinkedDataProof(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐLinkedDataProof(ctx context.Context, sel ast.SelectionSet, v *did.LinkedDataProof) graphql.Marshaler {
+func (ec *executionContext) marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx context.Context, sel ast.SelectionSet, v *linkeddata.Proof) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

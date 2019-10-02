@@ -5,6 +5,8 @@ import (
 
 	didlib "github.com/ockam-network/did"
 
+	"github.com/joincivil/id-hub/pkg/linkeddata"
+
 	cpersist "github.com/joincivil/go-common/pkg/persistence"
 )
 
@@ -76,7 +78,7 @@ type CreateOrUpdateParams struct {
 	PublicKeys       []DocPublicKey
 	Auths            []DocAuthenicationWrapper
 	Services         []DocService
-	Proof            *LinkedDataProof
+	Proof            *linkeddata.Proof
 	KeepKeyFragments bool
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 // SignedClaimPostgres represents the schema for signed claims
@@ -41,7 +41,7 @@ func (c *SignedClaimPostgres) ToCredential() (*ContentCredential, error) {
 			Type: "JsonSchemaValidator2018",
 		},
 	}
-	proof := &did.LinkedDataProof{}
+	proof := &linkeddata.Proof{}
 	err := json.Unmarshal(c.Proof.RawMessage, proof)
 	if err != nil {
 		return nil, err

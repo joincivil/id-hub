@@ -9,6 +9,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 const (
@@ -62,7 +63,7 @@ func Middleware() func(http.Handler) http.Handler {
 // REQUIRES Middleware to have run.
 func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) error {
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
-	keyType := did.LDSuiteTypeSecp256k1Verification
+	keyType := linkeddata.SuiteTypeSecp256k1Verification
 
 	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
 	signature, _ := ctx.Value(signatureCtxKey).(string)

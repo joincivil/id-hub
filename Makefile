@@ -57,6 +57,18 @@ ifdef APT
 	@sudo apt-get install golang-race-detector-runtime || true
 endif
 
+.PHONY: install-gobin
+install-gobin: check-go-env ## Installs gobin tool
+	@GO111MODULE=off go get -u github.com/myitcv/gobin
+
+.PHONY: install-gqlgen
+install-gqlgen: check-go-env ## Installs gqlgen
+	@gobin github.com/99designs/gqlgen
+
+.PHONY: install-dataloaden
+install-dataloaden: check-go-env ## Installs dataloaden tool
+	@gobin github.com/vektah/dataloaden
+
 .PHONY: install-cover
 install-cover: check-go-env ## Installs code coverage tool
 	@$(GOGET) -u golang.org/x/tools/cmd/cover
@@ -118,11 +130,11 @@ build: check-go-env ## Builds the code.
 
 .PHONY: test
 test: check-go-env ## Runs unit tests and tests code coverage.
-	@echo 'mode: atomic' > coverage.txt && $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -v -race -timeout=5m ./...
+	@echo 'mode: atomic' > coverage.txt && $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -p 1 -v -race -timeout=5m ./...
 
 .PHONY: test-integration
 test-integration: check-go-env ## Runs tagged integration tests
-	@echo 'mode: atomic' > coverage.txt && PUBSUB_EMULATOR_HOST=localhost:8042 $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -v -race -timeout=5m -tags=integration ./...
+	@echo 'mode: atomic' > coverage.txt && PUBSUB_EMULATOR_HOST=localhost:8042 $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -p 1 -v -race -timeout=5m -tags=integration ./...
 
 .PHONY: test-integration-ci
 test-integration-ci: check-go-env ## Runs tagged integration tests serially for low mem/low cpu CI env (set -p to 1)

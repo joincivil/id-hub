@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/urfave/cli"
 )
 
@@ -103,7 +104,7 @@ func cmdGenerateDID() *cli.Command {
 			}
 		}
 
-		_, err := did.GenerateDIDCli(did.LDSuiteType(pktype), pkfile, persister)
+		_, err := did.GenerateDIDCli(linkeddata.SuiteType(pktype), pkfile, persister)
 		return err
 	}
 

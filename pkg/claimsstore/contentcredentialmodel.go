@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/joincivil/go-common/pkg/article"
-	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 // CredentialType is a non-exclusive type for a credential
@@ -27,7 +27,7 @@ type ContentCredential struct {
 	Holder            string                   `json:"holder,omitempty"`
 	CredentialSchema  CredentialSchema         `json:"credentialSchema"`
 	IssuanceDate      time.Time                `json:"issuanceDate"`
-	Proof             did.LinkedDataProof      `json:"proof,omitempty"`
+	Proof             linkeddata.Proof         `json:"proof,omitempty"`
 }
 
 // ContentCredentialSubject the datatype for claiming a piece of content
