@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
 	didlib "github.com/ockam-network/did"
 )
@@ -292,7 +293,7 @@ func TestAddPublicKey(t *testing.T) {
 
 	firstPK := &did.DocPublicKey{
 		ID:              did.CopyDID(&doc.ID),
-		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
 		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
 	}
@@ -309,7 +310,7 @@ func TestAddPublicKey(t *testing.T) {
 
 	secondPK := &did.DocPublicKey{
 		ID:              did.CopyDID(&doc.ID),
-		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
 		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0xf5a27f027125f07fef36871db3c0f68015370589"),
 	}
@@ -330,7 +331,7 @@ func TestAddPublicKey(t *testing.T) {
 
 	thirdPK := &did.DocPublicKey{
 		ID:              did.CopyDID(&doc.ID),
-		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
 		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0xdad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
@@ -360,7 +361,7 @@ func TestAddPublicKey(t *testing.T) {
 	d, _ = didlib.Parse("did:example:testme#keys-1")
 	fourthPK := &did.DocPublicKey{
 		ID:              did.CopyDID(d),
-		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
 		Controller:      did.CopyDID(&doc.ID),
 		EthereumAddress: utils.StrToPtr("0xaad6d7ea1e43f8492a78bab8bb0d45a889ed6ac3"),
 	}
@@ -387,7 +388,7 @@ func TestAddAuthentication(t *testing.T) {
 
 	firstPK := did.DocPublicKey{
 		ID:              &doc.ID,
-		Type:            did.LDSuiteTypeSecp256k1Verification,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
 		Controller:      &doc.ID,
 		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
 	}

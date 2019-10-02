@@ -9,7 +9,7 @@ import (
 	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
-	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
 
@@ -32,7 +32,7 @@ func makeContentCredential() *claimsstore.ContentCredential {
 		ID:       "https://ap.com/article/1",
 		Metadata: article.Metadata{},
 	}
-	proof := did.LinkedDataProof{
+	proof := linkeddata.Proof{
 		Type:       "EcdsaSecp256k1Signature2019",
 		Creator:    "did:ethuri:apethuriabcd1234",
 		Created:    time.Date(2000, 2, 1, 12, 30, 0, 0, time.UTC),

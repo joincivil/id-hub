@@ -26,7 +26,7 @@ models:
       - github.com/joincivil/id-hub/pkg/did.DocService
   LinkedDataProof:
     model:
-      - github.com/joincivil/id-hub/pkg/did.LinkedDataProof
+      - github.com/joincivil/id-hub/pkg/linkeddata.Proof
   AnyValue:
     model:
       - github.com/joincivil/id-hub/pkg/utils.AnyValue

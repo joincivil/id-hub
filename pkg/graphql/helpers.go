@@ -9,6 +9,7 @@ import (
 	didlib "github.com/ockam-network/did"
 
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
@@ -35,7 +36,7 @@ func InputPkToDocPublicKey(in *DidDocPublicKeyInput) *did.DocPublicKey {
 
 	return &did.DocPublicKey{
 		ID:                 theDid,
-		Type:               did.LDSuiteType(*in.Type),
+		Type:               linkeddata.SuiteType(*in.Type),
 		Controller:         controller,
 		PublicKeyPem:       in.PublicKeyPem,
 		PublicKeyJwk:       in.PublicKeyJwk,
@@ -169,12 +170,12 @@ func ConvertInputServices(in []*DidDocServiceInput) ([]did.DocService, error) {
 
 // ConvertInputProof validates and converts linked data proof input to
 // a core linked data proof.
-func ConvertInputProof(in *LinkedDataProofInput) (*did.LinkedDataProof, error) {
+func ConvertInputProof(in *LinkedDataProofInput) (*linkeddata.Proof, error) {
 	if in == nil {
 		return nil, nil
 	}
 
-	ldp := &did.LinkedDataProof{}
+	ldp := &linkeddata.Proof{}
 
 	ldp.Type = utils.StrOrEmptyStr(in.Type)
 	ldp.Creator = utils.StrOrEmptyStr(in.Creator)

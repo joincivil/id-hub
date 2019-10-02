@@ -12,6 +12,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	didlib "github.com/ockam-network/did"
 )
@@ -36,7 +37,7 @@ func makeContentCredential(issuerDID *didlib.DID) *claimsstore.ContentCredential
 			Title: "something something",
 		},
 	}
-	proof := did.LinkedDataProof{}
+	proof := linkeddata.Proof{}
 	return &claimsstore.ContentCredential{
 		Context:           []string{"https://something.com/some/stuff/v1"},
 		Type:              []claimsstore.CredentialType{claimsstore.VerifiableCredentialType, claimsstore.ContentCredentialType},
@@ -48,8 +49,8 @@ func makeContentCredential(issuerDID *didlib.DID) *claimsstore.ContentCredential
 }
 
 func addProof(cred *claimsstore.ContentCredential, signerDID *didlib.DID) {
-	cred.Proof = did.LinkedDataProof{
-		Type:       string(did.LDSuiteTypeSecp256k1Signature),
+	cred.Proof = linkeddata.Proof{
+		Type:       string(linkeddata.SuiteTypeSecp256k1Signature),
 		Creator:    signerDID.String(),
 		Created:    time.Now(),
 		ProofValue: "9ff18f7a49e8373fed20ce3481042679e25a3327e59c5360a242037e606606ad034a7d0b6ba87549aaeb05f4b8cd8912fd6176e1357e58dd8d3794d25d2eb9d2",
@@ -127,7 +128,7 @@ func TestClaimContent(t *testing.T) {
 
 	pub := "049691d8097f07afb7068a971ba500abd30b2ef763240bc56bf021ff592ed08446b7d23df1a5a043e7472d8954764f3fd39fbf992517e9c61ba10afee1965391e6"
 	docPubKey := &did.DocPublicKey{
-		Type:         did.LDSuiteTypeSecp256k1Verification,
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
 		PublicKeyHex: &pub,
 	}
 	signerDid, err := didlib.Parse("did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1")

@@ -15,6 +15,7 @@ import (
 	ctime "github.com/joincivil/go-common/pkg/time"
 
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 const (
@@ -23,9 +24,9 @@ const (
 
 // VerifyEcdsaRequestSignatureWithDid checks the did document for keys and
 // verifies the signatures using the dids ECDSA public keys
-func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType did.LDSuiteType,
+func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.SuiteType,
 	signature string, ts int, didStr string) error {
-	if !did.IsEcdsaKeySuiteType(keyType) {
+	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
 		return errors.New("supports ecdsa only")
 	}
 
@@ -43,9 +44,9 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType did.LDSuiteType
 // VerifyEcdsaRequestSignatureWithPks checks a slice of public keys and verifies
 // the signature against keys of key suite type ECDSA. didStr only affects the
 // signed request message value and can be omitted (look at RequestMessage for more details).
-func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType did.LDSuiteType,
+func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType linkeddata.SuiteType,
 	signature string, ts int, didStr string) error {
-	if !did.IsEcdsaKeySuiteType(keyType) {
+	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
 		return errors.New("supports ecdsa only")
 	}
 

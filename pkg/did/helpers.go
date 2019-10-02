@@ -7,6 +7,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/google/uuid"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 
 	"github.com/pkg/errors"
 
@@ -133,7 +134,7 @@ func KeyFromType(pk *DocPublicKey) (*string, error) {
 	// Supports only Secp256k1 hex keys for now
 	// TODO(PN): Add more support here based on our needs
 	switch pk.Type {
-	case LDSuiteTypeSecp256k1Verification:
+	case linkeddata.SuiteTypeSecp256k1Verification:
 		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
 			return nil, errors.New("publicKeyHex is not populated for SECP256k1")
 		}

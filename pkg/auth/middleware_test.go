@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
 
 	ceth "github.com/joincivil/go-common/pkg/eth"
@@ -179,7 +180,7 @@ func TestForContextNewDid(t *testing.T) {
 
 	pks := []did.DocPublicKey{
 		{
-			Type:         did.LDSuiteTypeSecp256k1Verification,
+			Type:         linkeddata.SuiteTypeSecp256k1Verification,
 			PublicKeyHex: &pubKeyHex,
 		},
 	}
@@ -312,7 +313,7 @@ func buildTestDocument(privKey *ecdsa.PrivateKey) *did.Document {
 	pk1ID := fmt.Sprintf("%v#keys-1", testDID)
 	d1, _ := didlib.Parse(pk1ID)
 	pk1.ID = d1
-	pk1.Type = did.LDSuiteTypeSecp256k1Verification
+	pk1.Type = linkeddata.SuiteTypeSecp256k1Verification
 	pk1.Controller = mainDID
 	pk1.PublicKeyHex = utils.StrToPtr(pubKeyHex)
 
@@ -341,7 +342,7 @@ func buildTestDocument(privKey *ecdsa.PrivateKey) *did.Document {
 	d4, _ := didlib.Parse(aw2ID)
 	aw2.ID = d4
 	aw2.IDOnly = false
-	aw2.Type = did.LDSuiteTypeSecp256k1Verification
+	aw2.Type = linkeddata.SuiteTypeSecp256k1Verification
 	aw2.Controller = mainDID
 	hexKey2 := "04debef3fcbef3f5659f9169bad80044b287139a401b5da2979e50b032560ed33927eab43338e9991f31185b3152735e98e0471b76f18897d764b4e4f8a7e8f61b"
 	aw2.PublicKeyHex = utils.StrToPtr(hexKey2)
