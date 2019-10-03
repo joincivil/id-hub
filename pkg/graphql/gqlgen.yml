@@ -48,6 +48,9 @@ models:
   ClaimGetResponse:
     model:
       - github.com/joincivil/id-hub/pkg/graphql.ClaimGetResponse
+  ClaimSaveResponse:
+    model:
+      - github.com/joincivil/id-hub/pkg/graphql.ClaimSaveResponse
   ArticleMetadata:
     model:
       - github.com/joincivil/go-common/pkg/article.Metadata

@@ -465,7 +465,7 @@ type DocService struct {
 	ServiceEndpointLD  map[string]interface{} `json:"-"`
 }
 
-// PopulateServiceEndpointVals populate the ServiceEndpointURI or ServiceEdnpointLD
+// PopulateServiceEndpointVals populate the ServiceEndpointURI or ServiceEndpointLD
 // based on the ServiceEndpoint interface{} value.
 func (s *DocService) PopulateServiceEndpointVals() error {
 	// Validate types for service endpoint.  Can either be a string (URI)

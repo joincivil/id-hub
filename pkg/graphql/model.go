@@ -62,17 +62,17 @@ func (d *ClaimGetResponse) ClaimsRaw() []string {
 }
 
 // ClaimSaveResponse represents the GraphQL response for ClaimSave
-// type ClaimSaveResponse struct {
-// 	Claim *claimsstore.ContentCredential `json:"claim"`
-// }
+type ClaimSaveResponse struct {
+	Claim *claimsstore.ContentCredential `json:"claim"`
+}
 
 // ClaimRaw returns the raw JSON string of the claim
-// func (d *ClaimSaveResponse) ClaimRaw() *string {
-// 	bys, err := json.Marshal(d.Claims)
-// 	if err != nil {
-// 		log.Errorf("Error marshalling claim: err: %v", err)
-// 		return nil
-// 	}
-// 	claimRaw := string(bys)
-// 	return &claimRaw
-// }
+func (d *ClaimSaveResponse) ClaimRaw() *string {
+	bys, err := json.Marshal(d.Claim)
+	if err != nil {
+		log.Errorf("Error marshalling claim: err: %v", err)
+		return nil
+	}
+	claimRaw := string(bys)
+	return &claimRaw
+}

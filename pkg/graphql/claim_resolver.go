@@ -18,11 +18,6 @@ func (r *Resolver) ArticleMetadata() ArticleMetadataResolver {
 	return &articleMetadataResolver{r}
 }
 
-// ArticleMetadataImage returns resolver for metadata images
-func (r *Resolver) ArticleMetadataImage() ArticleMetadataImageResolver {
-	return &articleMetadataImageResolver{r}
-}
-
 // Claim returns the resolver for claims
 func (r *Resolver) Claim() ClaimResolver {
 	return &claimResolver{r}
@@ -49,26 +44,36 @@ func (r *queryResolver) ClaimGet(ctx context.Context, in *ClaimGetRequestInput) 
 	return &ClaimGetResponse{Claims: creds}, nil
 }
 
+// Mutations
+
+func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestInput) (
+	*ClaimSaveResponse, error) {
+	var err error
+
+	cc, err := InputClaimToContentCredential(in)
+	if err != nil {
+		return nil, errors.Wrap(err, "error converting claim to credential")
+	}
+
+	err = r.ClaimService.ClaimContent(cc)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to unmarshal to claim content")
+	}
+
+	return &ClaimSaveResponse{Claim: cc}, nil
+}
+
 // Claim Resolvers
 
 type articleMetadataResolver struct{ *Resolver }
 
 func (r *articleMetadataResolver) RevisionDate(ctx context.Context, obj *article.Metadata) (*string, error) {
-	opd := obj.RevisionDate.Format("2006-01-02T15:04:05Z")
+	opd := obj.RevisionDate.Format(timeFormat)
 	return utils.StrToPtr(opd), nil
 }
 func (r *articleMetadataResolver) OriginalPublishDate(ctx context.Context, obj *article.Metadata) (*string, error) {
-	opd := obj.OriginalPublishDate.Format("2006-01-02T15:04:05Z")
+	opd := obj.OriginalPublishDate.Format(timeFormat)
 	return utils.StrToPtr(opd), nil
-}
-
-type articleMetadataImageResolver struct{ *Resolver }
-
-func (r *articleMetadataImageResolver) Height(ctx context.Context, obj *article.Image) (*int, error) {
-	return utils.IntToPtr(obj.H), nil
-}
-func (r *articleMetadataImageResolver) Width(ctx context.Context, obj *article.Image) (*int, error) {
-	return utils.IntToPtr(obj.W), nil
 }
 
 type claimResolver struct{ *Resolver }
@@ -81,5 +86,5 @@ func (r *claimResolver) Type(ctx context.Context, obj *claimsstore.ContentCreden
 	return ts, nil
 }
 func (r *claimResolver) IssuanceDate(ctx context.Context, obj *claimsstore.ContentCredential) (string, error) {
-	return obj.IssuanceDate.Format("2006-01-02T15:04:05Z"), nil
+	return obj.IssuanceDate.Format(timeFormat), nil
 }

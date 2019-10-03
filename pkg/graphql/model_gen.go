@@ -8,8 +8,63 @@ import (
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
+type ArticleMetadataContributorInput struct {
+	Role *string `json:"role"`
+	Name *string `json:"name"`
+}
+
+type ArticleMetadataImageInput struct {
+	URL  *string `json:"url"`
+	Hash *string `json:"hash"`
+	H    *int    `json:"h"`
+	W    *int    `json:"w"`
+}
+
+type ArticleMetadataInput struct {
+	Title               *string                            `json:"title"`
+	RevisionContentHash *string                            `json:"revisionContentHash"`
+	RevisionContentURL  *string                            `json:"revisionContentURL"`
+	CanonicalURL        *string                            `json:"canonicalURL"`
+	Slug                *string                            `json:"slug"`
+	Description         *string                            `json:"description"`
+	Contributors        []*ArticleMetadataContributorInput `json:"contributors"`
+	Images              []*ArticleMetadataImageInput       `json:"images"`
+	Tags                []*string                          `json:"tags"`
+	PrimaryTag          *string                            `json:"primaryTag"`
+	RevisionDate        *string                            `json:"revisionDate"`
+	OriginalPublishDate *string                            `json:"originalPublishDate"`
+	Opinion             *bool                              `json:"Opinion"`
+	CivilSchemaVersion  *string                            `json:"civilSchemaVersion"`
+}
+
+type ClaimCredentialSchemaInput struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+}
+
+type ClaimCredentialSubjectInput struct {
+	ID       string                `json:"id"`
+	Metadata *ArticleMetadataInput `json:"metadata"`
+}
+
 type ClaimGetRequestInput struct {
 	Did string `json:"did"`
+}
+
+type ClaimInput struct {
+	Context           []string                     `json:"context"`
+	Type              []string                     `json:"type"`
+	CredentialSubject *ClaimCredentialSubjectInput `json:"credentialSubject"`
+	Issuer            string                       `json:"issuer"`
+	Holder            string                       `json:"holder"`
+	CredentialSchema  *ClaimCredentialSchemaInput  `json:"credentialSchema"`
+	IssuanceDate      string                       `json:"issuanceDate"`
+	Proof             *LinkedDataProofInput        `json:"proof"`
+}
+
+type ClaimSaveRequestInput struct {
+	Claim     *ClaimInput `json:"claim"`
+	ClaimJSON *string     `json:"claimJson"`
 }
 
 type DidDocAuthenticationInput struct {

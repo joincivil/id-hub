@@ -4,9 +4,11 @@ extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
 }
 
-# extend type Mutation {
-# 	claimSave(in: ClaimSaveRequestInput): ClaimSaveResponse
-# }
+extend type Mutation {
+	claimSave(in: ClaimSaveRequestInput): ClaimSaveResponse
+}
+
+## Inputs
 
 input ClaimGetRequestInput {
 	did: String!
@@ -17,16 +19,67 @@ type ClaimGetResponse {
 	claimsRaw: [String!]
 }
 
-# input ClaimSaveRequestInput {
-# 	context: [String!]
-# 	type: [String!]
-# 	credentialSubject: CredentialSubject
-# }
+input ClaimSaveRequestInput {
+	claim: ClaimInput
+	claimJson: String
+}
 
-# type ClaimSaveResponse {
-# 	claim: Claim!
-# 	claimRaw: String!
-# }
+input ClaimInput {
+	context: [String!]!
+	type: [String!]!
+	credentialSubject: ClaimCredentialSubjectInput!
+	issuer: String!
+	holder: String!
+	credentialSchema: ClaimCredentialSchemaInput!
+	issuanceDate: String!
+	proof: LinkedDataProofInput!
+}
+
+input ClaimCredentialSubjectInput {
+	id: String!
+	metadata: ArticleMetadataInput!
+}
+
+input ClaimCredentialSchemaInput {
+	id: String!
+	type: String!
+}
+
+input ArticleMetadataInput {
+	title: String
+	revisionContentHash: String
+	revisionContentURL: String
+	canonicalURL: String
+	slug: String
+	description: String
+	contributors: [ArticleMetadataContributorInput]
+	images: [ArticleMetadataImageInput]
+	tags: [String]
+	primaryTag: String
+	revisionDate: String
+	originalPublishDate: String
+	Opinion: Boolean
+	civilSchemaVersion: String
+}
+
+input ArticleMetadataContributorInput {
+	role: String
+	name: String
+}
+
+input ArticleMetadataImageInput {
+	url: String
+	hash: String
+	h: Int
+	w: Int
+}
+
+type ClaimSaveResponse {
+	claim: Claim!
+	claimRaw: String!
+}
+
+## Types
 
 type Claim {
 	context: [String!]!
@@ -34,6 +87,7 @@ type Claim {
 	credentialSubject: ClaimCredentialSubject!
 	issuer: String!
 	holder: String!
+	credentialSchema: ClaimCredentialSchema!
 	issuanceDate: String!
 	proof: LinkedDataProof!
 }
@@ -73,6 +127,6 @@ type ArticleMetadataContributor {
 type ArticleMetadataImage {
 	url: String
 	hash: String
-	height: Int
-	width: Int
+	h: Int
+	w: Int
 }

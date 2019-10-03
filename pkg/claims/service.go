@@ -214,7 +214,6 @@ func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 			claimHash := hex.EncodeToString(regDoc.ContentHash[:])
 			signed, err := s.signedClaimStore.GetCredentialByHash(claimHash)
 			if err != nil {
-				// log.Errorf("could not retrieve credential: hash: %v, err: %v", claimHash, err)
 				return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
 			}
 			creds[ind] = signed
