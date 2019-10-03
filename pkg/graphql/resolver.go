@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 
+	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/did"
 )
 
@@ -12,7 +13,8 @@ const (
 
 // Resolver is the main GraphQL resolver
 type Resolver struct {
-	DidService *did.Service
+	DidService   *did.Service
+	ClaimService *claims.Service
 }
 
 // Version returns the version of the GraphQL API

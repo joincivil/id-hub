@@ -4,16 +4,75 @@ extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
 }
 
-input ClaimGetRequestInput {
-	id: String
-}
+# extend type Mutation {
+# 	claimSave(in: ClaimSaveRequestInput): ClaimSaveResponse
+# }
 
-type Claim {
-	id: String
-	context: String
-	types: [String!]
+input ClaimGetRequestInput {
+	did: String!
 }
 
 type ClaimGetResponse {
-	claim: Claim
+	claims: [Claim!]
+	claimsRaw: [String!]
+}
+
+# input ClaimSaveRequestInput {
+# 	context: [String!]
+# 	type: [String!]
+# 	credentialSubject: CredentialSubject
+# }
+
+# type ClaimSaveResponse {
+# 	claim: Claim!
+# 	claimRaw: String!
+# }
+
+type Claim {
+	context: [String!]!
+	type: [String!]!
+	credentialSubject: ClaimCredentialSubject!
+	issuer: String!
+	holder: String!
+	issuanceDate: String!
+	proof: LinkedDataProof!
+}
+
+type ClaimCredentialSubject {
+	id: String!
+	metadata: ArticleMetadata!
+}
+
+type ClaimCredentialSchema {
+	id: String!
+	type: String!
+}
+
+type ArticleMetadata {
+	title: String
+	revisionContentHash: String
+	revisionContentURL: String
+	canonicalURL: String
+	slug: String
+	description: String
+	contributors: [ArticleMetadataContributor]
+	images: [ArticleMetadataImage]
+	tags: [String]
+	primaryTag: String
+	revisionDate: String
+	originalPublishDate: String
+	Opinion: Boolean
+	civilSchemaVersion: String
+}
+
+type ArticleMetadataContributor {
+	role: String
+	name: String
+}
+
+type ArticleMetadataImage {
+	url: String
+	hash: String
+	height: Int
+	width: Int
 }

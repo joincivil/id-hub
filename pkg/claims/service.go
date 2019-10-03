@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
+
+	"github.com/pkg/errors"
+
+	log "github.com/golang/glog"
 
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -196,6 +199,32 @@ func getClaimsForTree(tree *merkletree.MerkleTree) ([]merkletree.Claim, error) {
 		claims = append(claims, claim)
 	}
 	return claims, nil
+}
+
+// ClaimsToContentCredentials converts a list of merkletree.Claim interfaces
+// to concrete ContentCredentials.
+func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
+	[]*claimsstore.ContentCredential, error) {
+	creds := make([]*claimsstore.ContentCredential, len(clms))
+
+	for ind, v := range clms {
+		switch v.(type) {
+		case ClaimRegisteredDocument:
+			regDoc := v.(ClaimRegisteredDocument)
+			claimHash := hex.EncodeToString(regDoc.ContentHash[:])
+			signed, err := s.signedClaimStore.GetCredentialByHash(claimHash)
+			if err != nil {
+				// log.Errorf("could not retrieve credential: hash: %v, err: %v", claimHash, err)
+				return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
+			}
+			creds[ind] = signed
+
+		default:
+			log.Errorf("Type not recognized claim type, is %T", v)
+		}
+	}
+
+	return creds, nil
 }
 
 // GetMerkleTreeClaimsForDid returns all the claims in a DID's merkletree

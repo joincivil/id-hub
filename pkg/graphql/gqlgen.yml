@@ -36,3 +36,24 @@ models:
   DidSaveResponse:
     model:
       - github.com/joincivil/id-hub/pkg/graphql.DidSaveResponse
+  Claim:
+    model:
+      - github.com/joincivil/id-hub/pkg/claimsstore.ContentCredential
+  ClaimCredentialSubject:
+    model:
+      - github.com/joincivil/id-hub/pkg/claimsstore.ContentCredentialSubject
+  ClaimCredentialSchema:
+    model:
+      - github.com/joincivil/id-hub/pkg/claimsstore.CredentialSchema
+  ClaimGetResponse:
+    model:
+      - github.com/joincivil/id-hub/pkg/graphql.ClaimGetResponse
+  ArticleMetadata:
+    model:
+      - github.com/joincivil/go-common/pkg/article.Metadata
+  ArticleMetadataContributor:
+    model:
+      - github.com/joincivil/go-common/pkg/article.Contributor
+  ArticleMetadataImage:
+    model:
+      - github.com/joincivil/go-common/pkg/article.Image

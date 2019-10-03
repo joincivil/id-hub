@@ -8,18 +8,8 @@ import (
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
-type Claim struct {
-	ID      *string  `json:"id"`
-	Context *string  `json:"context"`
-	Types   []string `json:"types"`
-}
-
 type ClaimGetRequestInput struct {
-	ID *string `json:"id"`
-}
-
-type ClaimGetResponse struct {
-	Claim *Claim `json:"claim"`
+	Did string `json:"did"`
 }
 
 type DidDocAuthenticationInput struct {
