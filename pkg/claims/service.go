@@ -32,7 +32,8 @@ type Service struct {
 }
 
 // NewService returns a new service
-func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimPGPersister, didService *did.Service) (*Service, error) {
+func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimPGPersister,
+	didService *did.Service) (*Service, error) {
 	rootStore := treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
 
 	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
