@@ -65,9 +65,18 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) er
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
 	keyType := linkeddata.SuiteTypeSecp256k1Verification
 
-	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
-	signature, _ := ctx.Value(signatureCtxKey).(string)
-	didStr, _ := ctx.Value(didCtxKey).(string)
+	reqTs, ok := ctx.Value(reqTsCtxKey).(string)
+	if !ok {
+		return errors.New("no request ts passed in context")
+	}
+	signature, ok := ctx.Value(signatureCtxKey).(string)
+	if !ok {
+		return errors.New("no signature passed in context")
+	}
+	didStr, ok := ctx.Value(didCtxKey).(string)
+	if !ok {
+		return errors.New("no did passed in context")
+	}
 
 	ts, err := strconv.Atoi(reqTs)
 	if err != nil {

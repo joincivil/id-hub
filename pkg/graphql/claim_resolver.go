@@ -3,10 +3,13 @@ package graphql
 import (
 	"context"
 
+	log "github.com/golang/glog"
 	didlib "github.com/ockam-network/did"
+
 	"github.com/pkg/errors"
 
 	"github.com/joincivil/go-common/pkg/article"
+	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
@@ -49,6 +52,13 @@ func (r *queryResolver) ClaimGet(ctx context.Context, in *ClaimGetRequestInput) 
 func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestInput) (
 	*ClaimSaveResponse, error) {
 	var err error
+
+	// Auth needed here, DID owner only
+	authErr := auth.ForContext(ctx, r.DidService, nil)
+	if authErr != nil {
+		log.Infof("Access denied err: %v", authErr)
+		return nil, ErrAccessDenied
+	}
 
 	cc, err := InputClaimToContentCredential(in)
 	if err != nil {

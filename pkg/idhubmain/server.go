@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	log "github.com/golang/glog"
+	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -53,6 +54,9 @@ func RunServer() error {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+
+	// Setup the ID Hub auth middleware
+	router.Use(auth.Middleware())
 
 	queryHandler := handler.GraphQL(
 		graphql.NewExecutableSchema(
