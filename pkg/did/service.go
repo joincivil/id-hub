@@ -64,6 +64,11 @@ func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	if doc == nil {
+		return nil, errors.New("no did document found")
+	}
+
 	return doc.GetPublicKeyFromFragment(fragment)
 }
 

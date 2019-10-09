@@ -3,8 +3,11 @@ package graphql
 import (
 	"context"
 
+	log "github.com/golang/glog"
+
 	"github.com/pkg/errors"
 
+	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/utils"
 
 	"github.com/joincivil/id-hub/pkg/did"
@@ -52,12 +55,18 @@ func (r *queryResolver) DidGet(ctx context.Context, in *DidGetRequestInput) (
 
 func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput) (
 	*DidSaveResponse, error) {
-	// Auth needed here, DID owner only
 
 	// Validate/convert all the PKs in the public key list and create a slice of pks
 	pks, pkMap, err := ConvertInputPublicKeys(in.PublicKeys)
 	if err != nil {
 		return nil, err
+	}
+
+	// Auth needed here, DID owner only
+	authErr := auth.ForContext(ctx, r.DidService, pks)
+	if authErr != nil {
+		log.Infof("Access denied err: %v", authErr)
+		return nil, ErrAccessDenied
 	}
 
 	// Validate/convert all the PKs in the authentications key list

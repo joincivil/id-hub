@@ -203,24 +203,38 @@ func getClaimsForTree(tree *merkletree.MerkleTree) ([]merkletree.Claim, error) {
 }
 
 // ClaimsToContentCredentials converts a list of merkletree.Claim interfaces
-// to concrete ContentCredentials.
+// to concrete ContentCredentials. Filters out claims not of type
+// ContentCredential.
 func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 	[]*claimsstore.ContentCredential, error) {
-	creds := make([]*claimsstore.ContentCredential, len(clms))
+	creds := make([]*claimsstore.ContentCredential, 0, len(clms))
 
-	for ind, v := range clms {
-		switch v.(type) {
-		case ClaimRegisteredDocument:
-			regDoc := v.(ClaimRegisteredDocument)
+	for _, v := range clms {
+		switch tv := v.(type) {
+		case ClaimRegisteredDocument, *ClaimRegisteredDocument:
+			// XXX(PN): These are coming in as both value and by reference, normal?
+			var regDoc ClaimRegisteredDocument
+			d, ok := tv.(*ClaimRegisteredDocument)
+			if ok {
+				regDoc = *d
+			} else {
+				regDoc = tv.(ClaimRegisteredDocument)
+			}
+
 			claimHash := hex.EncodeToString(regDoc.ContentHash[:])
+			// XXX(PN): Needs a bulk loader here
 			signed, err := s.signedClaimStore.GetCredentialByHash(claimHash)
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
 			}
-			creds[ind] = signed
+
+			creds = append(creds, signed)
+
+		case *icore.ClaimAuthorizeKSignSecp256k1:
+			// Known claim type to ignore here
 
 		default:
-			log.Errorf("Type not recognized claim type, is %T", v)
+			log.Errorf("Unknown claim type, is %T", v)
 		}
 	}
 

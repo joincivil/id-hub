@@ -132,7 +132,7 @@ func ValidDocPublicKey(pk *DocPublicKey) bool {
 // LDSuiteTypeSecp256k1Verification
 func KeyFromType(pk *DocPublicKey) (*string, error) {
 	// Supports only Secp256k1 hex keys for now
-	// TODO(PN): Add more support here based on our needs
+	// NOTE(PN): Add more support here based on our needs
 	switch pk.Type {
 	case linkeddata.SuiteTypeSecp256k1Verification:
 		if pk.PublicKeyHex == nil || *pk.PublicKeyHex == "" {
