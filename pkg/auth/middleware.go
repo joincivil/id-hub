@@ -19,9 +19,10 @@ const (
 )
 
 var (
-	didCtxKey       = &contextKey{"didkey"}
-	reqTsCtxKey     = &contextKey{"reqts"}
-	signatureCtxKey = &contextKey{"signature"}
+	didCtxKey         = &contextKey{"didkey"}
+	reqTsCtxKey       = &contextKey{"reqts"}
+	signatureCtxKey   = &contextKey{"signature"}
+	gracePeriodCtxKey = &contextKey{"graceperiod"}
 )
 
 type contextKey struct {
@@ -65,34 +66,38 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) er
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
 	keyType := linkeddata.SuiteTypeSecp256k1Verification
 
-	reqTs, ok := ctx.Value(reqTsCtxKey).(string)
-	if !ok {
+	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
+	if reqTs == "" {
 		return errors.New("no request ts passed in context")
 	}
-	signature, ok := ctx.Value(signatureCtxKey).(string)
-	if !ok {
+	signature, _ := ctx.Value(signatureCtxKey).(string)
+	if signature == "" {
 		return errors.New("no signature passed in context")
 	}
-	didStr, ok := ctx.Value(didCtxKey).(string)
-	if !ok {
-		return errors.New("no did passed in context")
-	}
+	didStr, _ := ctx.Value(didCtxKey).(string)
 
 	ts, err := strconv.Atoi(reqTs)
 	if err != nil {
 		return errors.Wrap(err, "could not convert ts to int")
 	}
 
+	// altered grace period value can be passed in the context
+	gracePeriod := DefaultRequestGracePeriodSecs
+	gp, ok := ctx.Value(gracePeriodCtxKey).(int)
+	if ok {
+		gracePeriod = gp
+	}
+
 	// If did and key found, then pull doc for DID to check the signature
 	// If no did and key passed, then check incoming list of pks to check signature
 	if didStr != "" {
-		err = VerifyEcdsaRequestSignatureWithDid(ds, keyType, signature, ts, didStr)
+		err = VerifyEcdsaRequestSignatureWithDid(ds, keyType, signature, ts, didStr, gracePeriod)
 		if err != nil {
 			return err
 		}
 
 	} else if pks != nil {
-		err = VerifyEcdsaRequestSignatureWithPks(pks, keyType, signature, ts, "")
+		err = VerifyEcdsaRequestSignatureWithPks(pks, keyType, signature, ts, "", gracePeriod)
 		if err != nil {
 			return err
 		}

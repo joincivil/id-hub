@@ -19,13 +19,15 @@ import (
 )
 
 const (
-	defaultGracePeriod = 60 * 5 // 5 mins
+	// DefaultRequestGracePeriodSecs is the default grace period in which to
+	// allow requests to be valid after the timestamp of the signature.
+	DefaultRequestGracePeriodSecs = 60 * 5 // 5 mins
 )
 
 // VerifyEcdsaRequestSignatureWithDid checks the did document for keys and
 // verifies the signatures using the dids ECDSA public keys
 func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.SuiteType,
-	signature string, ts int, didStr string) error {
+	signature string, ts int, didStr string, gracePeriod int) error {
 	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
 		return errors.New("supports ecdsa only")
 	}
@@ -38,14 +40,21 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.Suit
 		return errors.Errorf("did doc not found for %v", didStr)
 	}
 
-	return VerifyEcdsaRequestSignatureWithPks(doc.PublicKeys, keyType, signature, ts, didStr)
+	return VerifyEcdsaRequestSignatureWithPks(
+		doc.PublicKeys,
+		keyType,
+		signature,
+		ts,
+		didStr,
+		gracePeriod,
+	)
 }
 
 // VerifyEcdsaRequestSignatureWithPks checks a slice of public keys and verifies
 // the signature against keys of key suite type ECDSA. didStr only affects the
 // signed request message value and can be omitted (look at RequestMessage for more details).
 func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType linkeddata.SuiteType,
-	signature string, ts int, didStr string) error {
+	signature string, ts int, didStr string, gracePeriod int) error {
 	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
 		return errors.New("supports ecdsa only")
 	}
@@ -70,7 +79,7 @@ KeyLoop:
 				continue
 			}
 
-			valid, err = VerifyEcdsaRequestSignature(*pubKey, signature, didStr, ts)
+			valid, err = VerifyEcdsaRequestSignature(*pubKey, signature, didStr, ts, gracePeriod)
 			if err != nil {
 				log.Errorf("Error verifying signature: err: %v", err)
 				retErr = err
@@ -93,13 +102,15 @@ KeyLoop:
 	return nil
 }
 
-// VerifyEcdsaRequestSignature determines if a signature is valid given the ECDSA public key
-// and a message derived from a message containing a did and the request timestamp.
+// VerifyEcdsaRequestSignature determines if a signature is valid given
+// the ECDSA public key and a message derived from a message containing a did and
+// the request timestamp.
+// This function can also pass in the grace period for request validity.
 // NOTE: The did is only validated for correctness, but has not validated to see if
 // there is a corresponding did document.  That should occur before this method is called.
 // The message to be verified is "<did> request @ <timestamp>"
 func VerifyEcdsaRequestSignature(pubKey string, signature string,
-	did string, reqTs int) (bool, error) {
+	did string, reqTs int, gracePeriodSecs int) (bool, error) {
 	if did != "" {
 		_, err := didlib.Parse(did)
 		if err != nil {
@@ -138,7 +149,7 @@ func VerifyEcdsaRequestSignature(pubKey string, signature string,
 		return false, nil
 	}
 	// Grace period for validity has expired
-	if tsDiff > defaultGracePeriod {
+	if tsDiff > gracePeriodSecs {
 		return false, nil
 	}
 

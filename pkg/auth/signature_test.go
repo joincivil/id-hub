@@ -28,7 +28,8 @@ func TestSignVerifyEcdsaRequestSignature(t *testing.T) {
 	// Verify this signature is valid
 	pubKeyBys := crypto.FromECDSAPub(&pk.PublicKey)
 	pubKeyHex := hex.EncodeToString(pubKeyBys)
-	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
+	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did,
+		reqTs, auth.DefaultRequestGracePeriodSecs)
 	if err != nil {
 		t.Errorf("Should not have returned error when verifying: err: %v", err)
 	}
@@ -54,7 +55,8 @@ func TestSignVerifyEcdsaRequestSignatureGracePeriod(t *testing.T) {
 
 	pubKeyBys := crypto.FromECDSAPub(&pk.PublicKey)
 	pubKeyHex := hex.EncodeToString(pubKeyBys)
-	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
+	verified, err := auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did,
+		reqTs, auth.DefaultRequestGracePeriodSecs)
 	if err != nil {
 		t.Errorf("Should not have returned error when verifying: err: %v", err)
 	}
@@ -72,7 +74,8 @@ func TestSignVerifyEcdsaRequestSignatureGracePeriod(t *testing.T) {
 		t.Fatalf("Should have returned a non-empty signature")
 	}
 
-	verified, err = auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs)
+	verified, err = auth.VerifyEcdsaRequestSignature(pubKeyHex, signature, did, reqTs,
+		auth.DefaultRequestGracePeriodSecs)
 	if err != nil {
 		t.Errorf("Should not have returned error when verifying")
 	}
@@ -99,7 +102,8 @@ func TestSignVerifyEcdsaRequestSignatureErrs(t *testing.T) {
 	// Bad publicKey when verifying
 	did = "did:ethurl:123456"
 	badPubKey := "thisisabadkey"
-	verified, err := auth.VerifyEcdsaRequestSignature(badPubKey, signature, did, reqTs)
+	verified, err := auth.VerifyEcdsaRequestSignature(badPubKey, signature, did, reqTs,
+		auth.DefaultRequestGracePeriodSecs)
 	if err == nil {
 		t.Errorf("Should have returned error when verifying")
 	}
@@ -111,7 +115,8 @@ func TestSignVerifyEcdsaRequestSignatureErrs(t *testing.T) {
 	pubKeyBys := crypto.FromECDSAPub(&pk.PublicKey)
 	did = "did:ethurl:123456"
 	badSignature := "thisisabadsignature"
-	verified, err = auth.VerifyEcdsaRequestSignature(string(pubKeyBys), badSignature, did, reqTs)
+	verified, err = auth.VerifyEcdsaRequestSignature(string(pubKeyBys), badSignature,
+		did, reqTs, auth.DefaultRequestGracePeriodSecs)
 	if err == nil {
 		t.Errorf("Should have returned error when verifying")
 	}
