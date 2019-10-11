@@ -238,7 +238,12 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	}
 
 	// Create a DID identity
-	pub := "049691d8097f07afb7068a971ba500abd30b2ef763240bc56bf021ff592ed08446b7d23df1a5a043e7472d8954764f3fd39fbf992517e9c61ba10afee1965391e6"
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
 	docPubKey := &did.DocPublicKey{
 		Type:         linkeddata.SuiteTypeSecp256k1Verification,
 		PublicKeyHex: &pub,
@@ -258,7 +263,6 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	}
 
 	// Create the DID tree
-	pubBytes, _ := hex.DecodeString(pub)
 	ecdsaPubkey, _ := crypto.UnmarshalPubkey(pubBytes)
 	err = claimService.CreateTreeForDID(&didDoc.ID, ecdsaPubkey)
 	if err != nil {
@@ -267,7 +271,7 @@ func TestClaimsToContentCredentials(t *testing.T) {
 
 	// Claim content 1
 	cred := makeContentCredential(&didDoc.ID)
-	addProof(cred, didDoc.PublicKeys[0].ID)
+	_ = addProof(cred, didDoc.PublicKeys[0].ID, key)
 	err = claimService.ClaimContent(cred)
 	if err != nil {
 		t.Errorf("problem creating content claim: %v", err)

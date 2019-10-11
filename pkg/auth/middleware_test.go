@@ -116,7 +116,7 @@ type testHandlerForContext struct {
 
 func (h *testHandlerForContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := ForContext(ctx, h.ds, nil)
+	_, err := ForContext(ctx, h.ds, nil)
 	if err != nil {
 		h.t.Errorf("Should not have returned a bad verification: err: %v", err)
 	}
@@ -163,7 +163,7 @@ type testHandlerForContextNewDid struct {
 
 func (h *testHandlerForContextNewDid) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := ForContext(ctx, h.ds, h.pks)
+	_, err := ForContext(ctx, h.ds, h.pks)
 	if err != nil {
 		h.t.Errorf("Should have returned verified: err: %v", err)
 	}
@@ -215,7 +215,7 @@ type testHandlerForContextNewDidNoPk struct {
 
 func (h *testHandlerForContextNewDidNoPk) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := ForContext(ctx, h.ds, h.pks)
+	_, err := ForContext(ctx, h.ds, h.pks)
 	if err == nil {
 		h.t.Errorf("Should have not been verified")
 	}
@@ -258,7 +258,7 @@ type testHandlerForContextBad struct {
 
 func (h *testHandlerForContextBad) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := ForContext(ctx, h.ds, nil)
+	_, err := ForContext(ctx, h.ds, nil)
 	if err == nil {
 		h.t.Errorf("Should have returned a bad verification")
 	}

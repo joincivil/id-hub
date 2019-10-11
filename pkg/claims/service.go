@@ -52,17 +52,17 @@ func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimP
 func (s *Service) addNewRootClaim(didMt *merkletree.MerkleTree, userDid *didlib.DID) error {
 	claimSetRootKey, err := NewClaimSetRootKeyDID(userDid, didMt.RootKey())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "addNewRootClaim.NewClaimSetRootKeyDID")
 	}
 	// get next version of the claim
 	version, err := isrv.GetNextVersion(s.rootMt, claimSetRootKey.Entry().HIndex())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "addNewRootClaim.GetNextVersion")
 	}
 	claimSetRootKey.Version = version
 	err = s.rootMt.Add(claimSetRootKey.Entry())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "addNewRootClaim.rootMt.Add")
 	}
 	return nil
 }
@@ -90,7 +90,8 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPk *ecdsa.PublicKey)
 	return s.addNewRootClaim(didMt, userDid)
 }
 
-func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree, signerDid *didlib.DID) (bool, error) {
+func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree,
+	signerDid *didlib.DID) (bool, error) {
 	if cred.Proof.Type != string(linkeddata.SuiteTypeSecp256k1Signature) {
 		return false, errors.New("Only Secp256k1 signature types are implemented")
 	}
@@ -113,7 +114,6 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 	if !isrv.CheckKSignInIddb(userMt, ecpub) {
 		return false, errors.New("key used to sign has not been claimed in the merkle tree")
 	}
-
 	canoncred, err := CanonicalizeCredential(cred)
 	if err != nil {
 		return false, err
@@ -135,28 +135,32 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 func (s *Service) ClaimContent(cred *claimsstore.ContentCredential) error {
 	signerDid, err := didlib.Parse(cred.Proof.Creator)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent didlib.parse")
+	}
+
+	if signerDid.Fragment == "" {
+		return errors.New("claimcontent expecting fragment on did for proof creator")
 	}
 
 	// for a content claim the signer should also be the issuer and holder
 	didMt, err := s.buildDIDMt(signerDid)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.builddidMt")
 	}
 	verified, err := s.verifyCredential(cred, didMt, signerDid)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.verifycredential")
 	}
 	if !verified {
 		return errors.New("could not verify string on credential")
 	}
 	hash, err := s.signedClaimStore.AddCredential(cred)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.addcredential")
 	}
 	hashb, err := hex.DecodeString(hash)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.decodestring")
 	}
 	if len(hashb) > 32 {
 		return errors.New("hash hex string is the wrong size")
@@ -166,14 +170,18 @@ func (s *Service) ClaimContent(cred *claimsstore.ContentCredential) error {
 
 	claim, err := NewClaimRegisteredDocument(hashb32, signerDid, ContentCredentialDocType)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.newclaimregistereddocument")
 	}
 	err = didMt.Add(claim.Entry())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claimcontent.add")
+	}
+	err = s.addNewRootClaim(didMt, signerDid)
+	if err != nil {
+		return errors.Wrap(err, "claimcontent.addnewrootclaim")
 	}
 
-	return s.addNewRootClaim(didMt, signerDid)
+	return nil
 }
 
 func getClaimsForTree(tree *merkletree.MerkleTree) ([]merkletree.Claim, error) {

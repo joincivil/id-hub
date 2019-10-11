@@ -63,9 +63,16 @@ func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput)
 	}
 
 	// Auth needed here, DID owner only
-	authErr := auth.ForContext(ctx, r.DidService, pks)
+	fcd, authErr := auth.ForContext(ctx, r.DidService, pks)
 	if authErr != nil {
 		log.Infof("Access denied err: %v", authErr)
+		return nil, ErrAccessDenied
+	}
+
+	// Auth to ensure the requestor did matches the doc did.
+	if in.Did != nil && *in.Did != fcd.Did {
+		log.Infof("Access denied, requestor did does not match incoming did: %v, %v",
+			in.Did, fcd.Did)
 		return nil, ErrAccessDenied
 	}
 

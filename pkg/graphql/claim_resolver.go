@@ -54,7 +54,7 @@ func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestIn
 	var err error
 
 	// Auth needed here, DID owner only
-	authErr := auth.ForContext(ctx, r.DidService, nil)
+	fcd, authErr := auth.ForContext(ctx, r.DidService, nil)
 	if authErr != nil {
 		log.Infof("Access denied err: %v", authErr)
 		return nil, ErrAccessDenied
@@ -65,9 +65,17 @@ func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestIn
 		return nil, errors.Wrap(err, "error converting claim to credential")
 	}
 
+	// Auth check to ensure that the requestor auth did matches the issuer did
+	// value in the claim.
+	if cc.Issuer != fcd.Did {
+		log.Infof("Access denied, requestor did does not match issuer did: %v, %v",
+			cc.Issuer, fcd.Did)
+		return nil, ErrAccessDenied
+	}
+
 	err = r.ClaimService.ClaimContent(cc)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to unmarshal to claim content")
+		return nil, errors.Wrap(err, "error calling claimcontent")
 	}
 
 	return &ClaimSaveResponse{Claim: cc}, nil

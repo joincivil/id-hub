@@ -60,25 +60,34 @@ func Middleware() func(http.Handler) http.Handler {
 	}
 }
 
-// ForContext checks signature based on the header data.
+// ForContextData is returned by ForContext and contains data pulled from the
+// context
+type ForContextData struct {
+	Did string
+}
+
+// ForContext checks signature based on the header data. If error returned,
+// indicates an invalid signature or no auth passed. Returns auth context data
+// for convenience.
 // REQUIRES Middleware to have run.
-func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) error {
+func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) (
+	*ForContextData, error) {
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
 	keyType := linkeddata.SuiteTypeSecp256k1Verification
 
 	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
 	if reqTs == "" {
-		return errors.New("no request ts passed in context")
+		return nil, errors.New("no request ts passed in context")
 	}
 	signature, _ := ctx.Value(signatureCtxKey).(string)
 	if signature == "" {
-		return errors.New("no signature passed in context")
+		return nil, errors.New("no signature passed in context")
 	}
 	didStr, _ := ctx.Value(didCtxKey).(string)
 
 	ts, err := strconv.Atoi(reqTs)
 	if err != nil {
-		return errors.Wrap(err, "could not convert ts to int")
+		return nil, errors.Wrap(err, "could not convert ts to int")
 	}
 
 	// altered grace period value can be passed in the context
@@ -93,18 +102,18 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) er
 	if didStr != "" {
 		err = VerifyEcdsaRequestSignatureWithDid(ds, keyType, signature, ts, didStr, gracePeriod)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 	} else if pks != nil {
 		err = VerifyEcdsaRequestSignatureWithPks(pks, keyType, signature, ts, "", gracePeriod)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 	} else {
-		return errors.New("could not verify signature, no did or public keys")
+		return nil, errors.New("could not verify signature, no did or public keys")
 	}
 
-	return nil
+	return &ForContextData{Did: didStr}, nil
 }

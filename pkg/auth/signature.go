@@ -9,6 +9,7 @@ import (
 	didlib "github.com/ockam-network/did"
 
 	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/pkg/errors"
 
 	ceth "github.com/joincivil/go-common/pkg/eth"
@@ -26,6 +27,7 @@ const (
 
 // VerifyEcdsaRequestSignatureWithDid checks the did document for keys and
 // verifies the signatures using the dids ECDSA public keys
+// Expects a signature with no 0x prefix.
 func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.SuiteType,
 	signature string, ts int, didStr string, gracePeriod int) error {
 	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
@@ -53,6 +55,7 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.Suit
 // VerifyEcdsaRequestSignatureWithPks checks a slice of public keys and verifies
 // the signature against keys of key suite type ECDSA. didStr only affects the
 // signed request message value and can be omitted (look at RequestMessage for more details).
+// Expects a signature with no 0x prefix.
 func VerifyEcdsaRequestSignatureWithPks(pks []did.DocPublicKey, keyType linkeddata.SuiteType,
 	signature string, ts int, didStr string, gracePeriod int) error {
 	if !linkeddata.IsEcdsaKeySuiteType(keyType) {
@@ -109,6 +112,7 @@ KeyLoop:
 // NOTE: The did is only validated for correctness, but has not validated to see if
 // there is a corresponding did document.  That should occur before this method is called.
 // The message to be verified is "<did> request @ <timestamp>"
+// Expects a signature with no 0x prefix.
 func VerifyEcdsaRequestSignature(pubKey string, signature string,
 	did string, reqTs int, gracePeriodSecs int) (bool, error) {
 	if did != "" {
@@ -157,7 +161,7 @@ func VerifyEcdsaRequestSignature(pubKey string, signature string,
 }
 
 // SignEcdsaRequestMessage is a convenience function to sign a message used for
-// API requests
+// API requests. Returns a signature with no 0x prefix.
 func SignEcdsaRequestMessage(privKey *ecdsa.PrivateKey, did string, reqTs int) (string, error) {
 	if did != "" {
 		_, err := didlib.Parse(did)
@@ -165,12 +169,21 @@ func SignEcdsaRequestMessage(privKey *ecdsa.PrivateKey, did string, reqTs int) (
 			return "", errors.Wrap(err, "invalid did for signing")
 		}
 	}
+	message := ceth.AsEthereumSignature(RequestMessage(did, reqTs))
+	return SignMessage(privKey, []byte(message))
+}
 
-	signature, err := ceth.SignEthMessage(privKey, RequestMessage(did, reqTs))
+// SignMessage signs a given message using the private key.  Returns a signature
+// with no 0x prefix.
+func SignMessage(privKey *ecdsa.PrivateKey, message []byte) (string, error) {
+	hash := crypto.Keccak256(message)
+	fmt.Printf("hash = %v\n", hex.EncodeToString(hash))
+	signature, err := crypto.Sign(hash, privKey)
 	if err != nil {
-		return "", errors.Wrap(err, "error signing request message")
+		return "", err
 	}
-	return signature, nil
+
+	return hex.EncodeToString(signature), nil
 }
 
 // RequestMessage returns the default message to be signed for API

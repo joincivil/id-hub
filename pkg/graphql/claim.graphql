@@ -24,6 +24,11 @@ input ClaimSaveRequestInput {
 	claimJson: String
 }
 
+type ClaimSaveResponse {
+	claim: Claim!
+	claimRaw: String!
+}
+
 input ClaimInput {
 	context: [String!]!
 	type: [String!]!
@@ -72,11 +77,6 @@ input ArticleMetadataImageInput {
 	hash: String
 	h: Int
 	w: Int
-}
-
-type ClaimSaveResponse {
-	claim: Claim!
-	claimRaw: String!
 }
 
 ## Types

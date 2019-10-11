@@ -9,7 +9,10 @@ import (
 
 	log "github.com/golang/glog"
 
+	ctime "github.com/joincivil/go-common/pkg/time"
+
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/urfave/cli"
@@ -24,6 +27,7 @@ func RunCLI() error {
 	app.Commands = []cli.Command{
 		*cmdGenerateDID(),
 		*cmdGenerateNewKey(),
+		*cmdGenerateGqlCreds(),
 	}
 
 	return app.Run(os.Args)
@@ -188,4 +192,51 @@ func cmdGenerateNewKey() *cli.Command {
 		},
 		Action: cmdFn,
 	}
+}
+
+func cmdGenerateGqlCreds() *cli.Command {
+	privKeyHexFlag := cli.StringFlag{
+		Name:     "privatekey, k",
+		Usage:    "Sets the private key to use to sign",
+		Required: true,
+	}
+	didKeyFlag := cli.StringFlag{
+		Name:     "did, d",
+		Usage:    "Sets the DID to use when generating the key. (Optional)",
+		Required: false,
+	}
+
+	cmdFn := func(c *cli.Context) error {
+		thedid := c.String("did")
+		key := c.String("privatekey")
+
+		k, err := crypto.HexToECDSA(key)
+		if err != nil {
+			return err
+		}
+
+		reqTs := ctime.CurrentEpochSecsInInt()
+		sig, err := auth.SignEcdsaRequestMessage(k, thedid, reqTs)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("did:\n%v\n", thedid)
+		fmt.Printf("reqTs:\n%v\n", reqTs)
+		fmt.Printf("signature:\n%v\n", sig)
+
+		return nil
+	}
+
+	return &cli.Command{
+		Name:    "generategqlcreds",
+		Aliases: []string{"q"},
+		Usage:   "Generates a signature and ts from a given DID for GraphQL access",
+		Flags: []cli.Flag{
+			privKeyHexFlag,
+			didKeyFlag,
+		},
+		Action: cmdFn,
+	}
+
 }
