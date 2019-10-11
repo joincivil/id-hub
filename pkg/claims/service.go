@@ -1,6 +1,7 @@
 package claims
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
@@ -96,11 +97,11 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 	if pubkey.Type != linkeddata.SuiteTypeSecp256k1Verification {
 		return false, errors.New("Only secp256k1 signatures are currently supported")
 	}
-	pubbytes, err := hex.DecodeString(*pubkey.PublicKeyHex)
+	pubBytes, err := hex.DecodeString(*pubkey.PublicKeyHex)
 	if err != nil {
 		return false, err
 	}
-	ecpub, err := crypto.UnmarshalPubkey(pubbytes[:])
+	ecpub, err := crypto.UnmarshalPubkey(pubBytes[:])
 	if err != nil {
 		return false, err
 	}
@@ -117,8 +118,12 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 	if err != nil {
 		return false, err
 	}
-	verified := crypto.VerifySignature(pubbytes, crypto.Keccak256(canoncred), sigbytes)
-	return verified, nil
+	recoveredPubkey, err := crypto.SigToPub(crypto.Keccak256(canoncred), sigbytes)
+	if err != nil {
+		return false, err
+	}
+	recoveredBytes := crypto.FromECDSAPub(recoveredPubkey)
+	return bytes.Equal(recoveredBytes, pubBytes), nil
 }
 
 // ClaimContent takes a content credential and saves it to the signed credential table

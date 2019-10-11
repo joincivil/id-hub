@@ -48,13 +48,25 @@ func makeContentCredential(issuerDID *didlib.DID) *claimsstore.ContentCredential
 	}
 }
 
-func addProof(cred *claimsstore.ContentCredential, signerDID *didlib.DID) {
+func addProof(cred *claimsstore.ContentCredential, signerDID *didlib.DID, pk *ecdsa.PrivateKey) error {
+	canonical, err := claims.CanonicalizeCredential(cred)
+	if err != nil {
+		return err
+	}
+	hash := crypto.Keccak256(canonical)
+	sigBytes, err := crypto.Sign(hash, pk)
+	if err != nil {
+		return err
+	}
+
+	proofValue := hex.EncodeToString(sigBytes)
 	cred.Proof = linkeddata.Proof{
 		Type:       string(linkeddata.SuiteTypeSecp256k1Signature),
 		Creator:    signerDID.String(),
 		Created:    time.Now(),
-		ProofValue: "9ff18f7a49e8373fed20ce3481042679e25a3327e59c5360a242037e606606ad034a7d0b6ba87549aaeb05f4b8cd8912fd6176e1357e58dd8d3794d25d2eb9d2",
+		ProofValue: proofValue,
 	}
+	return nil
 }
 
 func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimsstore.SignedClaimPGPersister) (*claims.Service, error) {
@@ -125,8 +137,12 @@ func TestClaimContent(t *testing.T) {
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
-
-	pub := "049691d8097f07afb7068a971ba500abd30b2ef763240bc56bf021ff592ed08446b7d23df1a5a043e7472d8954764f3fd39fbf992517e9c61ba10afee1965391e6"
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
 	docPubKey := &did.DocPublicKey{
 		Type:         linkeddata.SuiteTypeSecp256k1Verification,
 		PublicKeyHex: &pub,
@@ -146,15 +162,16 @@ func TestClaimContent(t *testing.T) {
 	}
 
 	cred := makeContentCredential(&didDoc.ID)
-	addProof(cred, didDoc.PublicKeys[0].ID)
+	err = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	if err != nil {
+		t.Errorf("error adding proof: %v", err)
+	}
 
 	err = claimService.ClaimContent(cred)
 	if err == nil {
 		t.Errorf("should have errored because couldn't resolv the key")
 	}
-	pubBytes, _ := hex.DecodeString(pub)
-	ecdsaPubkey, _ := crypto.UnmarshalPubkey(pubBytes)
-	err = claimService.CreateTreeForDID(&didDoc.ID, ecdsaPubkey)
+	err = claimService.CreateTreeForDID(&didDoc.ID, &key.PublicKey)
 	if err != nil {
 		t.Errorf("problem creating did tree: %v", err)
 	}
