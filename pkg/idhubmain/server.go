@@ -44,7 +44,7 @@ func RunServer() error {
 		queryHandler,
 	)
 
-	gqlURL := fmt.Sprintf("localhost:%v", config.GqlPort)
+	gqlURL := fmt.Sprintf(":%v", config.GqlPort)
 
 	log.Infof("Starting up GraphQL services at %v", gqlURL)
 	return http.ListenAndServe(gqlURL, router)
