@@ -51,7 +51,7 @@ func NewGormPostgres(creds GormPostgresConfig) (*gorm.DB, error) {
 		"host=%v port=%v user=%v dbname=%v password=%v sslmode=disable",
 		creds.Host, creds.Port, creds.User, creds.Dbname, creds.Password)
 
-	log.Infof("Connecting to database: %v\n", connStr)
+	log.Infof("Connecting to database: %v, %v\n", creds.Host, creds.Port)
 
 	db, err := gorm.Open("postgres", connStr)
 	if err != nil {
