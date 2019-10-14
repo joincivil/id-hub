@@ -14,11 +14,13 @@ require (
 	github.com/iden3/go-iden3-core v0.0.7-0.20190910103140-0195e977d998
 	github.com/iden3/go-iden3-crypto v0.0.3-0.20190831180703-c95c95b7b161
 	github.com/jinzhu/gorm v1.9.10
-	github.com/joincivil/go-common v0.0.0-20190925152827-26fccd64f4e8
+	github.com/joincivil/go-common v0.0.0-20191010200949-5c3ab2eca14a
 	github.com/karalabe/usb v0.0.0-20190919080040-51dc0efba356 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect
+	github.com/machinebox/graphql v0.2.2
+	github.com/matryer/is v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
@@ -30,8 +32,6 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.21.0
 	github.com/vektah/gqlparser v1.1.2
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392 // indirect
-	golang.org/x/net v0.0.0-20190923162816-aa69164e4478 // indirect
 	golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe // indirect
 	google.golang.org/appengine v1.6.3 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect

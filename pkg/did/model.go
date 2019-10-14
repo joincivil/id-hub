@@ -171,11 +171,16 @@ func (d *Document) AddPublicKey(pk *DocPublicKey, addRefToAuth bool, addFragment
 
 // GetPublicKeyFromFragment returns the public key doc with the given fragment if it exists
 func (d *Document) GetPublicKeyFromFragment(fragment string) (*DocPublicKey, error) {
+	if d.PublicKeys == nil {
+		return nil, errors.New("DID does not have any public keys")
+	}
+
 	for _, v := range d.PublicKeys {
 		if v.ID.Fragment == fragment {
 			return &v, nil
 		}
 	}
+
 	return nil, errors.New("DID does not have a key that matches the fragment")
 }
 
@@ -465,7 +470,7 @@ type DocService struct {
 	ServiceEndpointLD  map[string]interface{} `json:"-"`
 }
 
-// PopulateServiceEndpointVals populate the ServiceEndpointURI or ServiceEdnpointLD
+// PopulateServiceEndpointVals populate the ServiceEndpointURI or ServiceEndpointLD
 // based on the ServiceEndpoint interface{} value.
 func (s *DocService) PopulateServiceEndpointVals() error {
 	// Validate types for service endpoint.  Can either be a string (URI)
@@ -476,7 +481,7 @@ func (s *DocService) PopulateServiceEndpointVals() error {
 		s.ServiceEndpointURI = &val
 	case map[string]interface{}:
 		// valid type
-		// TODO: do more for validation of JSON-LD
+		// XXX(PN): do more for validation of JSON-LD
 		s.ServiceEndpointLD = val
 	default:
 		return errors.Errorf("invalid type for service endpoint value: %T", val)

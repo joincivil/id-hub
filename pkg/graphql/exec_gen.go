@@ -13,6 +13,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/joincivil/go-common/pkg/article"
+	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
@@ -38,6 +40,8 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	ArticleMetadata() ArticleMetadataResolver
+	Claim() ClaimResolver
 	DidDocAuthentication() DidDocAuthenticationResolver
 	DidDocPublicKey() DidDocPublicKeyResolver
 	DidDocService() DidDocServiceResolver
@@ -50,14 +54,64 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ArticleMetadata struct {
+		CanonicalURL        func(childComplexity int) int
+		CivilSchemaVersion  func(childComplexity int) int
+		Contributors        func(childComplexity int) int
+		Description         func(childComplexity int) int
+		Images              func(childComplexity int) int
+		Opinion             func(childComplexity int) int
+		OriginalPublishDate func(childComplexity int) int
+		PrimaryTag          func(childComplexity int) int
+		RevisionContentHash func(childComplexity int) int
+		RevisionContentURL  func(childComplexity int) int
+		RevisionDate        func(childComplexity int) int
+		Slug                func(childComplexity int) int
+		Tags                func(childComplexity int) int
+		Title               func(childComplexity int) int
+	}
+
+	ArticleMetadataContributor struct {
+		Name func(childComplexity int) int
+		Role func(childComplexity int) int
+	}
+
+	ArticleMetadataImage struct {
+		H    func(childComplexity int) int
+		Hash func(childComplexity int) int
+		URL  func(childComplexity int) int
+		W    func(childComplexity int) int
+	}
+
 	Claim struct {
-		Context func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Types   func(childComplexity int) int
+		Context           func(childComplexity int) int
+		CredentialSchema  func(childComplexity int) int
+		CredentialSubject func(childComplexity int) int
+		Holder            func(childComplexity int) int
+		IssuanceDate      func(childComplexity int) int
+		Issuer            func(childComplexity int) int
+		Proof             func(childComplexity int) int
+		Type              func(childComplexity int) int
+	}
+
+	ClaimCredentialSchema struct {
+		ID   func(childComplexity int) int
+		Type func(childComplexity int) int
+	}
+
+	ClaimCredentialSubject struct {
+		ID       func(childComplexity int) int
+		Metadata func(childComplexity int) int
 	}
 
 	ClaimGetResponse struct {
-		Claim func(childComplexity int) int
+		Claims    func(childComplexity int) int
+		ClaimsRaw func(childComplexity int) int
+	}
+
+	ClaimSaveResponse struct {
+		Claim    func(childComplexity int) int
+		ClaimRaw func(childComplexity int) int
 	}
 
 	DidDocAuthentication struct {
@@ -118,8 +172,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		DidSave func(childComplexity int, in *DidSaveRequestInput) int
-		Version func(childComplexity int) int
+		ClaimSave func(childComplexity int, in *ClaimSaveRequestInput) int
+		DidSave   func(childComplexity int, in *DidSaveRequestInput) int
+		Version   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -129,6 +184,15 @@ type ComplexityRoot struct {
 	}
 }
 
+type ArticleMetadataResolver interface {
+	RevisionDate(ctx context.Context, obj *article.Metadata) (*string, error)
+	OriginalPublishDate(ctx context.Context, obj *article.Metadata) (*string, error)
+}
+type ClaimResolver interface {
+	Type(ctx context.Context, obj *claimsstore.ContentCredential) ([]string, error)
+
+	IssuanceDate(ctx context.Context, obj *claimsstore.ContentCredential) (string, error)
+}
 type DidDocAuthenticationResolver interface {
 	PublicKey(ctx context.Context, obj *did.DocAuthenicationWrapper) (*did.DocPublicKey, error)
 }
@@ -150,6 +214,7 @@ type DidDocumentResolver interface {
 type MutationResolver interface {
 	Version(ctx context.Context) (string, error)
 	DidSave(ctx context.Context, in *DidSaveRequestInput) (*DidSaveResponse, error)
+	ClaimSave(ctx context.Context, in *ClaimSaveRequestInput) (*ClaimSaveResponse, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -172,6 +237,146 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "ArticleMetadata.canonicalURL":
+		if e.complexity.ArticleMetadata.CanonicalURL == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.CanonicalURL(childComplexity), true
+
+	case "ArticleMetadata.civilSchemaVersion":
+		if e.complexity.ArticleMetadata.CivilSchemaVersion == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.CivilSchemaVersion(childComplexity), true
+
+	case "ArticleMetadata.contributors":
+		if e.complexity.ArticleMetadata.Contributors == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Contributors(childComplexity), true
+
+	case "ArticleMetadata.description":
+		if e.complexity.ArticleMetadata.Description == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Description(childComplexity), true
+
+	case "ArticleMetadata.images":
+		if e.complexity.ArticleMetadata.Images == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Images(childComplexity), true
+
+	case "ArticleMetadata.Opinion":
+		if e.complexity.ArticleMetadata.Opinion == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Opinion(childComplexity), true
+
+	case "ArticleMetadata.originalPublishDate":
+		if e.complexity.ArticleMetadata.OriginalPublishDate == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.OriginalPublishDate(childComplexity), true
+
+	case "ArticleMetadata.primaryTag":
+		if e.complexity.ArticleMetadata.PrimaryTag == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.PrimaryTag(childComplexity), true
+
+	case "ArticleMetadata.revisionContentHash":
+		if e.complexity.ArticleMetadata.RevisionContentHash == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.RevisionContentHash(childComplexity), true
+
+	case "ArticleMetadata.revisionContentURL":
+		if e.complexity.ArticleMetadata.RevisionContentURL == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.RevisionContentURL(childComplexity), true
+
+	case "ArticleMetadata.revisionDate":
+		if e.complexity.ArticleMetadata.RevisionDate == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.RevisionDate(childComplexity), true
+
+	case "ArticleMetadata.slug":
+		if e.complexity.ArticleMetadata.Slug == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Slug(childComplexity), true
+
+	case "ArticleMetadata.tags":
+		if e.complexity.ArticleMetadata.Tags == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Tags(childComplexity), true
+
+	case "ArticleMetadata.title":
+		if e.complexity.ArticleMetadata.Title == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadata.Title(childComplexity), true
+
+	case "ArticleMetadataContributor.name":
+		if e.complexity.ArticleMetadataContributor.Name == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataContributor.Name(childComplexity), true
+
+	case "ArticleMetadataContributor.role":
+		if e.complexity.ArticleMetadataContributor.Role == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataContributor.Role(childComplexity), true
+
+	case "ArticleMetadataImage.h":
+		if e.complexity.ArticleMetadataImage.H == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataImage.H(childComplexity), true
+
+	case "ArticleMetadataImage.hash":
+		if e.complexity.ArticleMetadataImage.Hash == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataImage.Hash(childComplexity), true
+
+	case "ArticleMetadataImage.url":
+		if e.complexity.ArticleMetadataImage.URL == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataImage.URL(childComplexity), true
+
+	case "ArticleMetadataImage.w":
+		if e.complexity.ArticleMetadataImage.W == nil {
+			break
+		}
+
+		return e.complexity.ArticleMetadataImage.W(childComplexity), true
+
 	case "Claim.context":
 		if e.complexity.Claim.Context == nil {
 			break
@@ -179,26 +384,110 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Claim.Context(childComplexity), true
 
-	case "Claim.id":
-		if e.complexity.Claim.ID == nil {
+	case "Claim.credentialSchema":
+		if e.complexity.Claim.CredentialSchema == nil {
 			break
 		}
 
-		return e.complexity.Claim.ID(childComplexity), true
+		return e.complexity.Claim.CredentialSchema(childComplexity), true
 
-	case "Claim.types":
-		if e.complexity.Claim.Types == nil {
+	case "Claim.credentialSubject":
+		if e.complexity.Claim.CredentialSubject == nil {
 			break
 		}
 
-		return e.complexity.Claim.Types(childComplexity), true
+		return e.complexity.Claim.CredentialSubject(childComplexity), true
 
-	case "ClaimGetResponse.claim":
-		if e.complexity.ClaimGetResponse.Claim == nil {
+	case "Claim.holder":
+		if e.complexity.Claim.Holder == nil {
 			break
 		}
 
-		return e.complexity.ClaimGetResponse.Claim(childComplexity), true
+		return e.complexity.Claim.Holder(childComplexity), true
+
+	case "Claim.issuanceDate":
+		if e.complexity.Claim.IssuanceDate == nil {
+			break
+		}
+
+		return e.complexity.Claim.IssuanceDate(childComplexity), true
+
+	case "Claim.issuer":
+		if e.complexity.Claim.Issuer == nil {
+			break
+		}
+
+		return e.complexity.Claim.Issuer(childComplexity), true
+
+	case "Claim.proof":
+		if e.complexity.Claim.Proof == nil {
+			break
+		}
+
+		return e.complexity.Claim.Proof(childComplexity), true
+
+	case "Claim.type":
+		if e.complexity.Claim.Type == nil {
+			break
+		}
+
+		return e.complexity.Claim.Type(childComplexity), true
+
+	case "ClaimCredentialSchema.id":
+		if e.complexity.ClaimCredentialSchema.ID == nil {
+			break
+		}
+
+		return e.complexity.ClaimCredentialSchema.ID(childComplexity), true
+
+	case "ClaimCredentialSchema.type":
+		if e.complexity.ClaimCredentialSchema.Type == nil {
+			break
+		}
+
+		return e.complexity.ClaimCredentialSchema.Type(childComplexity), true
+
+	case "ClaimCredentialSubject.id":
+		if e.complexity.ClaimCredentialSubject.ID == nil {
+			break
+		}
+
+		return e.complexity.ClaimCredentialSubject.ID(childComplexity), true
+
+	case "ClaimCredentialSubject.metadata":
+		if e.complexity.ClaimCredentialSubject.Metadata == nil {
+			break
+		}
+
+		return e.complexity.ClaimCredentialSubject.Metadata(childComplexity), true
+
+	case "ClaimGetResponse.claims":
+		if e.complexity.ClaimGetResponse.Claims == nil {
+			break
+		}
+
+		return e.complexity.ClaimGetResponse.Claims(childComplexity), true
+
+	case "ClaimGetResponse.claimsRaw":
+		if e.complexity.ClaimGetResponse.ClaimsRaw == nil {
+			break
+		}
+
+		return e.complexity.ClaimGetResponse.ClaimsRaw(childComplexity), true
+
+	case "ClaimSaveResponse.claim":
+		if e.complexity.ClaimSaveResponse.Claim == nil {
+			break
+		}
+
+		return e.complexity.ClaimSaveResponse.Claim(childComplexity), true
+
+	case "ClaimSaveResponse.claimRaw":
+		if e.complexity.ClaimSaveResponse.ClaimRaw == nil {
+			break
+		}
+
+		return e.complexity.ClaimSaveResponse.ClaimRaw(childComplexity), true
 
 	case "DidDocAuthentication.idOnly":
 		if e.complexity.DidDocAuthentication.IDOnly == nil {
@@ -452,6 +741,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.LinkedDataProof.Type(childComplexity), true
 
+	case "Mutation.claimSave":
+		if e.complexity.Mutation.ClaimSave == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_claimSave_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ClaimSave(childComplexity, args["in"].(*ClaimSaveRequestInput)), true
+
 	case "Mutation.didSave":
 		if e.complexity.Mutation.DidSave == nil {
 			break
@@ -580,19 +881,133 @@ extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
 }
 
-input ClaimGetRequestInput {
-	id: String
+extend type Mutation {
+	claimSave(in: ClaimSaveRequestInput): ClaimSaveResponse
 }
 
-type Claim {
-	id: String
-	context: String
-	types: [String!]
+## Inputs
+
+input ClaimGetRequestInput {
+	did: String!
 }
 
 type ClaimGetResponse {
-	claim: Claim
-}`},
+	claims: [Claim!]
+	claimsRaw: [String!]
+}
+
+input ClaimSaveRequestInput {
+	claim: ClaimInput
+	claimJson: String
+}
+
+input ClaimInput {
+	context: [String!]!
+	type: [String!]!
+	credentialSubject: ClaimCredentialSubjectInput!
+	issuer: String!
+	holder: String!
+	credentialSchema: ClaimCredentialSchemaInput!
+	issuanceDate: String!
+	proof: LinkedDataProofInput!
+}
+
+input ClaimCredentialSubjectInput {
+	id: String!
+	metadata: ArticleMetadataInput!
+}
+
+input ClaimCredentialSchemaInput {
+	id: String!
+	type: String!
+}
+
+input ArticleMetadataInput {
+	title: String
+	revisionContentHash: String
+	revisionContentURL: String
+	canonicalURL: String
+	slug: String
+	description: String
+	contributors: [ArticleMetadataContributorInput]
+	images: [ArticleMetadataImageInput]
+	tags: [String]
+	primaryTag: String
+	revisionDate: String
+	originalPublishDate: String
+	Opinion: Boolean
+	civilSchemaVersion: String
+}
+
+input ArticleMetadataContributorInput {
+	role: String
+	name: String
+}
+
+input ArticleMetadataImageInput {
+	url: String
+	hash: String
+	h: Int
+	w: Int
+}
+
+type ClaimSaveResponse {
+	claim: Claim!
+	claimRaw: String!
+}
+
+## Types
+
+type Claim {
+	context: [String!]!
+	type: [String!]!
+	credentialSubject: ClaimCredentialSubject!
+	issuer: String!
+	holder: String!
+	credentialSchema: ClaimCredentialSchema!
+	issuanceDate: String!
+	proof: LinkedDataProof!
+}
+
+type ClaimCredentialSubject {
+	id: String!
+	metadata: ArticleMetadata!
+}
+
+type ClaimCredentialSchema {
+	id: String!
+	type: String!
+}
+
+type ArticleMetadata {
+	title: String
+	revisionContentHash: String
+	revisionContentURL: String
+	canonicalURL: String
+	slug: String
+	description: String
+	contributors: [ArticleMetadataContributor]
+	images: [ArticleMetadataImage]
+	tags: [String]
+	primaryTag: String
+	revisionDate: String
+	originalPublishDate: String
+	Opinion: Boolean
+	civilSchemaVersion: String
+}
+
+type ArticleMetadataContributor {
+	role: String
+	name: String
+}
+
+type ArticleMetadataImage {
+	url: String
+	hash: String
+	h: Int
+	w: Int
+}
+`},
 	&ast.Source{Name: "did.graphql", Input: `# DID specific schema
 
 extend type Mutation {
@@ -715,6 +1130,20 @@ scalar Time`},
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_claimSave_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *ClaimSaveRequestInput
+	if tmp, ok := rawArgs["in"]; ok {
+		arg0, err = ec.unmarshalOClaimSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["in"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_didSave_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -807,7 +1236,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Claim_id(ctx context.Context, field graphql.CollectedField, obj *Claim) (ret graphql.Marshaler) {
+func (ec *executionContext) _ArticleMetadata_title(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -817,7 +1246,7 @@ func (ec *executionContext) _Claim_id(ctx context.Context, field graphql.Collect
 		ec.Tracer.EndFieldExecution(ctx)
 	}()
 	rctx := &graphql.ResolverContext{
-		Object:   "Claim",
+		Object:   "ArticleMetadata",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -826,7 +1255,347 @@ func (ec *executionContext) _Claim_id(ctx context.Context, field graphql.Collect
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_revisionContentHash(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevisionContentHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_revisionContentURL(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevisionContentURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_canonicalURL(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CanonicalURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_slug(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Slug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_description(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_contributors(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Contributors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]article.Contributor)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOArticleMetadataContributor2ᚕgithubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐContributor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_images(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Images, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]article.Image)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOArticleMetadataImage2ᚕgithubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐImage(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_tags(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tags, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_primaryTag(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PrimaryTag, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_revisionDate(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ArticleMetadata().RevisionDate(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -841,7 +1610,313 @@ func (ec *executionContext) _Claim_id(ctx context.Context, field graphql.Collect
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Claim_context(ctx context.Context, field graphql.CollectedField, obj *Claim) (ret graphql.Marshaler) {
+func (ec *executionContext) _ArticleMetadata_originalPublishDate(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ArticleMetadata().OriginalPublishDate(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_Opinion(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Opinion, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadata_civilSchemaVersion(ctx context.Context, field graphql.CollectedField, obj *article.Metadata) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CivilSchemaVersion, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataContributor_role(ctx context.Context, field graphql.CollectedField, obj *article.Contributor) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataContributor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataContributor_name(ctx context.Context, field graphql.CollectedField, obj *article.Contributor) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataContributor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataImage_url(ctx context.Context, field graphql.CollectedField, obj *article.Image) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataImage",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataImage_hash(ctx context.Context, field graphql.CollectedField, obj *article.Image) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataImage",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataImage_h(ctx context.Context, field graphql.CollectedField, obj *article.Image) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataImage",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.H, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArticleMetadataImage_w(ctx context.Context, field graphql.CollectedField, obj *article.Image) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ArticleMetadataImage",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.W, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_context(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -867,15 +1942,55 @@ func (ec *executionContext) _Claim_context(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.([]string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2ᚕstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Claim_types(ctx context.Context, field graphql.CollectedField, obj *Claim) (ret graphql.Marshaler) {
+func (ec *executionContext) _Claim_type(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Claim().Type(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_credentialSubject(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -894,22 +2009,358 @@ func (ec *executionContext) _Claim_types(ctx context.Context, field graphql.Coll
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Types, nil
+		return obj.CredentialSubject, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.(claimsstore.ContentCredentialSubject)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
+	return ec.marshalNClaimCredentialSubject2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredentialSubject(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ClaimGetResponse_claim(ctx context.Context, field graphql.CollectedField, obj *ClaimGetResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Claim_issuer(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Issuer, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_holder(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Holder, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_credentialSchema(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CredentialSchema, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(claimsstore.CredentialSchema)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNClaimCredentialSchema2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐCredentialSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_issuanceDate(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Claim().IssuanceDate(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Claim_proof(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredential) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Claim",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Proof, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(linkeddata.Proof)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNLinkedDataProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimCredentialSchema_id(ctx context.Context, field graphql.CollectedField, obj *claimsstore.CredentialSchema) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimCredentialSchema",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimCredentialSchema_type(ctx context.Context, field graphql.CollectedField, obj *claimsstore.CredentialSchema) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimCredentialSchema",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimCredentialSubject_id(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredentialSubject) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimCredentialSubject",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimCredentialSubject_metadata(ctx context.Context, field graphql.CollectedField, obj *claimsstore.ContentCredentialSubject) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimCredentialSubject",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(article.Metadata)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNArticleMetadata2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimGetResponse_claims(ctx context.Context, field graphql.CollectedField, obj *ClaimGetResponse) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -928,7 +2379,7 @@ func (ec *executionContext) _ClaimGetResponse_claim(ctx context.Context, field g
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Claim, nil
+		return obj.Claims, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -937,10 +2388,118 @@ func (ec *executionContext) _ClaimGetResponse_claim(ctx context.Context, field g
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*Claim)
+	res := resTmp.([]*claimsstore.ContentCredential)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOClaim2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaim(ctx, field.Selections, res)
+	return ec.marshalOClaim2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimGetResponse_claimsRaw(ctx context.Context, field graphql.CollectedField, obj *ClaimGetResponse) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimGetResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClaimsRaw(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimSaveResponse_claim(ctx context.Context, field graphql.CollectedField, obj *ClaimSaveResponse) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimSaveResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Claim, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*claimsstore.ContentCredential)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNClaim2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClaimSaveResponse_claimRaw(ctx context.Context, field graphql.CollectedField, obj *ClaimSaveResponse) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ClaimSaveResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClaimRaw(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DidDocAuthentication_publicKey(ctx context.Context, field graphql.CollectedField, obj *did.DocAuthenicationWrapper) (ret graphql.Marshaler) {
@@ -2243,6 +3802,47 @@ func (ec *executionContext) _Mutation_didSave(ctx context.Context, field graphql
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalODidSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_claimSave(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_claimSave_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ClaimSave(rctx, args["in"].(*ClaimSaveRequestInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ClaimSaveResponse)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOClaimSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3590,15 +5190,303 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputClaimGetRequestInput(ctx context.Context, obj interface{}) (ClaimGetRequestInput, error) {
-	var it ClaimGetRequestInput
+func (ec *executionContext) unmarshalInputArticleMetadataContributorInput(ctx context.Context, obj interface{}) (ArticleMetadataContributorInput, error) {
+	var it ArticleMetadataContributorInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "role":
+			var err error
+			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputArticleMetadataImageInput(ctx context.Context, obj interface{}) (ArticleMetadataImageInput, error) {
+	var it ArticleMetadataImageInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "url":
+			var err error
+			it.URL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "hash":
+			var err error
+			it.Hash, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "h":
+			var err error
+			it.H, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "w":
+			var err error
+			it.W, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputArticleMetadataInput(ctx context.Context, obj interface{}) (ArticleMetadataInput, error) {
+	var it ArticleMetadataInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "revisionContentHash":
+			var err error
+			it.RevisionContentHash, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "revisionContentURL":
+			var err error
+			it.RevisionContentURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "canonicalURL":
+			var err error
+			it.CanonicalURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "slug":
+			var err error
+			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "contributors":
+			var err error
+			it.Contributors, err = ec.unmarshalOArticleMetadataContributorInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "images":
+			var err error
+			it.Images, err = ec.unmarshalOArticleMetadataImageInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "tags":
+			var err error
+			it.Tags, err = ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "primaryTag":
+			var err error
+			it.PrimaryTag, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "revisionDate":
+			var err error
+			it.RevisionDate, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "originalPublishDate":
+			var err error
+			it.OriginalPublishDate, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "Opinion":
+			var err error
+			it.Opinion, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "civilSchemaVersion":
+			var err error
+			it.CivilSchemaVersion, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimCredentialSchemaInput(ctx context.Context, obj interface{}) (ClaimCredentialSchemaInput, error) {
+	var it ClaimCredentialSchemaInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
 		case "id":
 			var err error
-			it.ID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "type":
+			var err error
+			it.Type, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimCredentialSubjectInput(ctx context.Context, obj interface{}) (ClaimCredentialSubjectInput, error) {
+	var it ClaimCredentialSubjectInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "metadata":
+			var err error
+			it.Metadata, err = ec.unmarshalNArticleMetadataInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimGetRequestInput(ctx context.Context, obj interface{}) (ClaimGetRequestInput, error) {
+	var it ClaimGetRequestInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "did":
+			var err error
+			it.Did, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimInput(ctx context.Context, obj interface{}) (ClaimInput, error) {
+	var it ClaimInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "context":
+			var err error
+			it.Context, err = ec.unmarshalNString2ᚕstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "type":
+			var err error
+			it.Type, err = ec.unmarshalNString2ᚕstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "credentialSubject":
+			var err error
+			it.CredentialSubject, err = ec.unmarshalNClaimCredentialSubjectInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSubjectInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "issuer":
+			var err error
+			it.Issuer, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "holder":
+			var err error
+			it.Holder, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "credentialSchema":
+			var err error
+			it.CredentialSchema, err = ec.unmarshalNClaimCredentialSchemaInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSchemaInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "issuanceDate":
+			var err error
+			it.IssuanceDate, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "proof":
+			var err error
+			it.Proof, err = ec.unmarshalNLinkedDataProofInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimSaveRequestInput(ctx context.Context, obj interface{}) (ClaimSaveRequestInput, error) {
+	var it ClaimSaveRequestInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "claim":
+			var err error
+			it.Claim, err = ec.unmarshalOClaimInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "claimJson":
+			var err error
+			it.ClaimJSON, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3862,9 +5750,133 @@ func (ec *executionContext) unmarshalInputLinkedDataProofInput(ctx context.Conte
 
 // region    **************************** object.gotpl ****************************
 
+var articleMetadataImplementors = []string{"ArticleMetadata"}
+
+func (ec *executionContext) _ArticleMetadata(ctx context.Context, sel ast.SelectionSet, obj *article.Metadata) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, articleMetadataImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ArticleMetadata")
+		case "title":
+			out.Values[i] = ec._ArticleMetadata_title(ctx, field, obj)
+		case "revisionContentHash":
+			out.Values[i] = ec._ArticleMetadata_revisionContentHash(ctx, field, obj)
+		case "revisionContentURL":
+			out.Values[i] = ec._ArticleMetadata_revisionContentURL(ctx, field, obj)
+		case "canonicalURL":
+			out.Values[i] = ec._ArticleMetadata_canonicalURL(ctx, field, obj)
+		case "slug":
+			out.Values[i] = ec._ArticleMetadata_slug(ctx, field, obj)
+		case "description":
+			out.Values[i] = ec._ArticleMetadata_description(ctx, field, obj)
+		case "contributors":
+			out.Values[i] = ec._ArticleMetadata_contributors(ctx, field, obj)
+		case "images":
+			out.Values[i] = ec._ArticleMetadata_images(ctx, field, obj)
+		case "tags":
+			out.Values[i] = ec._ArticleMetadata_tags(ctx, field, obj)
+		case "primaryTag":
+			out.Values[i] = ec._ArticleMetadata_primaryTag(ctx, field, obj)
+		case "revisionDate":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ArticleMetadata_revisionDate(ctx, field, obj)
+				return res
+			})
+		case "originalPublishDate":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ArticleMetadata_originalPublishDate(ctx, field, obj)
+				return res
+			})
+		case "Opinion":
+			out.Values[i] = ec._ArticleMetadata_Opinion(ctx, field, obj)
+		case "civilSchemaVersion":
+			out.Values[i] = ec._ArticleMetadata_civilSchemaVersion(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var articleMetadataContributorImplementors = []string{"ArticleMetadataContributor"}
+
+func (ec *executionContext) _ArticleMetadataContributor(ctx context.Context, sel ast.SelectionSet, obj *article.Contributor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, articleMetadataContributorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ArticleMetadataContributor")
+		case "role":
+			out.Values[i] = ec._ArticleMetadataContributor_role(ctx, field, obj)
+		case "name":
+			out.Values[i] = ec._ArticleMetadataContributor_name(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var articleMetadataImageImplementors = []string{"ArticleMetadataImage"}
+
+func (ec *executionContext) _ArticleMetadataImage(ctx context.Context, sel ast.SelectionSet, obj *article.Image) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, articleMetadataImageImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ArticleMetadataImage")
+		case "url":
+			out.Values[i] = ec._ArticleMetadataImage_url(ctx, field, obj)
+		case "hash":
+			out.Values[i] = ec._ArticleMetadataImage_hash(ctx, field, obj)
+		case "h":
+			out.Values[i] = ec._ArticleMetadataImage_h(ctx, field, obj)
+		case "w":
+			out.Values[i] = ec._ArticleMetadataImage_w(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var claimImplementors = []string{"Claim"}
 
-func (ec *executionContext) _Claim(ctx context.Context, sel ast.SelectionSet, obj *Claim) graphql.Marshaler {
+func (ec *executionContext) _Claim(ctx context.Context, sel ast.SelectionSet, obj *claimsstore.ContentCredential) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, claimImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3873,12 +5885,128 @@ func (ec *executionContext) _Claim(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Claim")
-		case "id":
-			out.Values[i] = ec._Claim_id(ctx, field, obj)
 		case "context":
 			out.Values[i] = ec._Claim_context(ctx, field, obj)
-		case "types":
-			out.Values[i] = ec._Claim_types(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "type":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Claim_type(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "credentialSubject":
+			out.Values[i] = ec._Claim_credentialSubject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "issuer":
+			out.Values[i] = ec._Claim_issuer(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "holder":
+			out.Values[i] = ec._Claim_holder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "credentialSchema":
+			out.Values[i] = ec._Claim_credentialSchema(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "issuanceDate":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Claim_issuanceDate(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "proof":
+			out.Values[i] = ec._Claim_proof(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var claimCredentialSchemaImplementors = []string{"ClaimCredentialSchema"}
+
+func (ec *executionContext) _ClaimCredentialSchema(ctx context.Context, sel ast.SelectionSet, obj *claimsstore.CredentialSchema) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, claimCredentialSchemaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClaimCredentialSchema")
+		case "id":
+			out.Values[i] = ec._ClaimCredentialSchema_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+			out.Values[i] = ec._ClaimCredentialSchema_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var claimCredentialSubjectImplementors = []string{"ClaimCredentialSubject"}
+
+func (ec *executionContext) _ClaimCredentialSubject(ctx context.Context, sel ast.SelectionSet, obj *claimsstore.ContentCredentialSubject) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, claimCredentialSubjectImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClaimCredentialSubject")
+		case "id":
+			out.Values[i] = ec._ClaimCredentialSubject_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._ClaimCredentialSubject_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3901,8 +6029,42 @@ func (ec *executionContext) _ClaimGetResponse(ctx context.Context, sel ast.Selec
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ClaimGetResponse")
+		case "claims":
+			out.Values[i] = ec._ClaimGetResponse_claims(ctx, field, obj)
+		case "claimsRaw":
+			out.Values[i] = ec._ClaimGetResponse_claimsRaw(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var claimSaveResponseImplementors = []string{"ClaimSaveResponse"}
+
+func (ec *executionContext) _ClaimSaveResponse(ctx context.Context, sel ast.SelectionSet, obj *ClaimSaveResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, claimSaveResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClaimSaveResponse")
 		case "claim":
-			out.Values[i] = ec._ClaimGetResponse_claim(ctx, field, obj)
+			out.Values[i] = ec._ClaimSaveResponse_claim(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "claimRaw":
+			out.Values[i] = ec._ClaimSaveResponse_claimRaw(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4234,6 +6396,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "didSave":
 			out.Values[i] = ec._Mutation_didSave(ctx, field)
+		case "claimSave":
+			out.Values[i] = ec._Mutation_claimSave(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4556,6 +6720,22 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNArticleMetadata2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐMetadata(ctx context.Context, sel ast.SelectionSet, v article.Metadata) graphql.Marshaler {
+	return ec._ArticleMetadata(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNArticleMetadataInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataInput(ctx context.Context, v interface{}) (ArticleMetadataInput, error) {
+	return ec.unmarshalInputArticleMetadataInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNArticleMetadataInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataInput(ctx context.Context, v interface{}) (*ArticleMetadataInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNArticleMetadataInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -4568,6 +6748,52 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNClaim2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx context.Context, sel ast.SelectionSet, v claimsstore.ContentCredential) graphql.Marshaler {
+	return ec._Claim(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNClaim2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx context.Context, sel ast.SelectionSet, v *claimsstore.ContentCredential) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Claim(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNClaimCredentialSchema2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐCredentialSchema(ctx context.Context, sel ast.SelectionSet, v claimsstore.CredentialSchema) graphql.Marshaler {
+	return ec._ClaimCredentialSchema(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNClaimCredentialSchemaInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSchemaInput(ctx context.Context, v interface{}) (ClaimCredentialSchemaInput, error) {
+	return ec.unmarshalInputClaimCredentialSchemaInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNClaimCredentialSchemaInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSchemaInput(ctx context.Context, v interface{}) (*ClaimCredentialSchemaInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNClaimCredentialSchemaInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSchemaInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalNClaimCredentialSubject2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredentialSubject(ctx context.Context, sel ast.SelectionSet, v claimsstore.ContentCredentialSubject) graphql.Marshaler {
+	return ec._ClaimCredentialSubject(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNClaimCredentialSubjectInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSubjectInput(ctx context.Context, v interface{}) (ClaimCredentialSubjectInput, error) {
+	return ec.unmarshalInputClaimCredentialSubjectInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNClaimCredentialSubjectInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSubjectInput(ctx context.Context, v interface{}) (*ClaimCredentialSubjectInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNClaimCredentialSubjectInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimCredentialSubjectInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalNDidDocAuthentication2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocAuthenicationWrapper(ctx context.Context, sel ast.SelectionSet, v did.DocAuthenicationWrapper) graphql.Marshaler {
@@ -4618,6 +6844,22 @@ func (ec *executionContext) unmarshalNDidDocServiceInput2ᚖgithubᚗcomᚋjoinc
 	return &res, err
 }
 
+func (ec *executionContext) marshalNLinkedDataProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx context.Context, sel ast.SelectionSet, v linkeddata.Proof) graphql.Marshaler {
+	return ec._LinkedDataProof(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNLinkedDataProofInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx context.Context, v interface{}) (LinkedDataProofInput, error) {
+	return ec.unmarshalInputLinkedDataProofInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNLinkedDataProofInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx context.Context, v interface{}) (*LinkedDataProofInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNLinkedDataProofInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
@@ -4630,6 +6872,53 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstring(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstring(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNString2string(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalNString2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec.marshalNString2string(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4882,6 +7171,158 @@ func (ec *executionContext) marshalOAnyValue2ᚖgithubᚗcomᚋjoincivilᚋidᚑ
 	return v
 }
 
+func (ec *executionContext) marshalOArticleMetadataContributor2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐContributor(ctx context.Context, sel ast.SelectionSet, v article.Contributor) graphql.Marshaler {
+	return ec._ArticleMetadataContributor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOArticleMetadataContributor2ᚕgithubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐContributor(ctx context.Context, sel ast.SelectionSet, v []article.Contributor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOArticleMetadataContributor2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐContributor(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataContributorInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx context.Context, v interface{}) (ArticleMetadataContributorInput, error) {
+	return ec.unmarshalInputArticleMetadataContributorInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataContributorInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx context.Context, v interface{}) ([]*ArticleMetadataContributorInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*ArticleMetadataContributorInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalOArticleMetadataContributorInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataContributorInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx context.Context, v interface{}) (*ArticleMetadataContributorInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOArticleMetadataContributorInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataContributorInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOArticleMetadataImage2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐImage(ctx context.Context, sel ast.SelectionSet, v article.Image) graphql.Marshaler {
+	return ec._ArticleMetadataImage(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOArticleMetadataImage2ᚕgithubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐImage(ctx context.Context, sel ast.SelectionSet, v []article.Image) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOArticleMetadataImage2githubᚗcomᚋjoincivilᚋgoᚑcommonᚋpkgᚋarticleᚐImage(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataImageInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx context.Context, v interface{}) (ArticleMetadataImageInput, error) {
+	return ec.unmarshalInputArticleMetadataImageInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataImageInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx context.Context, v interface{}) ([]*ArticleMetadataImageInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*ArticleMetadataImageInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalOArticleMetadataImageInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOArticleMetadataImageInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx context.Context, v interface{}) (*ArticleMetadataImageInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOArticleMetadataImageInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐArticleMetadataImageInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -4905,15 +7346,44 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOClaim2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaim(ctx context.Context, sel ast.SelectionSet, v Claim) graphql.Marshaler {
-	return ec._Claim(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOClaim2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaim(ctx context.Context, sel ast.SelectionSet, v *Claim) graphql.Marshaler {
+func (ec *executionContext) marshalOClaim2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx context.Context, sel ast.SelectionSet, v []*claimsstore.ContentCredential) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._Claim(ctx, sel, v)
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNClaim2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐContentCredential(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOClaimGetRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimGetRequestInput(ctx context.Context, v interface{}) (ClaimGetRequestInput, error) {
@@ -4937,6 +7407,41 @@ func (ec *executionContext) marshalOClaimGetResponse2ᚖgithubᚗcomᚋjoincivil
 		return graphql.Null
 	}
 	return ec._ClaimGetResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOClaimInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx context.Context, v interface{}) (ClaimInput, error) {
+	return ec.unmarshalInputClaimInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOClaimInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx context.Context, v interface{}) (*ClaimInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOClaimInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) unmarshalOClaimSaveRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx context.Context, v interface{}) (ClaimSaveRequestInput, error) {
+	return ec.unmarshalInputClaimSaveRequestInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOClaimSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx context.Context, v interface{}) (*ClaimSaveRequestInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOClaimSaveRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOClaimSaveResponse2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveResponse(ctx context.Context, sel ast.SelectionSet, v ClaimSaveResponse) graphql.Marshaler {
+	return ec._ClaimSaveResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOClaimSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveResponse(ctx context.Context, sel ast.SelectionSet, v *ClaimSaveResponse) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ClaimSaveResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalODidDocAuthentication2ᚕgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocAuthenicationWrapper(ctx context.Context, sel ast.SelectionSet, v []did.DocAuthenicationWrapper) graphql.Marshaler {
@@ -5199,6 +7704,29 @@ func (ec *executionContext) marshalODidSaveResponse2ᚖgithubᚗcomᚋjoincivil�
 	return ec._DidSaveResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
+	return graphql.UnmarshalInt(v)
+}
+
+func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	return graphql.MarshalInt(v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOInt2int(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec.marshalOInt2int(ctx, sel, *v)
+}
+
 func (ec *executionContext) marshalOLinkedDataProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋlinkeddataᚐProof(ctx context.Context, sel ast.SelectionSet, v linkeddata.Proof) graphql.Marshaler {
 	return ec._LinkedDataProof(ctx, sel, &v)
 }
@@ -5257,6 +7785,38 @@ func (ec *executionContext) marshalOString2ᚕstring(ctx context.Context, sel as
 	ret := make(graphql.Array, len(v))
 	for i := range v {
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
 	}
 
 	return ret

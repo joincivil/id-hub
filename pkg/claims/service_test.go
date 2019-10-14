@@ -218,3 +218,76 @@ func TestClaimContent(t *testing.T) {
 		}
 	}
 }
+
+func TestClaimsToContentCredentials(t *testing.T) {
+	db, err := setupConnection()
+	if err != nil {
+		t.Errorf("error setting up the db: %v", err)
+	}
+
+	cleaner := testutils.DeleteCreatedEntities(db)
+	defer cleaner()
+
+	// Setup
+	didPersister := did.NewPostgresPersister(db)
+	didService := did.NewService(didPersister)
+	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
+	claimService, err := makeService(db, didService, signedClaimStore)
+	if err != nil {
+		t.Errorf("error setting up service: %v", err)
+	}
+
+	// Create a DID identity
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
+	docPubKey := &did.DocPublicKey{
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pub,
+	}
+	signerDid, err := didlib.Parse("did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1")
+	if err != nil {
+		t.Errorf("error creating did: %v", err)
+	}
+	docPubKey.ID = signerDid
+	docPubKey.Controller = did.CopyDID(signerDid)
+	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	if err != nil {
+		t.Errorf("error making the did doc: %v", err)
+	}
+	if err := didService.SaveDocument(didDoc); err != nil {
+		t.Errorf("error saving the did doc: %v", err)
+	}
+
+	// Create the DID tree
+	ecdsaPubkey, _ := crypto.UnmarshalPubkey(pubBytes)
+	err = claimService.CreateTreeForDID(&didDoc.ID, ecdsaPubkey)
+	if err != nil {
+		t.Errorf("problem creating did tree: %v", err)
+	}
+
+	// Claim content 1
+	cred := makeContentCredential(&didDoc.ID)
+	_ = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	err = claimService.ClaimContent(cred)
+	if err != nil {
+		t.Errorf("problem creating content claim: %v", err)
+	}
+
+	listDidClaims, err := claimService.GetMerkleTreeClaimsForDid(&didDoc.ID)
+	if err != nil {
+		t.Errorf("error retrieving claims from did tree: %v", err)
+	}
+
+	contentCreds, err := claimService.ClaimsToContentCredentials(listDidClaims)
+	if err != nil {
+		t.Errorf("error converting claims to content creds: %v", err)
+	}
+
+	if len(listDidClaims) == 2 && len(contentCreds) != 1 {
+		t.Errorf("should have filtered down to 1 content cred from 2 claims")
+	}
+}
