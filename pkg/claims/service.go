@@ -78,7 +78,12 @@ func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error
 
 // CreateTreeForDID creates a new merkle tree for the did and registers a slice of public key
 // that can be used for signing with this did
+// Can also be used to add additional key claims to the userDID MT
 func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicKey) error {
+	if len(signPks) == 0 {
+		return errors.New("at least one public key required")
+	}
+
 	didMt, err := s.buildDIDMt(userDid)
 	if err != nil {
 		return err
@@ -86,15 +91,29 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicK
 
 	// Claim all the valid public keys that could be used to sign
 	var claimKey *icore.ClaimAuthorizeKSignSecp256k1
+	var pkhex string
+	var add bool
 	for _, k := range signPks {
+		// Check to ensure the key claim isn't already in tree
+		if isrv.CheckKSignInIddb(didMt, k) {
+			pkhex = hex.EncodeToString(crypto.FromECDSAPub(k))
+			log.Infof("key already in tree: %v", pkhex)
+			continue
+		}
+
 		claimKey = icore.NewClaimAuthorizeKSignSecp256k1(k)
 		err = didMt.Add(claimKey.Entry())
 		if err != nil {
-			return err
+			return errors.Wrap(err, "unable to add signing key claim")
 		}
+		add = true
 	}
 
-	return s.addNewRootClaim(didMt, userDid)
+	if add {
+		return s.addNewRootClaim(didMt, userDid)
+	}
+
+	return nil
 }
 
 // TreeExistsForDID returns true if there is a merkel tree for a given DID.
@@ -135,17 +154,10 @@ func (s *Service) CreateTreeForDIDIfNotExists(userDid *didlib.DID) error {
 			return errors.New("no doc found for did")
 		}
 
-		var ecpub *ecdsa.PublicKey
-		pks := make([]*ecdsa.PublicKey, 0, len(doc.PublicKeys))
-		for _, pk := range doc.PublicKeys {
-			ecpub, err = pk.AsEcdsaPubKey()
-			if err != nil {
-				continue
-			}
-			pks = append(pks, ecpub)
-		}
-
-		return s.CreateTreeForDID(userDid, pks)
+		return s.CreateTreeForDID(
+			userDid,
+			did.DocPublicKeyToEcdsaKeys(doc.PublicKeys),
+		)
 	}
 
 	return nil

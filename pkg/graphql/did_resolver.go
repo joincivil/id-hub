@@ -4,6 +4,7 @@ import (
 	"context"
 
 	log "github.com/golang/glog"
+	didlib "github.com/ockam-network/did"
 
 	"github.com/pkg/errors"
 
@@ -103,6 +104,16 @@ func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput)
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create or update doc")
+	}
+
+	inDid, err := didlib.Parse(*in.Did)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse the incoming did")
+	}
+
+	err = r.ClaimService.CreateTreeForDID(inDid, did.DocPublicKeyToEcdsaKeys(doc.PublicKeys))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to add keys or create tree for did")
 	}
 
 	return &DidSaveResponse{Doc: doc}, nil

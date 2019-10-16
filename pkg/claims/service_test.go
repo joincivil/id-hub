@@ -97,6 +97,8 @@ func TestCreateTreeForDID(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing did: %v", err)
 	}
+
+	// Create the tree
 	secKey, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
 	if err != nil {
 		t.Errorf("error making ecdsa: %v", err)
@@ -119,6 +121,45 @@ func TestCreateTreeForDID(t *testing.T) {
 	}
 	if len(rootClaims) != 1 {
 		t.Errorf("there should be one claim in the root tree")
+	}
+
+	// Try to put the same key in, should fail
+	err = claimService.CreateTreeForDID(userDID, []*ecdsa.PublicKey{pubKey})
+	if err != nil {
+		t.Errorf("should not have gotten err for adding an existing key")
+	}
+	didClaims, err = claimService.GetMerkleTreeClaimsForDid(userDID)
+	if err != nil {
+		t.Errorf("error getting claims for user: %v", err)
+	}
+	if len(didClaims) != 1 {
+		t.Errorf("there should be one claim in the users tree")
+	}
+
+	// Add another key to the tree, make sure using the same tree
+	secKey2, err := crypto.HexToECDSA("5dff9479ddd0b9f2213d415b5810fd7e9950ce1312a3c62fa42c6894560197a7")
+	if err != nil {
+		t.Errorf("error making ecdsa: %v", err)
+	}
+	pubKey2 := secKey2.Public().(*ecdsa.PublicKey)
+	err = claimService.CreateTreeForDID(userDID, []*ecdsa.PublicKey{pubKey2})
+	if err != nil {
+		t.Errorf("error creating tree for did: %v", err)
+	}
+	didClaims, err = claimService.GetMerkleTreeClaimsForDid(userDID)
+	if err != nil {
+		t.Errorf("error getting claims for user: %v", err)
+	}
+	if len(didClaims) != 2 {
+		t.Errorf("there should be two claims in the users tree")
+	}
+	// Should see the total claims for all dids
+	rootClaims, err = claimService.GetRootMerkleTreeClaims()
+	if err != nil {
+		t.Errorf("error getting root claims: %v", err)
+	}
+	if len(rootClaims) != 2 {
+		t.Errorf("there should be two claims in the root tree")
 	}
 }
 

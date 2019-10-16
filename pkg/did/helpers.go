@@ -1,6 +1,7 @@
 package did
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -279,4 +280,23 @@ func ServiceInSlice(srv DocService, srvs []DocService) bool {
 		}
 	}
 	return false
+}
+
+// DocPublicKeyToEcdsaKeys converts a slice of DocPublicKey to slice of
+// corresponding ecdsa.PublicKey
+func DocPublicKeyToEcdsaKeys(pks []DocPublicKey) []*ecdsa.PublicKey {
+	var ecpub *ecdsa.PublicKey
+	var err error
+
+	ecdsaPks := make([]*ecdsa.PublicKey, 0, len(pks))
+
+	for _, pk := range pks {
+		ecpub, err = pk.AsEcdsaPubKey()
+		if err != nil {
+			continue
+		}
+		ecdsaPks = append(ecdsaPks, ecpub)
+	}
+
+	return ecdsaPks
 }
