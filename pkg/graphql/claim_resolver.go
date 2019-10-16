@@ -73,6 +73,16 @@ func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestIn
 		return nil, ErrAccessDenied
 	}
 
+	issuerDID, err := didlib.Parse(cc.Issuer)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing issuer did")
+	}
+
+	err = r.ClaimService.CreateTreeForDIDIfNotExists(issuerDID)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create tree for did if not exists")
+	}
+
 	err = r.ClaimService.ClaimContent(cc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error calling claimcontent")

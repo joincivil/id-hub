@@ -10,6 +10,7 @@ package claims_test
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -136,7 +137,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 	t.Logf("saved did document")
 
 	// New claims tree for the DID
-	err = claimService.CreateTreeForDID(&didDoc.ID, &pubKey)
+	err = claimService.CreateTreeForDID(&didDoc.ID, []*ecdsa.PublicKey{&pubKey})
 	if err != nil {
 		t.Fatalf("problem creating did tree: %v", err)
 	}
