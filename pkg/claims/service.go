@@ -92,7 +92,7 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicK
 	// Claim all the valid public keys that could be used to sign
 	var claimKey *icore.ClaimAuthorizeKSignSecp256k1
 	var pkhex string
-	var add bool
+	var addRoot bool
 	for _, k := range signPks {
 		// Check to ensure the key claim isn't already in tree
 		if isrv.CheckKSignInIddb(didMt, k) {
@@ -106,10 +106,10 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicK
 		if err != nil {
 			return errors.Wrap(err, "unable to add signing key claim")
 		}
-		add = true
+		addRoot = true
 	}
 
-	if add {
+	if addRoot {
 		return s.addNewRootClaim(didMt, userDid)
 	}
 
