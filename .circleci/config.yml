@@ -13,7 +13,6 @@ defaults: &defaults
 jobs:
   build:
     <<: *defaults
-    # working_directory: /go/src/github.com/joincivil/id-hub
     working_directory: ~/repos/id-hub
     environment:
     steps:
@@ -64,10 +63,10 @@ jobs:
             - go.sum
             - scripts
             - .golangci.yml
+            - .git
 
   lint:
     <<: *defaults
-    # working_directory: /go/src/github.com/joincivil/id-hub
     working_directory: ~/repos/id-hub
     environment:
     steps:
@@ -89,7 +88,6 @@ jobs:
 
   test:
     <<: *defaults
-    # working_directory: /go/src/github.com/joincivil/id-hub
     working_directory: ~/repos/id-hub
     environment:
     steps:
@@ -104,16 +102,36 @@ jobs:
             DB_URL: "postgres://root@localhost:5432/circle_test?sslmode=disable"
             DB_MIGRATIONS: ~/repos/id-hub/migrations
           command: |
-            make test
+            make test-integration
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - coverage.txt
+
+  coveralls:
+    <<: *defaults
+    working_directory: ~/repos/id-hub
+    environment:
+    steps:
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Setting up tools
+          command: |
+            make install-gobin
+            make install-goveralls
+      - run:
+          name: Push coverage data to Coveralls
+          command: |
+            make to-coveralls
 
   setup-gcp:
     docker:
       - image: civilmedia/gcloud-node:latest
-    # working_directory: /go/src/github.com/joincivil/id-hub
     working_directory: ~/repos/id-hub
     steps:
       - run:
@@ -138,7 +156,6 @@ jobs:
   push-container:
     docker:
       - image: civilmedia/gcloud-node:latest
-    # working_directory: /go/src/github.com/joincivil/id-hub
     working_directory: ~/repos/id-hub
     steps:
       - attach_workspace:
@@ -161,6 +178,7 @@ jobs:
             gcloud config list
             echo "pushing $GOOGLE_PROJECT_ID"
             docker push gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME
+
   deploy-staging:
     docker:
       - image: civilmedia/gcloud-node:latest
@@ -172,6 +190,7 @@ jobs:
           name: Update Kubernetes Deployment on STAGING
           command: |
             kubectl set image deployment/$CIRCLE_PROJECT_REPONAME $CIRCLE_PROJECT_REPONAME=gcr.io/$GOOGLE_PROJECT_ID/$CIRCLE_PROJECT_REPONAME:master-$CIRCLE_SHA1 --namespace staging
+
   deploy-production:
     docker:
       - image: civilmedia/gcloud-node:latest
@@ -196,6 +215,15 @@ workflows:
       - lint:
           requires:
             - build
+      - coveralls:
+          requires:
+            - build
+            - test
+          filters:
+            branches:
+              only:
+                - png/coveralls-support
+                - master
       - setup-gcp:
           context: gcp-common
           requires:
