@@ -7,20 +7,33 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type kvMap map[[sha256.Size]byte]db.KV
+func newKvMap() *kvMap {
+	return &kvMap{
+		kv:    map[[sha256.Size]byte]db.KV{},
+		order: [][sha256.Size]byte{},
+	}
+}
 
-func (m kvMap) Get(k []byte) ([]byte, bool) {
-	v, ok := m[sha256.Sum256(k)]
+type kvMap struct {
+	kv    map[[sha256.Size]byte]db.KV
+	order [][sha256.Size]byte
+}
+
+func (m *kvMap) Get(k []byte) ([]byte, bool) {
+	v, ok := m.kv[sha256.Sum256(k)]
 	return v.V, ok
 }
-func (m kvMap) Put(k, v []byte) {
-	m[sha256.Sum256(k)] = db.KV{K: k, V: v}
+
+func (m *kvMap) Put(k, v []byte) {
+	key := sha256.Sum256(k)
+	m.kv[key] = db.KV{K: k, V: v}
+	m.order = append(m.order, key)
 }
 
 // PGTX implements the iden3 transaction interface to use a postgress store
 type PGTX struct {
 	*PGStore
-	cache kvMap
+	cache *kvMap
 }
 
 // Get returns the data from a node that is either in the cache or in the db
@@ -49,7 +62,9 @@ func (t *PGTX) Put(k, v []byte) {
 // Add copies all nodes from one transaction to this one
 func (t *PGTX) Add(atx db.Tx) {
 	pgtx := atx.(*PGTX)
-	for _, v := range pgtx.cache {
+	var v db.KV
+	for _, key := range pgtx.cache.order {
+		v = pgtx.cache.kv[key]
 		t.cache.Put(v.K, v.V)
 	}
 }
@@ -60,11 +75,13 @@ func (t *PGTX) Commit() error {
 	if err != nil {
 		return err
 	}
-	t.cache = nil
+	t.cache.kv = nil
+	t.cache.order = nil
 	return nil
 }
 
 // Close deletes the cache of the transaction
 func (t *PGTX) Close() {
-	t.cache = nil
+	t.cache.kv = nil
+	t.cache.order = nil
 }

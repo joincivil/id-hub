@@ -177,7 +177,6 @@ func SignEcdsaRequestMessage(privKey *ecdsa.PrivateKey, did string, reqTs int) (
 // with no 0x prefix.
 func SignMessage(privKey *ecdsa.PrivateKey, message []byte) (string, error) {
 	hash := crypto.Keccak256(message)
-	fmt.Printf("hash = %v\n", hex.EncodeToString(hash))
 	signature, err := crypto.Sign(hash, privKey)
 	if err != nil {
 		return "", err
