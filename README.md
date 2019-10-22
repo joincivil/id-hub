@@ -6,7 +6,7 @@
 
 [![CircleCI](https://img.shields.io/circleci/project/github/joincivil/id-hub.svg)](https://circleci.com/gh/joincivil/id-hub/tree/master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/joincivil/id-hub)](https://goreportcard.com/report/github.com/joincivil/id-hub)
-
+[![Coverage Status](https://coveralls.io/repos/github/joincivil/id-hub/badge.svg)](https://coveralls.io/github/joincivil/id-hub)
 
 ## Contributing
 

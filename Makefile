@@ -73,8 +73,12 @@ install-dataloaden: check-go-env ## Installs dataloaden tool
 install-cover: check-go-env ## Installs code coverage tool
 	@$(GOGET) -u golang.org/x/tools/cmd/cover
 
+.PHONY: install-goveralls
+install-goveralls: check-go-env ## Installs Coveralls support
+	@gobin github.com/mattn/goveralls
+
 .PHONY: setup
-setup: check-go-env install-linter install-cover ## Sets up the tooling.
+setup: check-go-env install-linter install-cover install-goveralls ## Sets up the tooling.
 
 .PHONY: postgres-setup-launch
 postgres-setup-launch:
@@ -138,7 +142,7 @@ test-integration: check-go-env ## Runs tagged integration tests
 
 .PHONY: test-integration-ci
 test-integration-ci: check-go-env ## Runs tagged integration tests serially for low mem/low cpu CI env (set -p to 1)
-	@echo 'mode: atomic' > coverage.txt && PUBSUB_EMULATOR_HOST=localhost:8042 $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -v -p 1 -race -timeout=5m -tags=integration ./...
+	@echo 'mode: atomic' > coverage.txt && PUBSUB_EMULATOR_HOST=localhost:8042 $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -p 1 -v -race -timeout=5m -tags=integration ./...
 
 .PHONY: cover
 cover: test ## Runs unit tests, code coverage, and runs HTML coverage tool.
@@ -147,6 +151,10 @@ cover: test ## Runs unit tests, code coverage, and runs HTML coverage tool.
 .PHONY: cover-integration
 cover-integration: test-integration ## Runs unit tests, code coverage, and runs HTML coverage tool for integration
 	@$(GOCOVER) -html=coverage.txt
+
+.PHONY: to-coveralls
+to-coveralls: ## Pushes coverage data to Coveralls
+	@goveralls -covermode=atomic -coverprofile=coverage.txt -service=circle-ci -repotoken=$(COVERALLS_TOKEN) -v -race
 
 .PHONY: clean
 clean: ## go clean and clean up of artifacts.
