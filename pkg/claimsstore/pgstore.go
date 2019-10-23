@@ -20,7 +20,8 @@ func NewPGStore(nodePersister *NodePGPersister) *PGStore {
 
 // NewTx creates a new transaction
 func (s *PGStore) NewTx() (db.Tx, error) {
-	return &PGTX{s, make(kvMap)}, nil
+	kv := newKvMap()
+	return &PGTX{s, kv}, nil
 }
 
 // WithPrefix returns a new instance of the pgstore using the passed in prefix

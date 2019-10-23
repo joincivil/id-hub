@@ -107,7 +107,7 @@ func (c *NodePGPersister) Get(key []byte) (*Node, error) {
 
 // Batch updates many nodes at once from the cached kv values
 // used to update all the middle nodes when a leaf is added or changed
-func (c *NodePGPersister) Batch(cache kvMap, prefix []byte) error {
+func (c *NodePGPersister) Batch(cache *kvMap, prefix []byte) error {
 	tx := c.DB.Begin()
 
 	defer func() {
@@ -116,7 +116,9 @@ func (c *NodePGPersister) Batch(cache kvMap, prefix []byte) error {
 		}
 	}()
 	var node Node
-	for _, v := range cache {
+	var v db.KV
+	for _, key := range cache.order {
+		v = cache.kv[key]
 		node = Node{}
 		if err := tx.FirstOrCreate(&node, Node{NodeKey: hex.EncodeToString(v.K)}).Error; err != nil {
 			tx.Rollback()
