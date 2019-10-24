@@ -112,7 +112,7 @@ func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput)
 	}
 
 	// Adds any keys that don't exist into the claims tree (or creates the tree)
-	err = r.ClaimService.CreateTreeForDID(inDid, did.DocPublicKeyToEcdsaKeys(doc.PublicKeys))
+	err = r.ClaimService.CreateTreeForDIDWithPks(inDid, did.DocPublicKeyToEcdsaKeys(doc.PublicKeys))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to add keys or create tree for did")
 	}

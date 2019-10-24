@@ -78,7 +78,7 @@ func (r *mutationResolver) ClaimSave(ctx context.Context, in *ClaimSaveRequestIn
 		return nil, errors.Wrap(err, "error parsing issuer did")
 	}
 
-	err = r.ClaimService.CreateTreeForDIDIfNotExists(issuerDID)
+	err = r.ClaimService.CreateTreeForDID(issuerDID)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create tree for did if not exists")
 	}

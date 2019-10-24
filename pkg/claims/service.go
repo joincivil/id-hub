@@ -76,10 +76,10 @@ func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error
 	return merkletree.NewMerkleTree(didStore, 150)
 }
 
-// CreateTreeForDID creates a new merkle tree for the did and registers a slice of public key
-// that can be used for signing with this did
+// CreateTreeForDIDWithPks creates a new merkle tree for the did and
+// registers a slice of public key that can be used for signing with this did
 // Can also be used to add additional key claims to the userDID MT
-func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicKey) error {
+func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.PublicKey) error {
 	if len(signPks) == 0 {
 		return errors.New("at least one public key required")
 	}
@@ -116,51 +116,22 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPks []*ecdsa.PublicK
 	return nil
 }
 
-// TreeExistsForDID returns true if there is a merkel tree for a given DID.
-// Returns false if none found and/or error on error.
-func (s *Service) TreeExistsForDID(userDid *didlib.DID) (bool, error) {
-	didMt, err := s.buildDIDMt(userDid)
+// CreateTreeForDID creates a new tree for a user DID if it does not exist already.
+func (s *Service) CreateTreeForDID(userDid *didlib.DID) error {
+	doc, err := s.didService.GetDocumentFromDID(userDid)
 	if err != nil {
-		return false, err
+		return errors.Wrap(err, "unable to retrieve document for did")
+	}
+	if doc == nil {
+		return errors.New("no doc found for did")
 	}
 
-	node, err := didMt.GetNode(didMt.RootKey())
-	if err != nil {
-		if err == db.ErrNotFound {
-			return false, nil
-		}
-		return false, err
-	}
+	return s.CreateTreeForDIDWithPks(
+		userDid,
+		did.DocPublicKeyToEcdsaKeys(doc.PublicKeys),
+	)
 
-	if node.Type == merkletree.NodeTypeEmpty {
-		return false, nil
-	}
-	return true, nil
-}
-
-// CreateTreeForDIDIfNotExists creates a new tree for a user DID if it does not exist already.
-func (s *Service) CreateTreeForDIDIfNotExists(userDid *didlib.DID) error {
-	exists, err := s.TreeExistsForDID(userDid)
-	if err != nil {
-		return errors.Wrap(err, "error testing for tree existence")
-	}
-
-	if !exists {
-		doc, err := s.didService.GetDocumentFromDID(userDid)
-		if err != nil {
-			return errors.Wrap(err, "unable to retrieve document for did")
-		}
-		if doc == nil {
-			return errors.New("no doc found for did")
-		}
-
-		return s.CreateTreeForDID(
-			userDid,
-			did.DocPublicKeyToEcdsaKeys(doc.PublicKeys),
-		)
-	}
-
-	return nil
+	// return nil
 }
 
 func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree,
