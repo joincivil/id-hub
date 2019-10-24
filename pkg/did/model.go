@@ -2,6 +2,8 @@ package did
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -9,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/golang/glog"
 
 	"github.com/joincivil/go-common/pkg/eth"
@@ -322,10 +325,6 @@ type DocPublicKey struct {
 // SetIDFragment sets the ID fragment of the public key.  For convenience,
 // returns the DocPublicKey for inline-ing.
 func (p *DocPublicKey) SetIDFragment(fragment string) *DocPublicKey {
-	// if p.ID == nil {
-	// 	log.Errorf("public key ID is nil, not setting ID fragment")
-	// 	return p
-	// }
 	p.ID.Fragment = fragment
 	return p
 }
@@ -385,6 +384,30 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(aux)
+}
+
+// AsEcdsaPubKey returns this key as an ECDSA public key. Will return error
+// if not ECDSA and Secp256k1 parameters
+func (p *DocPublicKey) AsEcdsaPubKey() (*ecdsa.PublicKey, error) {
+	if p.Type != linkeddata.SuiteTypeSecp256k1Verification &&
+		p.Type != linkeddata.SuiteTypeSecp256k1Signature {
+		return nil, errors.New("not in ecdsa secp256k1 suite")
+	}
+
+	if p.PublicKeyHex == nil || *p.PublicKeyHex == "" {
+		return nil, errors.New("no hex key found")
+	}
+
+	pubBytes, err := hex.DecodeString(*p.PublicKeyHex)
+	if err != nil {
+		return nil, errors.Wrap(err, "asEcdsa hex decode failed")
+	}
+	ecpub, err := crypto.UnmarshalPubkey(pubBytes[:])
+	if err != nil {
+		return nil, errors.Wrap(err, "asEcdsa unable to unmarshal pub key")
+	}
+
+	return ecpub, nil
 }
 
 // DocAuthenicationWrapper allows us to handle two different types for an authentication

@@ -76,18 +76,62 @@ func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error
 	return merkletree.NewMerkleTree(didStore, 150)
 }
 
-// CreateTreeForDID creates a new merkle tree for the did and registers a public key
-func (s *Service) CreateTreeForDID(userDid *didlib.DID, signPk *ecdsa.PublicKey) error {
+// CreateTreeForDIDWithPks creates a new merkle tree for the did and
+// registers a slice of public key that can be used for signing with this did
+// Can also be used to add additional key claims to the userDID MT
+func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.PublicKey) error {
+	if len(signPks) == 0 {
+		return errors.New("at least one public key required")
+	}
+
 	didMt, err := s.buildDIDMt(userDid)
 	if err != nil {
 		return err
 	}
-	claimKey := icore.NewClaimAuthorizeKSignSecp256k1(signPk)
-	err = didMt.Add(claimKey.Entry())
-	if err != nil {
-		return err
+
+	// Claim all the valid public keys that could be used to sign
+	var claimKey *icore.ClaimAuthorizeKSignSecp256k1
+	var pkhex string
+	var addRoot bool
+	for _, k := range signPks {
+		// Check to ensure the key claim isn't already in tree
+		if isrv.CheckKSignInIddb(didMt, k) {
+			pkhex = hex.EncodeToString(crypto.FromECDSAPub(k))
+			log.Infof("key already in tree: %v", pkhex)
+			continue
+		}
+
+		claimKey = icore.NewClaimAuthorizeKSignSecp256k1(k)
+		err = didMt.Add(claimKey.Entry())
+		if err != nil {
+			return errors.Wrap(err, "unable to add signing key claim")
+		}
+		addRoot = true
 	}
-	return s.addNewRootClaim(didMt, userDid)
+
+	if addRoot {
+		return s.addNewRootClaim(didMt, userDid)
+	}
+
+	return nil
+}
+
+// CreateTreeForDID creates a new tree for a user DID if it does not exist already.
+func (s *Service) CreateTreeForDID(userDid *didlib.DID) error {
+	doc, err := s.didService.GetDocumentFromDID(userDid)
+	if err != nil {
+		return errors.Wrap(err, "unable to retrieve document for did")
+	}
+	if doc == nil {
+		return errors.New("no doc found for did")
+	}
+
+	return s.CreateTreeForDIDWithPks(
+		userDid,
+		did.DocPublicKeyToEcdsaKeys(doc.PublicKeys),
+	)
+
+	// return nil
 }
 
 func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree,
@@ -99,14 +143,7 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 	if err != nil {
 		return false, err
 	}
-	if pubkey.Type != linkeddata.SuiteTypeSecp256k1Verification {
-		return false, errors.New("Only secp256k1 signatures are currently supported")
-	}
-	pubBytes, err := hex.DecodeString(*pubkey.PublicKeyHex)
-	if err != nil {
-		return false, err
-	}
-	ecpub, err := crypto.UnmarshalPubkey(pubBytes[:])
+	ecpub, err := pubkey.AsEcdsaPubKey()
 	if err != nil {
 		return false, err
 	}
@@ -127,6 +164,7 @@ func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *
 		return false, err
 	}
 	recoveredBytes := crypto.FromECDSAPub(recoveredPubkey)
+	pubBytes := crypto.FromECDSAPub(ecpub)
 	return bytes.Equal(recoveredBytes, pubBytes), nil
 }
 

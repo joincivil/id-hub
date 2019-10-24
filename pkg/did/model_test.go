@@ -428,3 +428,52 @@ func TestGetPublicKeyFromFragment(t *testing.T) {
 		t.Errorf("couldnt find the public key: %v", err)
 	}
 }
+
+func TestPublicKeyAsEcdsa(t *testing.T) {
+	d, _ := didlib.Parse("did:example:123456789abcdefghi")
+
+	pk := &did.DocPublicKey{
+		ID:              d,
+		Type:            linkeddata.SuiteTypeSecp256k1Verification,
+		Controller:      d,
+		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
+	}
+
+	key, err := pk.AsEcdsaPubKey()
+	if err == nil {
+		t.Error("should have return error for invalid ecdsa key")
+	}
+	if key != nil {
+		t.Errorf("should have returned nil key for invalid ecdsa key")
+	}
+
+	pk = &did.DocPublicKey{
+		ID:              d,
+		Type:            linkeddata.SuiteTypeEd25519Verification,
+		Controller:      d,
+		EthereumAddress: utils.StrToPtr("0x5E4A048a9B8F5256a0D485e86E31e2c3F86523FB"),
+	}
+
+	key, err = pk.AsEcdsaPubKey()
+	if err == nil {
+		t.Error("should have return error for invalid ecdsa key")
+	}
+	if key != nil {
+		t.Errorf("should have returned nil key for invalid ecdsa key")
+	}
+
+	pk = &did.DocPublicKey{
+		ID:           d,
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		Controller:   d,
+		PublicKeyHex: utils.StrToPtr("04debef3fcbef3f5659f9169bad80044b287139a401b5da2979e50b032560ed33927eab43338e9991f31185b3152735e98e0471b76f18897d764b4e4f8a7e8f61b"),
+	}
+
+	key, err = pk.AsEcdsaPubKey()
+	if err != nil {
+		t.Error("should not have error for invalid ecdsa key")
+	}
+	if key == nil {
+		t.Errorf("should have not returned nil key for invalid ecdsa key")
+	}
+}

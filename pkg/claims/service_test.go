@@ -76,7 +76,7 @@ func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimss
 	return claimService, err
 }
 
-func TestCreateTreeForDID(t *testing.T) {
+func TestCreateTreeForDIDWithPks(t *testing.T) {
 	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
@@ -97,12 +97,14 @@ func TestCreateTreeForDID(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing did: %v", err)
 	}
+
+	// Create the tree
 	secKey, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
 	if err != nil {
 		t.Errorf("error making ecdsa: %v", err)
 	}
 	pubKey := secKey.Public().(*ecdsa.PublicKey)
-	err = claimService.CreateTreeForDID(userDID, pubKey)
+	err = claimService.CreateTreeForDIDWithPks(userDID, []*ecdsa.PublicKey{pubKey})
 	if err != nil {
 		t.Errorf("error creating tree for did: %v", err)
 	}
@@ -119,6 +121,102 @@ func TestCreateTreeForDID(t *testing.T) {
 	}
 	if len(rootClaims) != 1 {
 		t.Errorf("there should be one claim in the root tree")
+	}
+
+	// Try to put the same key in, should fail
+	err = claimService.CreateTreeForDIDWithPks(userDID, []*ecdsa.PublicKey{pubKey})
+	if err != nil {
+		t.Errorf("should not have gotten err for adding an existing key")
+	}
+	didClaims, err = claimService.GetMerkleTreeClaimsForDid(userDID)
+	if err != nil {
+		t.Errorf("error getting claims for user: %v", err)
+	}
+	if len(didClaims) != 1 {
+		t.Errorf("there should be one claim in the users tree")
+	}
+
+	// Add another key to the tree, make sure using the same tree
+	secKey2, err := crypto.HexToECDSA("5dff9479ddd0b9f2213d415b5810fd7e9950ce1312a3c62fa42c6894560197a7")
+	if err != nil {
+		t.Errorf("error making ecdsa: %v", err)
+	}
+	pubKey2 := secKey2.Public().(*ecdsa.PublicKey)
+	err = claimService.CreateTreeForDIDWithPks(userDID, []*ecdsa.PublicKey{pubKey2})
+	if err != nil {
+		t.Errorf("error creating tree for did: %v", err)
+	}
+	didClaims, err = claimService.GetMerkleTreeClaimsForDid(userDID)
+	if err != nil {
+		t.Errorf("error getting claims for user: %v", err)
+	}
+	if len(didClaims) != 2 {
+		t.Errorf("there should be two claims in the users tree")
+	}
+	// Should see the total claims for all dids
+	rootClaims, err = claimService.GetRootMerkleTreeClaims()
+	if err != nil {
+		t.Errorf("error getting root claims: %v", err)
+	}
+	if len(rootClaims) != 2 {
+		t.Errorf("there should be two claims in the root tree")
+	}
+}
+
+func TestCreateTreeForDID(t *testing.T) {
+	db, err := setupConnection()
+	if err != nil {
+		t.Errorf("error setting up the db: %v", err)
+	}
+
+	cleaner := testutils.DeleteCreatedEntities(db)
+	defer cleaner()
+	didPersister := did.NewPostgresPersister(db)
+	didService := did.NewService(didPersister)
+	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
+	claimService, err := makeService(db, didService, signedClaimStore)
+	if err != nil {
+		t.Errorf("error setting up service: %v", err)
+	}
+
+	testDID := "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4d7785c"
+	userDID, err := didlib.Parse(testDID)
+	if err != nil {
+		t.Errorf("error parsing did: %v", err)
+	}
+
+	// Return error since the user DID doesn't exist
+	err = claimService.CreateTreeForDID(userDID)
+	if err == nil {
+		t.Errorf("should have returned an error since did does not exist")
+	}
+
+	// Create a test DID document
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
+	docPubKey := &did.DocPublicKey{
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pub,
+	}
+
+	docPubKey.ID = did.CopyDID(userDID)
+	docPubKey.Controller = did.CopyDID(userDID)
+	didDoc, err := did.InitializeNewDocument(userDID, docPubKey, true, true)
+	if err != nil {
+		t.Errorf("error making the did doc: %v", err)
+	}
+	if err := didService.SaveDocument(didDoc); err != nil {
+		t.Errorf("error saving the did doc: %v", err)
+	}
+
+	// Return no error since the user DID exists
+	err = claimService.CreateTreeForDID(userDID)
+	if err != nil {
+		t.Errorf("should not have returned error: err: %v", err)
 	}
 }
 
@@ -171,7 +269,8 @@ func TestClaimContent(t *testing.T) {
 	if err == nil {
 		t.Errorf("should have errored because couldn't resolv the key")
 	}
-	err = claimService.CreateTreeForDID(&didDoc.ID, &key.PublicKey)
+	err = claimService.CreateTreeForDIDWithPks(&didDoc.ID,
+		[]*ecdsa.PublicKey{&key.PublicKey})
 	if err != nil {
 		t.Errorf("problem creating did tree: %v", err)
 	}
@@ -204,9 +303,9 @@ func TestClaimContent(t *testing.T) {
 	}
 
 	for _, v := range listDidClaims {
-		switch v.(type) {
+		switch val := v.(type) {
 		case claims.ClaimRegisteredDocument:
-			regClaim := v.(claims.ClaimRegisteredDocument)
+			regClaim := val
 			claimHash := hex.EncodeToString(regClaim.ContentHash[:])
 			signedClaim, err := signedClaimStore.GetCredentialByHash(claimHash)
 			if err != nil {
@@ -264,7 +363,8 @@ func TestClaimsToContentCredentials(t *testing.T) {
 
 	// Create the DID tree
 	ecdsaPubkey, _ := crypto.UnmarshalPubkey(pubBytes)
-	err = claimService.CreateTreeForDID(&didDoc.ID, ecdsaPubkey)
+	err = claimService.CreateTreeForDIDWithPks(&didDoc.ID,
+		[]*ecdsa.PublicKey{ecdsaPubkey})
 	if err != nil {
 		t.Errorf("problem creating did tree: %v", err)
 	}
