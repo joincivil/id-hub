@@ -27,7 +27,7 @@ func RunCommitRoot() error {
 		log.Fatalf("error initializing root committer: %v", err)
 	}
 
-	treeStore := initTreeStore(db)
+	treeStore := initTreePersister(db)
 
 	rootService, err := claims.NewRootService(treeStore, rootCommitter, persister)
 	if err != nil {

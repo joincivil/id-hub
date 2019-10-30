@@ -230,14 +230,8 @@ github.com/jinzhu/now v1.1.1 h1:g39TucaRWyV3dwDO++eEc6qf8TVIQ/Da48WmqjZ3i7E=
 github.com/jinzhu/now v1.1.1/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
 github.com/joho/godotenv v1.3.0 h1:Zjp+RcGpHhGlrMbJzXTrZZPrWj+1vfm90La1wgB6Bhc=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
-<<<<<<< HEAD
-github.com/joincivil/civil-content-claimer v0.0.0-20190829175732-aa8ca8fd98d9 h1:wpv/b5kh2i9cex0g/3ITGjB3euHntcJKGm+KdcFHqY8=
-github.com/joincivil/go-common v0.0.0-20191010200949-5c3ab2eca14a h1:678l31feUN6f/nR6Hpk3jrZtTlJQQa9el/PcDw3mW1w=
-github.com/joincivil/go-common v0.0.0-20191010200949-5c3ab2eca14a/go.mod h1:rsFDwXyDKsUrm4pgE10z7AAaAuvFZ4NtN0ghSF3OwL8=
-=======
 github.com/joincivil/go-common v0.0.0-20191029153126-d18665a86970 h1:B8ghLMa9FN/38dcsaFniW3dchStwzR3DCjigq10L+ns=
 github.com/joincivil/go-common v0.0.0-20191029153126-d18665a86970/go.mod h1:rsFDwXyDKsUrm4pgE10z7AAaAuvFZ4NtN0ghSF3OwL8=
->>>>>>> CIVIL-870 Implement the claims publisher, which takes the root hash of updated merkle trees and publishes them periodically to Ethereum
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/json-iterator/go v1.1.7/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
