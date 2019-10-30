@@ -8,22 +8,15 @@ import (
 
 // RootService coordinates publishing the root to the blockchain and saving the result to pg
 type RootService struct {
-	mt        *merkletree.MerkleTree
+	treeStore db.Storage
 	committer RootCommitterInterface
 	persister *claimsstore.RootCommitsPGPersister
 }
 
 // NewRootService constructs a new root service
 func NewRootService(treeStore db.Storage, committer RootCommitterInterface, persister *claimsstore.RootCommitsPGPersister) (*RootService, error) {
-	rootStore := treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
-
-	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
-	if err != nil {
-		return nil, err
-	}
-
 	return &RootService{
-		mt:        rootMt,
+		treeStore: treeStore,
 		committer: committer,
 		persister: persister,
 	}, nil
@@ -31,8 +24,15 @@ func NewRootService(treeStore db.Storage, committer RootCommitterInterface, pers
 
 // CommitRoot commits the current root of the root tree to the contract and saves the blocknumber and transaction in pg
 func (s *RootService) CommitRoot() error {
+	rootStore := s.treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
+
+	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
+	if err != nil {
+		return err
+	}
+
 	var root [32]byte
-	rootSlice := s.mt.RootKey()
+	rootSlice := rootMt.RootKey()
 	copy(root[:], rootSlice.Bytes()[:32])
 	c := make(chan *ProgressUpdate)
 	go s.committer.CommitRoot(root, c)
