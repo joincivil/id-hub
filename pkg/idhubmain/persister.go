@@ -1,6 +1,7 @@
 package idhubmain
 
 import (
+	"github.com/iden3/go-iden3-core/db"
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
@@ -28,4 +29,21 @@ func initSignedClaimPersister(db *gorm.DB) *claimsstore.SignedClaimPGPersister {
 	persister := claimsstore.NewSignedClaimPGPersister(db)
 	db.AutoMigrate(claimsstore.SignedClaimPostgres{})
 	return persister
+}
+
+func initRootClaimPersister(db *gorm.DB) *claimsstore.RootCommitsPGPersister {
+	persister := claimsstore.NewRootCommitsPGPersister(db)
+	db.AutoMigrate(
+		claimsstore.RootCommit{},
+	)
+	return persister
+}
+
+func initTreeStore(db *gorm.DB) db.Storage {
+	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
+	db.AutoMigrate(
+		claimsstore.Node{},
+	)
+	treeStore := claimsstore.NewPGStore(nodepersister)
+	return treeStore
 }
