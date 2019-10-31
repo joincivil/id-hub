@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 
@@ -46,6 +47,41 @@ func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimP
 		treeStore:        treeStore,
 		signedClaimStore: signedClaimStore,
 		didService:       didService,
+	}, nil
+}
+
+// GenerateProof is
+func (s *Service) GenerateProof(claim *claimsstore.ContentCredential) (*MTProof, error) {
+	signerDID, err := didlib.Parse(claim.Proof.Creator)
+	if err != nil {
+		return nil, err
+	}
+	didMT, err := s.buildDIDMt(signerDID)
+	if err != nil {
+		return nil, err
+	}
+	claimJSON, err := json.Marshal(claim)
+	if err != nil {
+		return nil, err
+	}
+	hash := crypto.Keccak256(claimJSON)
+	hash32 := [32]byte{}
+	copy(hash32[:], hash)
+
+	rdClaim, err := NewClaimRegisteredDocument(hash32, signerDID, ContentCredentialDocType)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := rdClaim.Entry()
+
+	proof, err := didMT.GenerateProof(entry.HIndex(), didMT.RootKey())
+	if err != nil {
+		return nil, err
+	}
+
+	return &MTProof{
+		ExistsInDIDMTProof: hex.EncodeToString(proof.Bytes()),
 	}, nil
 }
 
