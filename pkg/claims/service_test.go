@@ -22,8 +22,8 @@ func setupConnection() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.DropTable(&did.PostgresDocument{})
-	err = db.AutoMigrate(&did.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}).Error
+	db.DropTable(&did.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&did.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
 	if err != nil {
 		return nil, err
 	}

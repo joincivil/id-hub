@@ -29,3 +29,11 @@ func initSignedClaimPersister(db *gorm.DB) *claimsstore.SignedClaimPGPersister {
 	db.AutoMigrate(claimsstore.SignedClaimPostgres{})
 	return persister
 }
+
+func initRootClaimPersister(db *gorm.DB) *claimsstore.RootCommitsPGPersister {
+	persister := claimsstore.NewRootCommitsPGPersister(db)
+	db.AutoMigrate(
+		claimsstore.RootCommit{},
+	)
+	return persister
+}
