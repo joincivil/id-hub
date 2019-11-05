@@ -56,3 +56,8 @@ func (s *RootService) CommitRoot() error {
 
 	return s.persister.Save(rootCommit)
 }
+
+// GetLatest returns the latest committed root
+func (s *RootService) GetLatest() (*claimsstore.RootCommit, error) {
+	return s.persister.GetLatest()
+}

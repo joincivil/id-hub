@@ -28,10 +28,20 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 	// Claims init
 	treePersister := initTreePersister(db)
 	signedClaimPersister := initSignedClaimPersister(db)
+	rootPersister := initRootClaimPersister(db)
+	ethHelper, err := initETHHelper(config)
+	if err != nil {
+		log.Fatalf("error initializing eth helper: %v", err)
+	}
+	rootService, err := initRootService(config, ethHelper, treePersister, rootPersister)
+	if err != nil {
+		log.Fatalf("error initializing root service: %v", err)
+	}
 	claimsService, err := initClaimsService(
 		treePersister,
 		signedClaimPersister,
 		didService,
+		rootService,
 	)
 	if err != nil {
 		log.Fatalf("error initializing claims service")

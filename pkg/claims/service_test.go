@@ -3,10 +3,12 @@ package claims_test
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/iden3/go-iden3-core/merkletree"
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claims"
@@ -69,11 +71,15 @@ func addProof(cred *claimsstore.ContentCredential, signerDID *didlib.DID, pk *ec
 	return nil
 }
 
-func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimsstore.SignedClaimPGPersister) (*claims.Service, error) {
+func makeService(db *gorm.DB, didService *did.Service,
+	signedClaimStore *claimsstore.SignedClaimPGPersister) (*claims.Service, *claims.RootService, error) {
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
-	claimService, err := claims.NewService(treeStore, signedClaimStore, didService)
-	return claimService, err
+	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
+	committer := &fakeRootCommitter{}
+	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
+	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService)
+	return claimService, rootService, err
 }
 
 func TestCreateTreeForDIDWithPks(t *testing.T) {
@@ -87,7 +93,7 @@ func TestCreateTreeForDIDWithPks(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := makeService(db, didService, signedClaimStore)
+	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -174,7 +180,7 @@ func TestCreateTreeForDID(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := makeService(db, didService, signedClaimStore)
+	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -231,7 +237,7 @@ func TestClaimContent(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := makeService(db, didService, signedClaimStore)
+	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -331,7 +337,7 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := makeService(db, didService, signedClaimStore)
+	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -389,5 +395,136 @@ func TestClaimsToContentCredentials(t *testing.T) {
 
 	if len(listDidClaims) == 2 && len(contentCreds) != 1 {
 		t.Errorf("should have filtered down to 1 content cred from 2 claims")
+	}
+}
+
+func TestGenerateProof(t *testing.T) {
+	db, err := setupConnection()
+	if err != nil {
+		t.Errorf("error setting up the db: %v", err)
+	}
+
+	cleaner := testutils.DeleteCreatedEntities(db)
+	defer cleaner()
+
+	// Setup
+	didPersister := did.NewPostgresPersister(db)
+	didService := did.NewService(didPersister)
+	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
+	claimService, rootService, err := makeService(db, didService, signedClaimStore)
+	if err != nil {
+		t.Errorf("error setting up service: %v", err)
+	}
+
+	// Create the the did
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
+	docPubKey := &did.DocPublicKey{
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pub,
+	}
+	signerDid, err := didlib.Parse("did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1")
+	if err != nil {
+		t.Errorf("error creating did: %v", err)
+	}
+	docPubKey.ID = signerDid
+	docPubKey.Controller = did.CopyDID(signerDid)
+	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	if err != nil {
+		t.Errorf("error making the did doc: %v", err)
+	}
+	if err := didService.SaveDocument(didDoc); err != nil {
+		t.Errorf("error saving the did doc: %v", err)
+	}
+
+	// Create the DID tree
+	ecdsaPubkey, _ := crypto.UnmarshalPubkey(pubBytes)
+	err = claimService.CreateTreeForDIDWithPks(&didDoc.ID,
+		[]*ecdsa.PublicKey{ecdsaPubkey})
+	if err != nil {
+		t.Errorf("problem creating did tree: %v", err)
+	}
+
+	// Claim content 1
+	cred := makeContentCredential(&didDoc.ID)
+	_ = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	err = claimService.ClaimContent(cred)
+	if err != nil {
+		t.Errorf("problem creating content claim: %v", err)
+	}
+
+	// commit the root
+	err = rootService.CommitRoot()
+	if err != nil {
+		t.Errorf("error committing root: %v", err)
+	}
+
+	proof, err := claimService.GenerateProof(cred)
+	if err != nil {
+		t.Errorf("error generating proof: %v", err)
+	}
+
+	if proof.BlockNumber != 2 {
+		t.Errorf("didn't get the right blocknumber")
+	}
+
+	existsProofBytes, err := hex.DecodeString(proof.ExistsInDIDMTProof)
+	if err != nil {
+		t.Errorf("couldn't decode exists proof: %v", err)
+	}
+	notRevokedBytes, err := hex.DecodeString(proof.NotRevokedInDIDMTProof)
+	if err != nil {
+		t.Errorf("couldn't decode nonrevoked proof: %v", err)
+	}
+	didRootBytes, err := hex.DecodeString(proof.DIDRootExistsProof)
+	if err != nil {
+		t.Errorf("couldn't decode didroot proof: %v", err)
+	}
+
+	existProof, err := merkletree.NewProofFromBytes(existsProofBytes)
+	if err != nil {
+		t.Errorf("couldn't build exists proof from bytes: %v", err)
+	}
+	notRevoked, err := merkletree.NewProofFromBytes(notRevokedBytes)
+	if err != nil {
+		t.Errorf("couldn't build not revoked proof from bytes: %v", err)
+	}
+	didRoot, err := merkletree.NewProofFromBytes(didRootBytes)
+	if err != nil {
+		t.Errorf("couldn't build did root proof from bytes: %v", err)
+	}
+
+	if err != nil {
+		t.Errorf("couldn't get root of did tree: %v", err)
+	}
+
+	claimJSON, _ := json.Marshal(cred)
+	hash := crypto.Keccak256(claimJSON)
+	hash32 := [32]byte{}
+	copy(hash32[:], hash)
+
+	rdClaim, _ := claims.NewClaimRegisteredDocument(hash32, signerDid, claims.ContentCredentialDocType)
+
+	entry := rdClaim.Entry()
+	if !merkletree.VerifyProof(&proof.DIDRoot, existProof, entry.HIndex(), entry.HValue()) {
+		t.Errorf("couldn't verify exists in did tree proof")
+	}
+	// revoked registered doc claim is always version 1
+	rdClaim.Version = 1
+	entryV1 := rdClaim.Entry()
+	if !merkletree.VerifyProof(&proof.DIDRoot, notRevoked, entryV1.HIndex(), entryV1.HValue()) {
+		t.Errorf("couldn't verify not revoked in proof")
+	}
+
+	rootClaim, _ := claims.NewClaimSetRootKeyDID(signerDid, &proof.DIDRoot)
+	rootClaim.Version = proof.DIDRootExistsVersion
+	rootClaimEntry := rootClaim.Entry()
+
+	if !merkletree.VerifyProof(&proof.Root, didRoot, rootClaimEntry.HIndex(), rootClaimEntry.HValue()) {
+		t.Errorf("couldn't verify root tree proof")
 	}
 }
