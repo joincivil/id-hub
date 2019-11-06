@@ -1,9 +1,7 @@
 package idhubmain
 
 import (
-	"github.com/ethereum/go-ethereum"
 	log "github.com/golang/glog"
-	"github.com/joincivil/id-hub/pkg/claims"
 )
 
 // RunCommitRoot whatever the current root is for the root_merkletree is saved to the smart contract
@@ -22,14 +20,9 @@ func RunCommitRoot() error {
 		log.Fatalf("error initializing eth helper: %v", err)
 	}
 
-	rootCommitter, err := claims.NewRootCommitter(ethHelper, ethHelper.Blockchain.(ethereum.TransactionReader), config.RootCommitsAddress)
-	if err != nil {
-		log.Fatalf("error initializing root committer: %v", err)
-	}
-
 	treeStore := initTreePersister(db)
 
-	rootService, err := claims.NewRootService(treeStore, rootCommitter, persister)
+	rootService, err := initRootService(config, ethHelper, treeStore, persister)
 	if err != nil {
 		log.Fatalf("error initializing root service: %v", err)
 	}

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
 	log "github.com/golang/glog"
@@ -29,11 +31,12 @@ type Service struct {
 	treeStore        db.Storage
 	signedClaimStore *claimsstore.SignedClaimPGPersister
 	didService       *did.Service
+	rootService      *RootService
 }
 
 // NewService returns a new service
 func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimPGPersister,
-	didService *did.Service) (*Service, error) {
+	didService *did.Service, rootService *RootService) (*Service, error) {
 	rootStore := treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
 
 	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
@@ -46,10 +49,167 @@ func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimP
 		treeStore:        treeStore,
 		signedClaimStore: signedClaimStore,
 		didService:       didService,
+		rootService:      rootService,
 	}, nil
 }
 
-func (s *Service) addNewRootClaim(didMt *merkletree.MerkleTree, userDid *didlib.DID) error {
+func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tree *merkletree.MerkleTree) (string, string, error) {
+	hi := entry.HIndex()
+	proof, err := tree.GenerateProof(hi, tree.RootKey())
+	if err != nil {
+		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GenerateProof")
+	}
+	leafData, err := tree.GetDataByIndex(hi)
+	if err != nil {
+		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GetDataByIndex")
+	}
+	revoke, err := icore.GetNonRevocationMTProof(tree, leafData, hi)
+	if err != nil {
+		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.GetNonRevocationMTProof")
+	}
+	return hex.EncodeToString(proof.Bytes()), hex.EncodeToString(revoke.Bytes()), nil
+}
+
+func (s *Service) rootClaimFromLookUp(hIndex *merkletree.Hash, tree *merkletree.MerkleTree) (*ClaimSetRootKeyDID, error) {
+	rootDataFromHIndex, err := tree.GetDataByIndex(hIndex)
+	if err != nil {
+		return nil, errors.Wrap(err, "rootClaimFromLookUp.tree.GetDataByIndex")
+	}
+	rootDataByteArr := rootDataFromHIndex.Bytes()
+	rootEntryFromData, err := merkletree.NewEntryFromBytes(rootDataByteArr[:])
+	if err != nil {
+		return nil, errors.Wrap(err, "rootClaimFromLookUp.NewEntryFromBytes")
+	}
+	return NewClaimSetRootKeyDIDFromEntry(rootEntryFromData), nil
+}
+
+func (s *Service) getLastRootClaim(claim *claimsstore.ContentCredential,
+	rootSnapShotTree *merkletree.MerkleTree) (*ClaimSetRootKeyDID, *merkletree.MerkleTree, error) {
+	signerDID, err := didlib.Parse(claim.Proof.Creator)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "GenerateProof didlib.Parse")
+	}
+
+	didMT, err := s.buildDIDMt(signerDID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "GenerateProof.buildDIDMt")
+	}
+
+	didRoot := didMT.RootKey()
+	// the index is the DID so we create this claim in order to look through the snapshot for
+	// a claim with the same index
+	rootClaim, err := NewClaimSetRootKeyDID(signerDID, didRoot)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.NewClaimSetRootKeyDID")
+	}
+	// we get the claim with that index
+	rootClaimFromLookUp, err := s.rootClaimFromLookUp(rootClaim.Entry().HIndex(), rootSnapShotTree)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.rootClaimFromLookUp")
+	}
+
+	// get the next version which is the version after the last existing version
+	nextVersion, err := isrv.GetNextVersion(rootSnapShotTree, rootClaimFromLookUp.Entry().HIndex())
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.GetNextVersion")
+	}
+	// set the version to the last existing version
+	rootClaimFromLookUp.Version = nextVersion - 1
+
+	// next we get the claim with this version
+	lastRootClaim, err := s.rootClaimFromLookUp(rootClaimFromLookUp.Entry().HIndex(), rootSnapShotTree)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.rootClaimFromLookUp")
+	}
+
+	didTreeSnapshot, err := didMT.Snapshot(&lastRootClaim.RootKey)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.didMT.Snapshot")
+	}
+	return lastRootClaim, didTreeSnapshot, nil
+}
+
+func (s *Service) getRootSnapshot(commit *claimsstore.RootCommit) (*merkletree.MerkleTree, error) {
+	lastRoot, err := hex.DecodeString(commit.Root[2:])
+	if err != nil {
+		return nil, errors.Wrap(err, "getRootSnapshot hex.DecodeString")
+	}
+	if len(lastRoot) != 32 {
+		return nil, errors.New("root hash should be 32 bytes")
+	}
+
+	lastrootHash := merkletree.Hash{}
+	copy(lastrootHash[:], lastRoot)
+
+	return s.rootMt.Snapshot(&lastrootHash)
+}
+
+func (s *Service) makeContentClaimFromCred(claim *claimsstore.ContentCredential) (*ClaimRegisteredDocument, error) {
+	signerDID, err := didlib.Parse(claim.Proof.Creator)
+	if err != nil {
+		return nil, errors.Wrap(err, "makeContentClaimFromCred didlib.Parse")
+	}
+	claimJSON, err := json.Marshal(claim)
+	if err != nil {
+		return nil, errors.Wrap(err, "makeContentClaimFromCred json.Marshal")
+	}
+	hash := crypto.Keccak256(claimJSON)
+	hash32 := [32]byte{}
+	copy(hash32[:], hash)
+	return NewClaimRegisteredDocument(hash32, signerDID, ContentCredentialDocType)
+}
+
+// GenerateProof returns a proof that the content credential is in the tree and on the blockchain
+func (s *Service) GenerateProof(claim *claimsstore.ContentCredential) (*MTProof, error) {
+	lastRootCommit, err := s.rootService.GetLatest()
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.rootService.GetLatest")
+	}
+
+	lastRootSnapshot, err := s.getRootSnapshot(lastRootCommit)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.getRootSnapshot")
+	}
+
+	latestRootClaim, didTreeSnapshot, err := s.getLastRootClaim(claim, lastRootSnapshot)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim")
+	}
+
+	didRootExistsProof, err := lastRootSnapshot.GenerateProof(latestRootClaim.Entry().HIndex(), lastRootSnapshot.RootKey())
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.lastRootSnapshot.GenerateProof")
+	}
+
+	rdClaim, err := s.makeContentClaimFromCred(claim)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.makeContentClaimFromCred")
+	}
+
+	entry := rdClaim.Entry()
+	existsInDIDMTProof, notRevokedInDIDMTProof, err := s.generateProofAndNonRevokeFromEntry(entry, didTreeSnapshot)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
+	}
+
+	return &MTProof{
+		ExistsInDIDMTProof:     existsInDIDMTProof,
+		NotRevokedInDIDMTProof: notRevokedInDIDMTProof,
+		DIDRootExistsProof:     hex.EncodeToString(didRootExistsProof.Bytes()),
+		DIDRootExistsVersion:   latestRootClaim.Version,
+		BlockNumber:            lastRootCommit.BlockNumber,
+		ContractAddress:        common.HexToAddress(lastRootCommit.ContractAddress),
+		TXHash:                 common.HexToHash(lastRootCommit.TransactionHash),
+		Root:                   *lastRootSnapshot.RootKey(),
+		DIDRoot:                *didTreeSnapshot.RootKey(),
+	}, nil
+}
+
+func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
+	didMt, err := s.buildDIDMt(userDid)
+	if err != nil {
+		return err
+	}
 	claimSetRootKey, err := NewClaimSetRootKeyDID(userDid, didMt.RootKey())
 	if err != nil {
 		return errors.Wrap(err, "addNewRootClaim.NewClaimSetRootKeyDID")
@@ -110,7 +270,7 @@ func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.
 	}
 
 	if addRoot {
-		return s.addNewRootClaim(didMt, userDid)
+		return s.addNewRootClaim(userDid)
 	}
 
 	return nil
@@ -214,7 +374,7 @@ func (s *Service) ClaimContent(cred *claimsstore.ContentCredential) error {
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.add")
 	}
-	err = s.addNewRootClaim(didMt, signerDid)
+	err = s.addNewRootClaim(signerDid)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.addnewrootclaim")
 	}
@@ -299,4 +459,13 @@ func (s *Service) GetMerkleTreeClaimsForDid(userDid *didlib.DID) ([]merkletree.C
 // GetRootMerkleTreeClaims returns all root claims
 func (s *Service) GetRootMerkleTreeClaims() ([]merkletree.Claim, error) {
 	return getClaimsForTree(s.rootMt)
+}
+
+// GetDIDRoot returns the root hash of a dids tree
+func (s *Service) GetDIDRoot(did *didlib.DID) (*merkletree.Hash, error) {
+	didMt, err := s.buildDIDMt(did)
+	if err != nil {
+		return nil, err
+	}
+	return didMt.RootKey(), nil
 }

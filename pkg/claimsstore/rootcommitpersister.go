@@ -47,3 +47,13 @@ func (p *RootCommitsPGPersister) Get(rootHash string) (*RootCommit, error) {
 	}
 	return rootCommit, nil
 }
+
+// GetLatest returns the most recent root committed to the tree
+func (p *RootCommitsPGPersister) GetLatest() (*RootCommit, error) {
+	rootCommit := &RootCommit{}
+	stmt := p.db.Raw("SELECT * FROM root_commits WHERE block_number = (SELECT MAX (block_number) FROM root_commits)")
+	if err := stmt.Scan(rootCommit).Error; err != nil {
+		return rootCommit, err
+	}
+	return rootCommit, nil
+}
