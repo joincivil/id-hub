@@ -27,7 +27,7 @@ type ClaimRegisteredDocument struct {
 
 // NewClaimRegisteredDocument creates a new ClaimRegisteredDocument from a did a contentHash and a type
 func NewClaimRegisteredDocument(ch [256 / 8]byte, did *didlib.DID, dt uint32) (*ClaimRegisteredDocument, error) {
-	didbytes, err := claimsstore.DIDToBinary(did)
+	didbytes, err := claimsstore.HashDID(did)
 	if err != nil {
 		return nil, err
 	}

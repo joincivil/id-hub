@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/claims"
+	"github.com/joincivil/id-hub/pkg/claimsstore"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -26,5 +27,12 @@ func TestClaimRegisteredDoc(t *testing.T) {
 	claim2 := claims.NewClaimRegisteredDocumentFromEntry(entry)
 	if !bytes.Equal(claim.ContentHash[:], claim2.ContentHash[:]) {
 		t.Errorf("couldn't successfully recover claim from entry")
+	}
+	hashDid, err := claimsstore.HashDID(did)
+	if err != nil {
+		t.Errorf("Couldn't hash the did: %v", err)
+	}
+	if !bytes.Equal(claim.DID[:], hashDid) {
+		t.Errorf("recoverd DID did not match expected hash value")
 	}
 }

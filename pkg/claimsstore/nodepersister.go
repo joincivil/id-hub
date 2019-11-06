@@ -1,7 +1,6 @@
 package claimsstore
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 
@@ -25,7 +24,7 @@ type storageInfo struct {
 // Node is node in the merkle tree stored in this table
 type Node struct {
 	gorm.Model
-	DID      string `gorm:"column:did"`
+	Prefix   string
 	NodeData string
 	NodeKey  string `gorm:"unique_index;not null;"`
 	NodeType string
@@ -38,7 +37,7 @@ func (c *Node) ToDataBytes() ([]byte, error) {
 
 // ToKV converts the node into the KV type used by iden3
 func (c *Node) ToKV() (db.KV, error) {
-	prefix := []byte(c.DID)
+	prefix := []byte(c.Prefix)
 	key, err := hex.DecodeString(c.NodeKey)
 	if err != nil {
 		return db.KV{}, err
@@ -62,15 +61,7 @@ func (c *Node) UpdateKVAndPrefix(kv db.KV, prefix []byte) error {
 	} else if nodetType == merkletree.NodeTypeLeaf {
 		typeName = LeafNode
 	}
-	if bytes.Equal(prefix, PrefixRootMerkleTree) || len(prefix) != 32 {
-		c.DID = string(prefix)
-	} else {
-		recoveredDid, err := BinaryToDID(prefix)
-		if err != nil {
-			return err
-		}
-		c.DID = recoveredDid.String()
-	}
+	c.Prefix = string(prefix)
 	c.NodeData = hex.EncodeToString(kv.V)
 	c.NodeType = typeName
 	return nil
@@ -158,12 +149,12 @@ func (c *NodePGPersister) Info() string {
 	return string(json)
 }
 
-// GetAllForDID returns the nodes associated with a particular dids tree
-func (c *NodePGPersister) GetAllForDID(didBytes []byte, limit int) ([]db.KV, error) {
-	did := string(didBytes)
+// GetAllForPrefix returns the nodes associated with a particular prefix tree
+func (c *NodePGPersister) GetAllForPrefix(prefixBytes []byte, limit int) ([]db.KV, error) {
+	prefix := string(prefixBytes)
 	var nodes []Node
 	var kvs []db.KV
-	if err := c.DB.Limit(limit).Order("created_at asc").Where(&Node{DID: did}).Find(&nodes).Error; err != nil {
+	if err := c.DB.Limit(limit).Order("created_at asc").Where(&Node{Prefix: prefix}).Find(&nodes).Error; err != nil {
 		return kvs, err
 	}
 	return convertNodesToKVs(nodes)

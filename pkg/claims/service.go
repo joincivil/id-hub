@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -228,10 +229,8 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 }
 
 func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error) {
-	bid, err := claimsstore.DIDToBinary(userDid)
-	if err != nil {
-		return nil, err
-	}
+	didStringOnlyMethodID := fmt.Sprintf("did:%v:%v", userDid.Method, userDid.ID)
+	bid := []byte(didStringOnlyMethodID)
 	didStore := s.treeStore.WithPrefix(bid)
 	return merkletree.NewMerkleTree(didStore, 150)
 }
@@ -290,8 +289,6 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID) error {
 		userDid,
 		did.DocPublicKeyToEcdsaKeys(doc.PublicKeys),
 	)
-
-	// return nil
 }
 
 func (s *Service) verifyCredential(cred *claimsstore.ContentCredential, userMt *merkletree.MerkleTree,

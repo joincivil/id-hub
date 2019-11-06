@@ -45,7 +45,7 @@ func (s *PGStore) Get(b []byte) ([]byte, error) {
 
 // List lists all nodes for prefix/did
 func (s *PGStore) List(limit int) ([]db.KV, error) {
-	return s.NodePersister.GetAllForDID(s.prefix, limit)
+	return s.NodePersister.GetAllForPrefix(s.prefix, limit)
 }
 
 // Close closes the db

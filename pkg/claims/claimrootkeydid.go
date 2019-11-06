@@ -35,7 +35,7 @@ func NewClaimSetRootKeyDID(did *didlib.DID, rootKey *merkletree.Hash) (*ClaimSet
 		return nil, errors.New("Elements not in the Finite Field over R")
 	}
 
-	didbytes, err := claimsstore.DIDToBinary(did)
+	didbytes, err := claimsstore.HashDID(did)
 	if err != nil {
 		return nil, err
 	}
