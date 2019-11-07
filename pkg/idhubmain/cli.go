@@ -130,7 +130,7 @@ func cmdGenerateDID() *cli.Command {
 	}
 }
 
-func generateHexKeys(privKey *ecdsa.PrivateKey) (string, string, error) {
+func generateKeys(privKey *ecdsa.PrivateKey) (string, string, string, error) {
 	bys := crypto.FromECDSA(privKey)
 	// hex keys do not have 0x prefix
 	privKeyHex := hex.EncodeToString(bys)
@@ -139,7 +139,9 @@ func generateHexKeys(privKey *ecdsa.PrivateKey) (string, string, error) {
 	// hex keys do not have 0x prefix
 	pubKeyHex := hex.EncodeToString(bys)
 
-	return privKeyHex, pubKeyHex, nil
+	ethAddr := crypto.PubkeyToAddress(privKey.PublicKey)
+
+	return privKeyHex, pubKeyHex, ethAddr.String(), nil
 }
 
 func cmdGenerateNewKey() *cli.Command {
@@ -154,7 +156,7 @@ func cmdGenerateNewKey() *cli.Command {
 			return err
 		}
 
-		priv, pub, err := generateHexKeys(privKey)
+		priv, pub, eth, err := generateKeys(privKey)
 		if err != nil {
 			return err
 		}
@@ -165,7 +167,10 @@ func cmdGenerateNewKey() *cli.Command {
 		fmt.Printf("-- PRIVATE KEY --\n\n")
 		fmt.Printf("-- PUBLIC KEY --\n")
 		fmt.Printf("%v\n", pub)
-		fmt.Printf("-- PUBLIC KEY --\n")
+		fmt.Printf("-- PUBLIC KEY --\n\n")
+		fmt.Printf("-- ETH --\n")
+		fmt.Printf("%v\n", eth)
+		fmt.Printf("-- ETH --\n")
 
 		if c.Bool("store") {
 			err = ioutil.WriteFile("pub.hex.key", []byte(pub), 0600)
