@@ -1,11 +1,10 @@
-package claims
+package claimtypes
 
 import (
 	"encoding/binary"
 
 	"github.com/iden3/go-iden3-core/core"
 	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -27,7 +26,7 @@ type ClaimRegisteredDocument struct {
 
 // NewClaimRegisteredDocument creates a new ClaimRegisteredDocument from a did a contentHash and a type
 func NewClaimRegisteredDocument(ch [256 / 8]byte, did *didlib.DID, dt uint32) (*ClaimRegisteredDocument, error) {
-	didbytes, err := claimsstore.HashDID(did)
+	didbytes, err := HashDID(did)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func NewClaimRegisteredDocumentFromEntry(e *merkletree.Entry) *ClaimRegisteredDo
 	hashRest := [31]byte{}
 	copyFromElemBytes(hashBeginning[:], 4, &e.Data[0])
 	copyFromElemBytes(hashRest[:], 0, &e.Data[1])
-	contentHash := claimsstore.Concat(hashBeginning[:], hashRest[:])
+	contentHash := Concat(hashBeginning[:], hashRest[:])
 	copy(c.ContentHash[:], contentHash)
 	return c
 }

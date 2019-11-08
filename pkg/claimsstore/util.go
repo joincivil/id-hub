@@ -3,10 +3,6 @@ package claimsstore
 import (
 	"bytes"
 	"errors"
-
-	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/iden3/go-iden3-crypto/poseidon"
-	didlib "github.com/ockam-network/did"
 )
 
 var (
@@ -17,16 +13,6 @@ var (
 	// ErrWrongSizByteSliceDID if the slice is the wrong size can't convert it back to a did
 	ErrWrongSizByteSliceDID = errors.New("binaryToDID expects a byte slice of length 32")
 )
-
-// HashDID uses poseidon to hash the did to create a hash that fits in the merkletree's
-// 31 byte limit
-func HashDID(did *didlib.DID) ([]byte, error) {
-	bigInts, err := poseidon.HashBytes([]byte(did.String()))
-	if err != nil {
-		return nil, err
-	}
-	return merkletree.BigIntToHash(bigInts).Bytes(), nil
-}
 
 // Concat is  a internal method from iden3 db that seemed necessary to implement the interface
 func Concat(vs ...[]byte) []byte {

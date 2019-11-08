@@ -49,7 +49,7 @@ func (s *PGStore) List(limit int) ([]db.KV, error) {
 }
 
 // Close closes the db
-func (s *PGStore) Close() {
+func (s PGStore) Close() {
 	err := s.NodePersister.DB.Close()
 	if err != nil {
 		panic(err)

@@ -5,9 +5,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 
 	log "github.com/golang/glog"
@@ -15,11 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 
 	icore "github.com/iden3/go-iden3-core/core"
-	"github.com/iden3/go-iden3-core/db"
 	"github.com/iden3/go-iden3-core/merkletree"
 	isrv "github.com/iden3/go-iden3-core/services/claimsrv"
 
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 
@@ -29,14 +29,14 @@ import (
 // Service is a service for creating and reading claims
 type Service struct {
 	rootMt           *merkletree.MerkleTree
-	treeStore        db.Storage
+	treeStore        *claimsstore.PGStore
 	signedClaimStore *claimsstore.SignedClaimPGPersister
 	didService       *did.Service
 	rootService      *RootService
 }
 
 // NewService returns a new service
-func NewService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimPGPersister,
+func NewService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,
 	didService *did.Service, rootService *RootService) (*Service, error) {
 	rootStore := treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
 
@@ -71,63 +71,29 @@ func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tr
 	return hex.EncodeToString(proof.Bytes()), hex.EncodeToString(revoke.Bytes()), nil
 }
 
-func (s *Service) rootClaimFromLookUp(hIndex *merkletree.Hash, tree *merkletree.MerkleTree) (*ClaimSetRootKeyDID, error) {
-	rootDataFromHIndex, err := tree.GetDataByIndex(hIndex)
-	if err != nil {
-		return nil, errors.Wrap(err, "rootClaimFromLookUp.tree.GetDataByIndex")
-	}
-	rootDataByteArr := rootDataFromHIndex.Bytes()
-	rootEntryFromData, err := merkletree.NewEntryFromBytes(rootDataByteArr[:])
-	if err != nil {
-		return nil, errors.Wrap(err, "rootClaimFromLookUp.NewEntryFromBytes")
-	}
-	return NewClaimSetRootKeyDIDFromEntry(rootEntryFromData), nil
-}
-
 func (s *Service) getLastRootClaim(claim *claimsstore.ContentCredential,
-	rootSnapShotTree *merkletree.MerkleTree) (*ClaimSetRootKeyDID, *merkletree.MerkleTree, error) {
+	rootSnapShotTree *merkletree.MerkleTree) (*claimtypes.ClaimSetRootKeyDID, *merkletree.MerkleTree, error) {
 	signerDID, err := didlib.Parse(claim.Proof.Creator)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "GenerateProof didlib.Parse")
+		return nil, nil, errors.Wrap(err, "getLastRootClaim didlib.Parse")
+	}
+
+	lastRootClaimForDID, err := s.treeStore.NodePersister.GetLatestRootClaimInSnapshot(signerDID, rootSnapShotTree)
+	if err != nil {
+		return nil, nil, errors.Wrap(err,
+			"getLastRootClaim NodePersister.GetLatestRootClaimInSnapshot failed to get last root for did")
 	}
 
 	didMT, err := s.buildDIDMt(signerDID)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "GenerateProof.buildDIDMt")
+		return nil, nil, errors.Wrap(err, "getLastRootClaim.buildDIDMt")
 	}
 
-	didRoot := didMT.RootKey()
-	// the index is the DID so we create this claim in order to look through the snapshot for
-	// a claim with the same index
-	rootClaim, err := NewClaimSetRootKeyDID(signerDID, didRoot)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "getLastRootClaim.NewClaimSetRootKeyDID")
-	}
-	// we get the claim with that index
-	rootClaimFromLookUp, err := s.rootClaimFromLookUp(rootClaim.Entry().HIndex(), rootSnapShotTree)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "getLastRootClaim.rootClaimFromLookUp")
-	}
-
-	// get the next version which is the version after the last existing version
-	nextVersion, err := isrv.GetNextVersion(rootSnapShotTree, rootClaimFromLookUp.Entry().HIndex())
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "getLastRootClaim.GetNextVersion")
-	}
-	// set the version to the last existing version
-	rootClaimFromLookUp.Version = nextVersion - 1
-
-	// next we get the claim with this version
-	lastRootClaim, err := s.rootClaimFromLookUp(rootClaimFromLookUp.Entry().HIndex(), rootSnapShotTree)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "getLastRootClaim.rootClaimFromLookUp")
-	}
-
-	didTreeSnapshot, err := didMT.Snapshot(&lastRootClaim.RootKey)
+	didTreeSnapshot, err := didMT.Snapshot(&lastRootClaimForDID.RootKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "getLastRootClaim.didMT.Snapshot")
 	}
-	return lastRootClaim, didTreeSnapshot, nil
+	return lastRootClaimForDID, didTreeSnapshot, nil
 }
 
 func (s *Service) getRootSnapshot(commit *claimsstore.RootCommit) (*merkletree.MerkleTree, error) {
@@ -145,7 +111,7 @@ func (s *Service) getRootSnapshot(commit *claimsstore.RootCommit) (*merkletree.M
 	return s.rootMt.Snapshot(&lastrootHash)
 }
 
-func (s *Service) makeContentClaimFromCred(claim *claimsstore.ContentCredential) (*ClaimRegisteredDocument, error) {
+func (s *Service) makeContentClaimFromCred(claim *claimsstore.ContentCredential) (*claimtypes.ClaimRegisteredDocument, error) {
 	signerDID, err := didlib.Parse(claim.Proof.Creator)
 	if err != nil {
 		return nil, errors.Wrap(err, "makeContentClaimFromCred didlib.Parse")
@@ -157,7 +123,7 @@ func (s *Service) makeContentClaimFromCred(claim *claimsstore.ContentCredential)
 	hash := crypto.Keccak256(claimJSON)
 	hash32 := [32]byte{}
 	copy(hash32[:], hash)
-	return NewClaimRegisteredDocument(hash32, signerDID, ContentCredentialDocType)
+	return claimtypes.NewClaimRegisteredDocument(hash32, signerDID, claimtypes.ContentCredentialDocType)
 }
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
@@ -211,14 +177,17 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 	if err != nil {
 		return err
 	}
-	claimSetRootKey, err := NewClaimSetRootKeyDID(userDid, didMt.RootKey())
+	claimSetRootKey, err := claimtypes.NewClaimSetRootKeyDID(userDid, didMt.RootKey())
 	if err != nil {
 		return errors.Wrap(err, "addNewRootClaim.NewClaimSetRootKeyDID")
 	}
+
 	// get next version of the claim
-	version, err := isrv.GetNextVersion(s.rootMt, claimSetRootKey.Entry().HIndex())
-	if err != nil {
-		return errors.Wrap(err, "addNewRootClaim.GetNextVersion")
+	version, err := s.treeStore.NodePersister.GetNextRootClaimVersion(userDid)
+	if gorm.IsRecordNotFoundError(err) {
+		version = 0
+	} else if err != nil {
+		return errors.Wrap(err, "addNewRootClaim.NodePersister.GetNextRootClaimVersion")
 	}
 	claimSetRootKey.Version = version
 	err = s.rootMt.Add(claimSetRootKey.Entry())
@@ -229,7 +198,7 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 }
 
 func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error) {
-	didStringOnlyMethodID := fmt.Sprintf("did:%v:%v", userDid.Method, userDid.ID)
+	didStringOnlyMethodID := claimtypes.DIDStringOnlyMethodID(userDid)
 	bid := []byte(didStringOnlyMethodID)
 	didStore := s.treeStore.WithPrefix(bid)
 	return merkletree.NewMerkleTree(didStore, 150)
@@ -363,7 +332,7 @@ func (s *Service) ClaimContent(cred *claimsstore.ContentCredential) error {
 	hashb32 := [32]byte{}
 	copy(hashb32[:], hashb)
 
-	claim, err := NewClaimRegisteredDocument(hashb32, signerDid, ContentCredentialDocType)
+	claim, err := claimtypes.NewClaimRegisteredDocument(hashb32, signerDid, claimtypes.ContentCredentialDocType)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.newclaimregistereddocument")
 	}
@@ -396,7 +365,7 @@ func getClaimsForTree(tree *merkletree.MerkleTree) ([]merkletree.Claim, error) {
 		if err != nil {
 			return nil, err
 		}
-		claim, err := NewClaimFromEntry(entry)
+		claim, err := claimtypes.NewClaimFromEntry(entry)
 		if err != nil {
 			return nil, err
 		}
@@ -414,14 +383,14 @@ func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 
 	for _, v := range clms {
 		switch tv := v.(type) {
-		case ClaimRegisteredDocument, *ClaimRegisteredDocument:
+		case claimtypes.ClaimRegisteredDocument, *claimtypes.ClaimRegisteredDocument:
 			// XXX(PN): These are coming in as both value and by reference, normal?
-			var regDoc ClaimRegisteredDocument
-			d, ok := tv.(*ClaimRegisteredDocument)
+			var regDoc claimtypes.ClaimRegisteredDocument
+			d, ok := tv.(*claimtypes.ClaimRegisteredDocument)
 			if ok {
 				regDoc = *d
 			} else {
-				regDoc = tv.(ClaimRegisteredDocument)
+				regDoc = tv.(claimtypes.ClaimRegisteredDocument)
 			}
 
 			claimHash := hex.EncodeToString(regDoc.ContentHash[:])

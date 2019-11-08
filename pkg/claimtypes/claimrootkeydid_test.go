@@ -1,4 +1,4 @@
-package claims_test
+package claimtypes_test
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/joincivil/id-hub/pkg/claims"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	didlib "github.com/ockam-network/did"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +30,7 @@ func TestClaimSetRootKey(t *testing.T) {
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0c})
-	c0, err := claims.NewClaimSetRootKeyDID(id, &rootKey)
+	c0, err := claimtypes.NewClaimSetRootKeyDID(id, &rootKey)
 	assert.Nil(t, err)
 	c0.Version = 1
 	c0.Era = 1
@@ -48,8 +48,8 @@ func TestClaimSetRootKey(t *testing.T) {
 		"22fec3525a9169b13d4452bf5c528ccf5ba2ab6cc159bb74e28d4b29b682d641"+
 		"000000000000000000000000000000000000000100000001000000000000000a",
 		e.Data.String())
-	c1 := claims.NewClaimSetRootKeyDIDFromEntry(e)
-	c2, err := claims.NewClaimFromEntry(e)
+	c1 := claimtypes.NewClaimSetRootKeyDIDFromEntry(e)
+	c2, err := claimtypes.NewClaimFromEntry(e)
 	assert.Nil(t, err)
 	assert.Equal(t, c0, c1)
 	assert.Equal(t, c0, c2)
