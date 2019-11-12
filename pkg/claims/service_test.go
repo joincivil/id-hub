@@ -13,6 +13,7 @@ import (
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
@@ -310,7 +311,7 @@ func TestClaimContent(t *testing.T) {
 
 	for _, v := range listDidClaims {
 		switch val := v.(type) {
-		case claims.ClaimRegisteredDocument:
+		case claimtypes.ClaimRegisteredDocument:
 			regClaim := val
 			claimHash := hex.EncodeToString(regClaim.ContentHash[:])
 			signedClaim, err := signedClaimStore.GetCredentialByHash(claimHash)
@@ -507,7 +508,7 @@ func TestGenerateProof(t *testing.T) {
 	hash32 := [32]byte{}
 	copy(hash32[:], hash)
 
-	rdClaim, _ := claims.NewClaimRegisteredDocument(hash32, signerDid, claims.ContentCredentialDocType)
+	rdClaim, _ := claimtypes.NewClaimRegisteredDocument(hash32, signerDid, claimtypes.ContentCredentialDocType)
 
 	entry := rdClaim.Entry()
 	if !merkletree.VerifyProof(&proof.DIDRoot, existProof, entry.HIndex(), entry.HValue()) {
@@ -520,7 +521,7 @@ func TestGenerateProof(t *testing.T) {
 		t.Errorf("couldn't verify not revoked in proof")
 	}
 
-	rootClaim, _ := claims.NewClaimSetRootKeyDID(signerDid, &proof.DIDRoot)
+	rootClaim, _ := claimtypes.NewClaimSetRootKeyDID(signerDid, &proof.DIDRoot)
 	rootClaim.Version = proof.DIDRootExistsVersion
 	rootClaimEntry := rootClaim.Entry()
 

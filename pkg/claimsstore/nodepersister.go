@@ -1,13 +1,17 @@
 package claimsstore
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
+	"github.com/iden3/go-iden3-core/core"
 	"github.com/iden3/go-iden3-core/db"
 	"github.com/iden3/go-iden3-core/merkletree"
 	"github.com/jinzhu/gorm"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
+	didlib "github.com/ockam-network/did"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -15,6 +19,11 @@ const (
 	LeafNode = "leafnode"
 	// MiddleNode is string value signifying node is not a leaf
 	MiddleNode = "middlenode"
+)
+
+var (
+	// ErrNoRootCommitForDID is an error for when no root claims are found
+	ErrNoRootCommitForDID = errors.New("no rootclaims were in the snapshot")
 )
 
 type storageInfo struct {
@@ -25,10 +34,13 @@ type storageInfo struct {
 // Node is node in the merkle tree stored in this table
 type Node struct {
 	gorm.Model
-	DID      string `gorm:"column:did"`
-	NodeData string
-	NodeKey  string `gorm:"unique_index;not null;"`
-	NodeType string
+	Prefix       string
+	NodeData     string
+	NodeKey      string `gorm:"unique_index;not null;"`
+	NodeType     string
+	DID          string `gorm:"column:did"`
+	ClaimType    string
+	ClaimVersion uint32
 }
 
 // ToDataBytes returns just the data stored in the node as a byte slice
@@ -38,7 +50,7 @@ func (c *Node) ToDataBytes() ([]byte, error) {
 
 // ToKV converts the node into the KV type used by iden3
 func (c *Node) ToKV() (db.KV, error) {
-	prefix := []byte(c.DID)
+	prefix := []byte(c.Prefix)
 	key, err := hex.DecodeString(c.NodeKey)
 	if err != nil {
 		return db.KV{}, err
@@ -60,17 +72,22 @@ func (c *Node) UpdateKVAndPrefix(kv db.KV, prefix []byte) error {
 	if nodetType == merkletree.NodeTypeMiddle {
 		typeName = MiddleNode
 	} else if nodetType == merkletree.NodeTypeLeaf {
-		typeName = LeafNode
-	}
-	if bytes.Equal(prefix, PrefixRootMerkleTree) || len(prefix) != 32 {
-		c.DID = string(prefix)
-	} else {
-		recoveredDid, err := BinaryToDID(prefix)
+		entry, err := merkletree.NewEntryFromBytes(kv.V[1:])
 		if err != nil {
 			return err
 		}
-		c.DID = recoveredDid.String()
+		claimType, version := core.GetClaimTypeVersion(entry)
+
+		if claimType == *claimtypes.ClaimTypeRegisteredDocument ||
+			claimType == *claimtypes.ClaimTypeSetRootKeyDID {
+			c.DID = hex.EncodeToString(entry.Data[2][:])
+		}
+		c.ClaimType = hex.EncodeToString(claimType[:])
+		c.ClaimVersion = version
+
+		typeName = LeafNode
 	}
+	c.Prefix = string(prefix)
 	c.NodeData = hex.EncodeToString(kv.V)
 	c.NodeType = typeName
 	return nil
@@ -158,12 +175,12 @@ func (c *NodePGPersister) Info() string {
 	return string(json)
 }
 
-// GetAllForDID returns the nodes associated with a particular dids tree
-func (c *NodePGPersister) GetAllForDID(didBytes []byte, limit int) ([]db.KV, error) {
-	did := string(didBytes)
+// GetAllForPrefix returns the nodes associated with a particular prefix tree
+func (c *NodePGPersister) GetAllForPrefix(prefixBytes []byte, limit int) ([]db.KV, error) {
+	prefix := string(prefixBytes)
 	var nodes []Node
 	var kvs []db.KV
-	if err := c.DB.Limit(limit).Order("created_at asc").Where(&Node{DID: did}).Find(&nodes).Error; err != nil {
+	if err := c.DB.Limit(limit).Order("created_at asc").Where(&Node{Prefix: prefix}).Find(&nodes).Error; err != nil {
 		return kvs, err
 	}
 	return convertNodesToKVs(nodes)
@@ -191,4 +208,70 @@ func (c *NodePGPersister) GetAll() ([]db.KV, error) {
 		return kvs, err
 	}
 	return convertNodesToKVs(nodes)
+}
+
+//GetNextRootClaimVersion gets the next root claim version for a did
+func (c *NodePGPersister) GetNextRootClaimVersion(did *didlib.DID) (uint32, error) {
+	didbytes, err := claimtypes.HashDID(did)
+	if err != nil {
+		return 0, err
+	}
+	node := &Node{}
+	if err := c.DB.Where(&Node{
+		Prefix:    string(PrefixRootMerkleTree),
+		ClaimType: hex.EncodeToString(claimtypes.ClaimTypeSetRootKeyDID[:]),
+		DID:       hex.EncodeToString(didbytes),
+	}).Order("claim_version desc").Select("claim_version").First(node).Error; err != nil {
+		return 0, err
+	}
+	version := node.ClaimVersion + 1
+	return version, nil
+}
+
+// GetLatestRootClaimNodes returns the rootclaims nodes for a did sorted by their version number
+func (c *NodePGPersister) GetLatestRootClaimNodes(did *didlib.DID) (*[]Node, error) {
+	didbytes, err := claimtypes.HashDID(did)
+	if err != nil {
+		return nil, err
+	}
+	nodes := &[]Node{}
+	if err := c.DB.Where(&Node{
+		Prefix:    string(PrefixRootMerkleTree),
+		ClaimType: hex.EncodeToString(claimtypes.ClaimTypeSetRootKeyDID[:]),
+		DID:       hex.EncodeToString(didbytes),
+	}).Order("claim_version desc").Find(nodes).Error; err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
+// GetLatestRootClaimInSnapshot returns the root claim in the snapshot with the highest version number
+func (c *NodePGPersister) GetLatestRootClaimInSnapshot(did *didlib.DID,
+	tree *merkletree.MerkleTree) (*claimtypes.ClaimSetRootKeyDID, error) {
+	nodes, err := c.GetLatestRootClaimNodes(did)
+	if err != nil {
+		return nil, err
+	}
+	for index, node := range *nodes {
+		dataBytes, err := hex.DecodeString(node.NodeData)
+		// If you get a bad node, then just error
+		if err != nil {
+			return nil, errors.Wrap(err,
+				fmt.Sprintf("GetLatestRootClaimsInSnapshot node at position %v failed to decode from hex", index))
+		}
+		entry, err := merkletree.NewEntryFromBytes(dataBytes[1:])
+		if err != nil {
+			return nil, errors.Wrap(err,
+				fmt.Sprintf("GetLatestRootClaimsInSnapshot node at position %v failed to create Entry", index))
+		}
+		_, err = tree.GetDataByIndex(entry.HIndex())
+		if err == merkletree.ErrEntryIndexNotFound {
+			continue
+		} else if err != nil {
+			return nil, errors.Wrap(err,
+				fmt.Sprintf("GetLatestRootClaimsInSnapshot node at position %v unexpected error retrieving data", index))
+		}
+		return claimtypes.NewClaimSetRootKeyDIDFromEntry(entry), nil
+	}
+	return nil, ErrNoRootCommitForDID
 }

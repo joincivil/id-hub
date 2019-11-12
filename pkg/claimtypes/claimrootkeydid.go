@@ -1,4 +1,4 @@
-package claims
+package claimtypes
 
 import (
 	"encoding/binary"
@@ -8,7 +8,6 @@ import (
 	"github.com/iden3/go-iden3-core/merkletree"
 	crconstants "github.com/iden3/go-iden3-crypto/constants"
 	crutils "github.com/iden3/go-iden3-crypto/utils"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -35,7 +34,7 @@ func NewClaimSetRootKeyDID(did *didlib.DID, rootKey *merkletree.Hash) (*ClaimSet
 		return nil, errors.New("Elements not in the Finite Field over R")
 	}
 
-	didbytes, err := claimsstore.DIDToBinary(did)
+	didbytes, err := HashDID(did)
 	if err != nil {
 		return nil, err
 	}

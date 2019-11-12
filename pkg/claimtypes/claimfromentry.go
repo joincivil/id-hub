@@ -1,4 +1,4 @@
-package claims
+package claimtypes
 
 import (
 	"github.com/iden3/go-iden3-core/core"

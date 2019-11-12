@@ -1,4 +1,4 @@
-package claims_test
+package claimtypes_test
 
 import (
 	"bytes"
@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/joincivil/id-hub/pkg/claims"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	didlib "github.com/ockam-network/did"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,13 +30,13 @@ func TestClaimSetRootKey(t *testing.T) {
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0c})
-	c0, err := claims.NewClaimSetRootKeyDID(id, &rootKey)
+	c0, err := claimtypes.NewClaimSetRootKeyDID(id, &rootKey)
 	assert.Nil(t, err)
 	c0.Version = 1
 	c0.Era = 1
 	e := c0.Entry()
 	assert.Equal(t,
-		"0x1c18c242b692cf2bf6a3989a5211ee28c0c129fc1f5f8d1c55f6b55b5c7ef554",
+		"0x2e50a8b631ab4a3c1563155e7e007ccbc5e250b24b3391af2aecf3fea8b63186",
 		e.HIndex().Hex())
 	assert.Equal(t,
 		"0x23af6c51c0ffe40d81508bf39e0360f884c9a1766895a8897a5e78da7bb611fa",
@@ -46,15 +45,12 @@ func TestClaimSetRootKey(t *testing.T) {
 	assert.Equal(t, ""+
 		"0000000000000000000000000000000000000000000000000000000000000000"+
 		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0c"+
-		"2036657468757269000000000000000086ce6c7127e64e0d83ddb60fe4d7785c"+
+		"22fec3525a9169b13d4452bf5c528ccf5ba2ab6cc159bb74e28d4b29b682d641"+
 		"000000000000000000000000000000000000000100000001000000000000000a",
 		e.Data.String())
-	c1 := claims.NewClaimSetRootKeyDIDFromEntry(e)
-	c2, err := claims.NewClaimFromEntry(e)
+	c1 := claimtypes.NewClaimSetRootKeyDIDFromEntry(e)
+	c2, err := claimtypes.NewClaimFromEntry(e)
 	assert.Nil(t, err)
 	assert.Equal(t, c0, c1)
 	assert.Equal(t, c0, c2)
-	recoveredDID, err := claimsstore.BinaryToDID(c1.DID[:])
-	assert.Nil(t, err)
-	assert.Equal(t, recoveredDID.String(), dids)
 }

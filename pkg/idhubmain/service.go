@@ -14,7 +14,7 @@ func initDidService(persister did.Persister) *did.Service {
 	return did.NewService(persister)
 }
 
-func initClaimsService(treeStore db.Storage, signedClaimStore *claimsstore.SignedClaimPGPersister,
+func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,
 	didService *did.Service, rootService *claims.RootService) (*claims.Service, error) {
 	return claims.NewService(treeStore, signedClaimStore, didService, rootService)
 }

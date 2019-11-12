@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	didlib "github.com/ockam-network/did"
 )
@@ -44,7 +45,7 @@ func addNewRootClaim(mt *merkletree.MerkleTree, userDid *didlib.DID) error {
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
 		0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0c})
 
-	claimSetRootKey, err := claims.NewClaimSetRootKeyDID(userDid, &root)
+	claimSetRootKey, err := claimtypes.NewClaimSetRootKeyDID(userDid, &root)
 	if err != nil {
 		return err
 	}

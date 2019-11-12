@@ -196,6 +196,7 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/huin/goupnp v1.0.0 h1:wg75sLpL6DZqwHQN6E1Cfk6mtfzS45z8OV+ic+DtHRo=
 github.com/huin/goupnp v1.0.0/go.mod h1:n9v9KO1tAxYH82qOn+UTIFQDmx5n1Zxd/ClZDMX7Bnc=
 github.com/huin/goutil v0.0.0-20170803182201-1ca381bf3150/go.mod h1:PpLOETDnJ0o3iZrZfqZzyLl6l7F3c6L1oWn7OICBi6o=
+github.com/iden3/go-iden3-core v0.0.6 h1:nUjJDmMiOSiIkE2CLMu5cD1NJMI531CT1XO1UAoAUgA=
 github.com/iden3/go-iden3-core v0.0.7-0.20190910103140-0195e977d998 h1:KljoVTu7PQFkerTu/lwyv5AXTNVmLp3kdQU7XkNBaAA=
 github.com/iden3/go-iden3-core v0.0.7-0.20190910103140-0195e977d998/go.mod h1:dDD6lyF9GSaokQQ+ZsJL1fUtBTFve+yRe14bCj3Q33U=
 github.com/iden3/go-iden3-crypto v0.0.3-0.20190831180703-c95c95b7b161 h1:m/JbZo+lzlIX02tmV12mKa6010dfJegs2jCsgB23udM=
