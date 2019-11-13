@@ -214,7 +214,7 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 }
 
 func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error) {
-	didStringOnlyMethodID := claimtypes.DIDStringOnlyMethodID(userDid)
+	didStringOnlyMethodID := did.MethodIDOnly(userDid)
 	bid := []byte(didStringOnlyMethodID)
 	didStore := s.treeStore.WithPrefix(bid)
 	return merkletree.NewMerkleTree(didStore, 150)

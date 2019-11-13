@@ -50,7 +50,7 @@ func TestCommitRoot(t *testing.T) {
 	}
 
 	if result.Err != nil {
-		t.Fatalf("error commiting root and getting receipt: %v", result.Err)
+		t.Fatalf("error committing root and getting receipt: %v", result.Err)
 	}
 
 	if result.Result.BlockNumber.Int64() != 2 {

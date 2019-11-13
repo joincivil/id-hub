@@ -34,6 +34,8 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.Suit
 		return errors.New("supports ecdsa only")
 	}
 
+	// didMethodID := MethodIDOnly(didStr)
+
 	doc, err := ds.GetDocument(didStr)
 	if err != nil {
 		return errors.Wrapf(err, "did not found for %v", didStr)
