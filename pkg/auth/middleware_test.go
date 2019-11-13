@@ -155,17 +155,31 @@ func TestForContext(t *testing.T) {
 	_, _ = client.Do(req)
 }
 
-type testHandlerForContextNewDid struct {
+type testHandlerForContextSuccess struct {
 	t   *testing.T
 	ds  *did.Service
 	pks []did.DocPublicKey
 }
 
-func (h *testHandlerForContextNewDid) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *testHandlerForContextSuccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_, err := ForContext(ctx, h.ds, h.pks)
 	if err != nil {
 		h.t.Errorf("Should have returned verified: err: %v", err)
+	}
+}
+
+type testHandlerForContextFail struct {
+	t   *testing.T
+	ds  *did.Service
+	pks []did.DocPublicKey
+}
+
+func (h *testHandlerForContextFail) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	_, err := ForContext(ctx, h.ds, nil)
+	if err == nil {
+		h.t.Errorf("Should have returned a bad verification")
 	}
 }
 
@@ -187,7 +201,7 @@ func TestForContextNewDid(t *testing.T) {
 
 	ts := ctime.CurrentEpochSecsInInt()
 	server1 := httptest.NewServer(
-		middleware(&testHandlerForContextNewDid{
+		middleware(&testHandlerForContextSuccess{
 			t:   t,
 			ds:  ds,
 			pks: pks,
@@ -207,19 +221,80 @@ func TestForContextNewDid(t *testing.T) {
 	_, _ = client.Do(req)
 }
 
-type testHandlerForContextNewDidNoPk struct {
-	t   *testing.T
-	ds  *did.Service
-	pks []did.DocPublicKey
+func TestForContextDidWithKeyFragment(t *testing.T) {
+	middleware := Middleware()
+	ds := initService()
+
+	privKey, _ := crypto.GenerateKey()
+	d := buildTestDocument(privKey)
+
+	err := ds.SaveDocument(d)
+	if err != nil {
+		t.Fatalf("Should have not gotten error saving doc")
+	}
+
+	ts := ctime.CurrentEpochSecsInInt()
+
+	didWithFragment := d.PublicKeys[0].ID
+
+	// The message would be signed with the did with fragment
+	signature, err := SignEcdsaRequestMessage(privKey, didWithFragment.String(), ts)
+	if err != nil {
+		t.Fatalf("Should have generated a signature")
+	}
+
+	server1 := httptest.NewServer(
+		middleware(&testHandlerForContextSuccess{t: t, ds: ds}),
+	)
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", server1.URL, nil)
+
+	// Passed the did with fragment in the headers
+	req.Header.Add(didHeader, didWithFragment.String())
+	req.Header.Add(reqTsHeader, strconv.Itoa(ts))
+	req.Header.Add(signatureHeader, signature)
+
+	_, _ = client.Do(req)
 }
 
-func (h *testHandlerForContextNewDidNoPk) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_, err := ForContext(ctx, h.ds, h.pks)
-	if err == nil {
-		h.t.Errorf("Should have not been verified")
+func TestForContextDidWithInvalidKeyFragment(t *testing.T) {
+	middleware := Middleware()
+	ds := initService()
+
+	privKey, _ := crypto.GenerateKey()
+	d := buildTestDocument(privKey)
+
+	err := ds.SaveDocument(d)
+	if err != nil {
+		t.Fatalf("Should have not gotten error saving doc")
 	}
+
+	ts := ctime.CurrentEpochSecsInInt()
+
+	didWithFragment := fmt.Sprintf("%v#keys-5", d.ID.String())
+
+	// The message would be signed with the did with fragment
+	signature, err := SignEcdsaRequestMessage(privKey, didWithFragment, ts)
+	if err != nil {
+		t.Fatalf("Should have generated a signature")
+	}
+
+	server1 := httptest.NewServer(
+		middleware(&testHandlerForContextFail{t: t, ds: ds}),
+	)
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", server1.URL, nil)
+
+	// Passed the did with fragment in the headers
+	req.Header.Add(didHeader, didWithFragment)
+	req.Header.Add(reqTsHeader, strconv.Itoa(ts))
+	req.Header.Add(signatureHeader, signature)
+
+	_, _ = client.Do(req)
 }
+
 func TestForContextNewDidNoPk(t *testing.T) {
 	middleware := Middleware()
 	ds := initService()
@@ -231,7 +306,7 @@ func TestForContextNewDidNoPk(t *testing.T) {
 
 	ts := ctime.CurrentEpochSecsInInt()
 	server1 := httptest.NewServer(
-		middleware(&testHandlerForContextNewDidNoPk{
+		middleware(&testHandlerForContextFail{
 			t:   t,
 			ds:  ds,
 			pks: pks,
@@ -249,19 +324,6 @@ func TestForContextNewDidNoPk(t *testing.T) {
 	req.Header.Add(signatureHeader, signature)
 
 	_, _ = client.Do(req)
-}
-
-type testHandlerForContextBad struct {
-	t  *testing.T
-	ds *did.Service
-}
-
-func (h *testHandlerForContextBad) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_, err := ForContext(ctx, h.ds, nil)
-	if err == nil {
-		h.t.Errorf("Should have returned a bad verification")
-	}
 }
 
 func TestForContextBadSignature(t *testing.T) {
@@ -285,7 +347,7 @@ func TestForContextBadSignature(t *testing.T) {
 	}
 
 	server1 := httptest.NewServer(
-		middleware(&testHandlerForContextBad{t: t, ds: ds}),
+		middleware(&testHandlerForContextFail{t: t, ds: ds}),
 	)
 
 	client := &http.Client{}

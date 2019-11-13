@@ -34,9 +34,15 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.Suit
 		return errors.New("supports ecdsa only")
 	}
 
-	// didMethodID := MethodIDOnly(didStr)
+	d, err := didlib.Parse(didStr)
+	if err != nil {
+		return errors.Wrap(err, "error parsing did while verifying signature")
+	}
 
-	doc, err := ds.GetDocument(didStr)
+	// Use the did method and id to retrieve the correct doc
+	didMethodID := did.MethodIDOnly(d)
+
+	doc, err := ds.GetDocument(didMethodID)
 	if err != nil {
 		return errors.Wrapf(err, "did not found for %v", didStr)
 	}
@@ -44,6 +50,38 @@ func VerifyEcdsaRequestSignatureWithDid(ds *did.Service, keyType linkeddata.Suit
 		return errors.Errorf("did doc not found for %v", didStr)
 	}
 
+	// If there is a fragment, then likely a specific key is used from that DID.
+	// Use that key directly.
+	if d.Fragment != "" {
+		pubKey, err := doc.GetPublicKeyFromFragment(d.Fragment)
+		if err != nil {
+			return errors.Wrap(err, "error getting public key from fragment")
+		}
+
+		pubKeyStr, err := did.KeyFromType(pubKey)
+		if err != nil {
+			return errors.Wrap(err, "error getting public key from type")
+		}
+
+		valid, err := VerifyEcdsaRequestSignature(
+			*pubKeyStr,
+			signature,
+			didStr,
+			ts,
+			gracePeriod,
+		)
+		if err != nil {
+			return errors.Wrap(err, "error validating signature")
+		}
+
+		if !valid {
+			return errors.New("signature is invalid")
+		}
+
+		return nil
+	}
+
+	// No fragment, so check against each public key of the same type
 	return VerifyEcdsaRequestSignatureWithPks(
 		doc.PublicKeys,
 		keyType,
