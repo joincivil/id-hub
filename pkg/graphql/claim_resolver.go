@@ -2,6 +2,8 @@ package graphql
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	log "github.com/golang/glog"
 	didlib "github.com/ockam-network/did"
@@ -10,7 +12,7 @@ import (
 
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/auth"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
@@ -45,6 +47,50 @@ func (r *queryResolver) ClaimGet(ctx context.Context, in *ClaimGetRequestInput) 
 	}
 
 	return &ClaimGetResponse{Claims: creds}, nil
+}
+
+func (r *queryResolver) ClaimProof(ctx context.Context, in *ClaimSaveRequestInput) (
+	*ClaimProofResponse, error) {
+	cc, err := InputClaimToContentCredential(in)
+	if err != nil {
+		return nil, errors.Wrap(err, "error converting claim to credential")
+	}
+
+	proof, err := r.ClaimService.GenerateProof(cc)
+	if err != nil {
+		return nil, errors.Wrap(err, "error generating proof that claim is in tree")
+	}
+	rootProof := RootOnBlockChainProof{
+		Type:             claimtypes.RootInContract,
+		BlockNumber:      fmt.Sprintf("%d", proof.BlockNumber),
+		Root:             proof.Root.Hex(),
+		ContractAddress:  proof.ContractAddress.Hex(),
+		CommitterAddress: proof.CommitterAddress.Hex(),
+		TxHash:           proof.TXHash.Hex(),
+	}
+
+	inTreeProof := ClaimRegisteredProof{
+		Type:                   claimtypes.MerkleProof,
+		Did:                    proof.DID,
+		ExistsInDIDMTProof:     proof.ExistsInDIDMTProof,
+		NotRevokedInDIDMTProof: proof.NotRevokedInDIDMTProof,
+		DidMTRootExistsProof:   proof.DIDRootExistsProof,
+		DidRootExistsVersion:   int(proof.DIDRootExistsVersion),
+		Root:                   proof.Root.Hex(),
+		DidMTRoot:              proof.DIDRoot.Hex(),
+	}
+
+	cc.Proof = append(cc.Proof, inTreeProof, rootProof)
+
+	claimRaw, err := json.Marshal(cc)
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't marshal json from claim")
+	}
+
+	return &ClaimProofResponse{
+		Claim:    cc,
+		ClaimRaw: string(claimRaw),
+	}, nil
 }
 
 // Mutations
@@ -106,13 +152,31 @@ func (r *articleMetadataResolver) OriginalPublishDate(ctx context.Context, obj *
 
 type claimResolver struct{ *Resolver }
 
-func (r *claimResolver) Type(ctx context.Context, obj *claimsstore.ContentCredential) ([]string, error) {
+func (r *claimResolver) Type(ctx context.Context, obj *claimtypes.ContentCredential) ([]string, error) {
 	ts := make([]string, len(obj.Type))
 	for ind, val := range obj.Type {
 		ts[ind] = string(val)
 	}
 	return ts, nil
 }
-func (r *claimResolver) IssuanceDate(ctx context.Context, obj *claimsstore.ContentCredential) (string, error) {
+func (r *claimResolver) IssuanceDate(ctx context.Context, obj *claimtypes.ContentCredential) (string, error) {
 	return obj.IssuanceDate.Format(timeFormat), nil
+}
+
+func (r *claimResolver) CredentialSubject(ctx context.Context, obj *claimtypes.ContentCredential) (*ContentClaimCredentialSubject, error) {
+	return &ContentClaimCredentialSubject{
+		ID:       obj.CredentialSubject.ID,
+		Metadata: &obj.CredentialSubject.Metadata,
+	}, nil
+}
+
+func (r *claimResolver) Proof(ctx context.Context, obj *claimtypes.ContentCredential) ([]Proof, error) {
+	proofs := make([]Proof, len(obj.Proof))
+	for i, v := range obj.Proof {
+		tv, ok := v.(Proof)
+		if ok {
+			proofs[i] = tv
+		}
+	}
+	return proofs, nil
 }

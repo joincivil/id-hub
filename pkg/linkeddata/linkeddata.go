@@ -47,3 +47,6 @@ type Proof struct {
 	Domain     *string   `json:"domain,omitempty"`
 	Nonce      *string   `json:"nonce,omitempty"`
 }
+
+// IsProof is used by gqlgen for the union type
+func (*Proof) IsProof() {}

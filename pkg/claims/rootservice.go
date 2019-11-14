@@ -47,11 +47,12 @@ func (s *RootService) CommitRoot() error {
 	}
 
 	rootCommit := &claimsstore.RootCommit{
-		Root:            rootSlice.Hex(),
-		BlockNumber:     result.Result.BlockNumber.Int64(),
-		Prefix:          string(claimsstore.PrefixRootMerkleTree),
-		ContractAddress: result.Result.ContractAddress.String(),
-		TransactionHash: result.Result.TxHash.String(),
+		Root:             rootSlice.Hex(),
+		BlockNumber:      result.Result.BlockNumber.Int64(),
+		Prefix:           string(claimsstore.PrefixRootMerkleTree),
+		ContractAddress:  result.Result.ContractAddress.String(),
+		TransactionHash:  result.Result.TxHash.String(),
+		CommitterAddress: s.committer.GetAccount().Hex(),
 	}
 
 	return s.persister.Save(rootCommit)

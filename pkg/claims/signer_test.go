@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/claims"
+	"github.com/joincivil/id-hub/pkg/linkeddata"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -31,7 +32,11 @@ func TestSignerSign(t *testing.T) {
 	if err != nil {
 		t.Errorf("error canonicalizing the claim: %v", err)
 	}
-	sigbytes, err := hex.DecodeString(claim.Proof.ProofValue)
+	linkedDataProof, ok := claim.Proof[0].(linkeddata.Proof)
+	if !ok {
+		t.Errorf("should be a linked data proof")
+	}
+	sigbytes, err := hex.DecodeString(linkedDataProof.ProofValue)
 	if err != nil {
 		t.Errorf("error decoding signature: %v", err)
 	}

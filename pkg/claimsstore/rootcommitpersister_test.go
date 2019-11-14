@@ -31,11 +31,12 @@ func TestSaveAndGet(t *testing.T) {
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
 	commit := &claimsstore.RootCommit{
-		Root:            "someroothashorwhatevs",
-		BlockNumber:     5,
-		Prefix:          "roottree",
-		TransactionHash: "0xwhatevs",
-		ContractAddress: "0xcontractaddres",
+		Root:             "someroothashorwhatevs",
+		BlockNumber:      5,
+		Prefix:           "roottree",
+		TransactionHash:  "0xwhatevs",
+		ContractAddress:  "0xcontractaddress",
+		CommitterAddress: "0xsomebodiesaddress",
 	}
 	err = persister.Save(commit)
 	if err != nil {
@@ -59,25 +60,28 @@ func TestGetLatest(t *testing.T) {
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
 	commit := &claimsstore.RootCommit{
-		Root:            "someroothashorwhatevs",
-		BlockNumber:     5,
-		Prefix:          "roottree",
-		TransactionHash: "0xwhatevs",
-		ContractAddress: "0xcontractaddres",
+		Root:             "someroothashorwhatevs",
+		BlockNumber:      5,
+		Prefix:           "roottree",
+		TransactionHash:  "0xwhatevs",
+		ContractAddress:  "0xcontractaddres",
+		CommitterAddress: "0xsomebodiesaddress",
 	}
 	commit2 := &claimsstore.RootCommit{
-		Root:            "someroothashorwhatevs2",
-		BlockNumber:     6,
-		Prefix:          "roottree",
-		TransactionHash: "0xwhatevs2",
-		ContractAddress: "0xcontractaddres",
+		Root:             "someroothashorwhatevs2",
+		BlockNumber:      6,
+		Prefix:           "roottree",
+		TransactionHash:  "0xwhatevs2",
+		ContractAddress:  "0xcontractaddres",
+		CommitterAddress: "0xsomebodiesaddress",
 	}
 	commit3 := &claimsstore.RootCommit{
-		Root:            "someroothashorwhatevs3",
-		BlockNumber:     7,
-		Prefix:          "roottree",
-		TransactionHash: "0xwhatevs3",
-		ContractAddress: "0xcontractaddres",
+		Root:             "someroothashorwhatevs3",
+		BlockNumber:      7,
+		Prefix:           "roottree",
+		TransactionHash:  "0xwhatevs3",
+		ContractAddress:  "0xcontractaddres",
+		CommitterAddress: "0xsomebodiesaddress",
 	}
 	err = persister.Save(commit)
 	if err != nil {

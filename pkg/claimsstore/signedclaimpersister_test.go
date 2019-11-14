@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
@@ -27,8 +28,8 @@ func setupConnection() (*gorm.DB, error) {
 	return db, nil
 }
 
-func makeContentCredential() *claimsstore.ContentCredential {
-	subj := claimsstore.ContentCredentialSubject{
+func makeContentCredential() *claimtypes.ContentCredential {
+	subj := claimtypes.ContentCredentialSubject{
 		ID:       "https://ap.com/article/1",
 		Metadata: article.Metadata{},
 	}
@@ -38,13 +39,15 @@ func makeContentCredential() *claimsstore.ContentCredential {
 		Created:    time.Date(2000, 2, 1, 12, 30, 0, 0, time.UTC),
 		ProofValue: "0xthisisasignatureandisprobablysuperlong",
 	}
-	return &claimsstore.ContentCredential{
+	proofSlice := make([]interface{}, 0)
+	proofSlice = append(proofSlice, proof)
+	return &claimtypes.ContentCredential{
 		Context:           []string{"https://something.com/some/stuff/v1"},
-		Type:              []claimsstore.CredentialType{claimsstore.VerifiableCredentialType, claimsstore.ContentCredentialType},
+		Type:              []claimtypes.CredentialType{claimtypes.VerifiableCredentialType, claimtypes.ContentCredentialType},
 		CredentialSubject: subj,
 		Issuer:            "did:ethuri:apethuriabcd1234",
 		IssuanceDate:      time.Date(2000, 2, 1, 12, 30, 0, 0, time.UTC),
-		Proof:             proof,
+		Proof:             proofSlice,
 	}
 }
 
@@ -92,7 +95,7 @@ func TestToCredential(t *testing.T) {
 	}`)
 	signedClaim := &claimsstore.SignedClaimPostgres{
 		IssuanceDate:      time.Now(),
-		Type:              claimsstore.ContentCredentialType,
+		Type:              claimtypes.ContentCredentialType,
 		CredentialSubject: postgres.Jsonb{RawMessage: credentialSubject},
 		Issuer:            "did:ethuri:apethuriabcd1234",
 		Proof:             postgres.Jsonb{RawMessage: proof},
@@ -108,7 +111,7 @@ func TestToCredential(t *testing.T) {
 	}
 }
 
-func TestFromContentCredentiall(t *testing.T) {
+func TestFromContentCredential(t *testing.T) {
 	cred := makeContentCredential()
 	signedClaim := &claimsstore.SignedClaimPostgres{}
 
@@ -118,10 +121,10 @@ func TestFromContentCredentiall(t *testing.T) {
 		t.Errorf("Error creating claim: %v", err)
 	}
 
-	if signedClaim.Type != claimsstore.ContentCredentialType {
+	if signedClaim.Type != claimtypes.ContentCredentialType {
 		t.Errorf("wrong claim type")
 	}
-	if signedClaim.Hash != "dc8f57cb7be018eac1715c91d04bc100ab0ee39ddf9b6267f3abb10b2c26f258" {
+	if signedClaim.Hash != "98bc8d129cae501aa1aa4fe8d92d3452a1e18b72267f77c354aba2b1e609196a" {
 		t.Errorf("hash does not match expected")
 	}
 }
@@ -147,7 +150,8 @@ func TestSignedClaimPersister(t *testing.T) {
 	if err != nil {
 		t.Errorf("error getting claim: %v", err)
 	}
-	if retrievedCred.Proof.Creator != cred.Proof.Creator {
-		t.Errorf("bad data from the fetch")
+	_, err = claimtypes.FindLinkedDataProof(retrievedCred.Proof)
+	if err != nil {
+		t.Errorf("error retrieving linked data proof from slice: %v", err)
 	}
 }

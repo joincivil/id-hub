@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	log "github.com/golang/glog"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 )
 
@@ -42,7 +42,7 @@ func (d *DidSaveResponse) DocRaw() *string {
 
 // ClaimGetResponse represents the GraphQL response for ClaimGet
 type ClaimGetResponse struct {
-	Claims []*claimsstore.ContentCredential `json:"claims"`
+	Claims []*claimtypes.ContentCredential `json:"claims"`
 }
 
 // ClaimsRaw returns the raw JSON string for the list of claims
@@ -63,7 +63,7 @@ func (d *ClaimGetResponse) ClaimsRaw() []string {
 
 // ClaimSaveResponse represents the GraphQL response for ClaimSave
 type ClaimSaveResponse struct {
-	Claim *claimsstore.ContentCredential `json:"claim"`
+	Claim *claimtypes.ContentCredential `json:"claim"`
 }
 
 // ClaimRaw returns the raw JSON string of the claim

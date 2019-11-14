@@ -22,6 +22,7 @@ const (
 
 // RootCommitterInterface specifies the interface of the struct that interacts with the blockchain
 type RootCommitterInterface interface {
+	GetAccount() ethCommon.Address
 	CommitRoot(root [32]byte, c chan<- *ProgressUpdate)
 }
 
@@ -31,6 +32,7 @@ type RootCommitter struct {
 	txListener        *eth.TxListener
 	rootContract      *contract.RootCommitsContract
 	transactionReader ethereum.TransactionReader
+	Account           ethCommon.Address
 }
 
 // ProgressUpdate format for passing status of the transaction to the main routine
@@ -57,7 +59,13 @@ func NewRootCommitter(ethHelper *eth.Helper, transactionReader ethereum.Transact
 		txListener:        txListener,
 		rootContract:      rootContract,
 		transactionReader: transactionReader,
+		Account:           ethHelper.Accounts["default"].Address,
 	}, nil
+}
+
+// GetAccount returns the default eth account used for the commit
+func (r *RootCommitter) GetAccount() ethCommon.Address {
+	return r.Account
 }
 
 // CommitRoot given a root performs the transaction to add it to the contract

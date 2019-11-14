@@ -19,10 +19,14 @@ const (
 )
 
 var (
-	didCtxKey         = &contextKey{"didkey"}
-	reqTsCtxKey       = &contextKey{"reqts"}
-	signatureCtxKey   = &contextKey{"signature"}
-	gracePeriodCtxKey = &contextKey{"graceperiod"}
+	// DidCtxKey is the context key for the auth did
+	DidCtxKey = &contextKey{"didkey"}
+	// ReqTsCtxKey is the context key for the time stamp
+	ReqTsCtxKey = &contextKey{"reqts"}
+	// SignatureCtxKey is the key for the signature
+	SignatureCtxKey = &contextKey{"signature"}
+	// GracePeriodCtxKey is the key for the grace period
+	GracePeriodCtxKey = &contextKey{"graceperiod"}
 )
 
 type contextKey struct {
@@ -48,9 +52,9 @@ func Middleware() func(http.Handler) http.Handler {
 			}
 
 			// Store values into context
-			ctx := context.WithValue(r.Context(), didCtxKey, did)
-			ctx = context.WithValue(ctx, reqTsCtxKey, reqTs)
-			ctx = context.WithValue(ctx, signatureCtxKey, signature)
+			ctx := context.WithValue(r.Context(), DidCtxKey, did)
+			ctx = context.WithValue(ctx, ReqTsCtxKey, reqTs)
+			ctx = context.WithValue(ctx, SignatureCtxKey, signature)
 
 			// and call the next with our new context
 			r = r.WithContext(ctx)
@@ -75,15 +79,15 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) (
 	// NOTE(PN): Supporting only Secp251k1 keys for authentication for now
 	keyType := linkeddata.SuiteTypeSecp256k1Verification
 
-	reqTs, _ := ctx.Value(reqTsCtxKey).(string)
+	reqTs, _ := ctx.Value(ReqTsCtxKey).(string)
 	if reqTs == "" {
 		return nil, errors.New("no request ts passed in context")
 	}
-	signature, _ := ctx.Value(signatureCtxKey).(string)
+	signature, _ := ctx.Value(SignatureCtxKey).(string)
 	if signature == "" {
 		return nil, errors.New("no signature passed in context")
 	}
-	didStr, _ := ctx.Value(didCtxKey).(string)
+	didStr, _ := ctx.Value(DidCtxKey).(string)
 
 	ts, err := strconv.Atoi(reqTs)
 	if err != nil {
@@ -92,7 +96,7 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) (
 
 	// altered grace period value can be passed in the context
 	gracePeriod := DefaultRequestGracePeriodSecs
-	gp, ok := ctx.Value(gracePeriodCtxKey).(int)
+	gp, ok := ctx.Value(GracePeriodCtxKey).(int)
 	if ok {
 		gracePeriod = gp
 	}
