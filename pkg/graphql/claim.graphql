@@ -2,6 +2,7 @@
 
 extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
+	claimProof(in: ClaimSaveRequestInput): ClaimProofResponse
 }
 
 extend type Mutation {
@@ -17,6 +18,11 @@ input ClaimGetRequestInput {
 type ClaimGetResponse {
 	claims: [Claim!]
 	claimsRaw: [String!]
+}
+
+type ClaimProofResponse {
+	claim: Claim!
+	claimRaw: String!
 }
 
 input ClaimSaveRequestInput {
@@ -37,7 +43,7 @@ input ClaimInput {
 	holder: String!
 	credentialSchema: ClaimCredentialSchemaInput!
 	issuanceDate: String!
-	proof: LinkedDataProofInput!
+	proof: [LinkedDataProofInput!]!
 }
 
 input ClaimCredentialSubjectInput {
@@ -63,7 +69,7 @@ input ArticleMetadataInput {
 	primaryTag: String
 	revisionDate: String
 	originalPublishDate: String
-	Opinion: Boolean
+	opinion: Boolean
 	civilSchemaVersion: String
 }
 
@@ -84,15 +90,17 @@ input ArticleMetadataImageInput {
 type Claim {
 	context: [String!]!
 	type: [String!]!
-	credentialSubject: ClaimCredentialSubject!
+	credentialSubject: ContentClaimCredentialSubject!
 	issuer: String!
 	holder: String!
 	credentialSchema: ClaimCredentialSchema!
 	issuanceDate: String!
-	proof: LinkedDataProof!
+	proof: [Proof!]!
 }
 
-type ClaimCredentialSubject {
+union Proof = LinkedDataProof | ClaimRegisteredProof | RootOnBlockChainProof
+
+type ContentClaimCredentialSubject {
 	id: String!
 	metadata: ArticleMetadata!
 }
@@ -100,6 +108,26 @@ type ClaimCredentialSubject {
 type ClaimCredentialSchema {
 	id: String!
 	type: String!
+}
+
+type ClaimRegisteredProof {
+	type: String!
+	did: String!
+	existsInDIDMTProof: String!
+	notRevokedInDIDMTProof: String!
+	didMTRootExistsProof: String!
+	didRootExistsVersion: Int!
+	root: String!
+	didMTRoot: String!
+}
+
+type RootOnBlockChainProof {
+	type: String!
+	blockNumber: String!
+	root: String!
+	contractAddress: String!
+	committerAddress: String!
+	txHash: String!
 }
 
 type ArticleMetadata {

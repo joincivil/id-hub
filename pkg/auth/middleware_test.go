@@ -65,21 +65,21 @@ func (h *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if h.checkContext {
-		didKey := ctx.Value(didCtxKey).(string)
+		didKey := ctx.Value(DidCtxKey).(string)
 		if didKey == "" {
 			h.t.Errorf("Should have set didKey in context")
 		}
 		if didKey != "did:ethurl:123456" {
 			h.t.Errorf("Should have had matched did key")
 		}
-		reqTs := ctx.Value(reqTsCtxKey).(string)
+		reqTs := ctx.Value(ReqTsCtxKey).(string)
 		if reqTs == "" {
 			h.t.Errorf("Should have set reqTs in context")
 		}
 		if reqTs != "1234567" {
 			h.t.Errorf("Should have had matched reqTs value")
 		}
-		signature := ctx.Value(signatureCtxKey).(string)
+		signature := ctx.Value(SignatureCtxKey).(string)
 		if signature == "" {
 			h.t.Errorf("Should have set signature in context")
 		}

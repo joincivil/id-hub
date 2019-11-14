@@ -33,43 +33,24 @@ func setupConnection() (*gorm.DB, error) {
 	return db, nil
 }
 
-func makeContentCredential(issuerDID *didlib.DID) *claimsstore.ContentCredential {
-	subj := claimsstore.ContentCredentialSubject{
+func makeContentCredential(issuerDID *didlib.DID) *claimtypes.ContentCredential {
+	subj := claimtypes.ContentCredentialSubject{
 		ID: "https://ap.com/article/1",
 		Metadata: article.Metadata{
 			Title: "something something",
 		},
 	}
 	proof := linkeddata.Proof{}
-	return &claimsstore.ContentCredential{
+	proofSlice := make([]interface{}, 0, 1)
+	proofSlice = append(proofSlice, proof)
+	return &claimtypes.ContentCredential{
 		Context:           []string{"https://something.com/some/stuff/v1"},
-		Type:              []claimsstore.CredentialType{claimsstore.VerifiableCredentialType, claimsstore.ContentCredentialType},
+		Type:              []claimtypes.CredentialType{claimtypes.VerifiableCredentialType, claimtypes.ContentCredentialType},
 		CredentialSubject: subj,
 		Issuer:            issuerDID.String(),
 		IssuanceDate:      time.Date(2018, 2, 1, 12, 30, 0, 0, time.UTC),
-		Proof:             proof,
+		Proof:             proofSlice,
 	}
-}
-
-func addProof(cred *claimsstore.ContentCredential, signerDID *didlib.DID, pk *ecdsa.PrivateKey) error {
-	canonical, err := claims.CanonicalizeCredential(cred)
-	if err != nil {
-		return err
-	}
-	hash := crypto.Keccak256(canonical)
-	sigBytes, err := crypto.Sign(hash, pk)
-	if err != nil {
-		return err
-	}
-
-	proofValue := hex.EncodeToString(sigBytes)
-	cred.Proof = linkeddata.Proof{
-		Type:       string(linkeddata.SuiteTypeSecp256k1Signature),
-		Creator:    signerDID.String(),
-		Created:    time.Now(),
-		ProofValue: proofValue,
-	}
-	return nil
 }
 
 func makeService(db *gorm.DB, didService *did.Service,
@@ -77,7 +58,7 @@ func makeService(db *gorm.DB, didService *did.Service,
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
-	committer := &fakeRootCommitter{}
+	committer := &claims.FakeRootCommitter{}
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService)
 	return claimService, rootService, err
@@ -267,7 +248,7 @@ func TestClaimContent(t *testing.T) {
 	}
 
 	cred := makeContentCredential(&didDoc.ID)
-	err = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	err = claims.AddProof(cred, didDoc.PublicKeys[0].ID, key)
 	if err != nil {
 		t.Errorf("error adding proof: %v", err)
 	}
@@ -289,7 +270,13 @@ func TestClaimContent(t *testing.T) {
 	if err == nil {
 		t.Errorf("should err for duplicate claim")
 	}
-	cred.Proof.ProofValue = "04e9627daa1419d73a7a3bdd9e907a9bf0ae4344149521d4b5d07377b589658265e705971b26da6d51bbea4ef7ecf5267f10437126add370f752a1b2f0af65c32f"
+	linkedDataProof, ok := cred.Proof[0].(linkeddata.Proof)
+	if !ok {
+		t.Errorf("should be a linked data proof")
+	}
+
+	linkedDataProof.ProofValue = "04e9627daa1419d73a7a3bdd9e907a9bf0ae4344149521d4b5d07377b589658265e705971b26da6d51bbea4ef7ecf5267f10437126add370f752a1b2f0af65c32f"
+	cred.Proof[0] = linkedDataProof
 	err = claimService.ClaimContent(cred)
 	if err == nil {
 		t.Errorf("should have errored for the bad signature")
@@ -378,7 +365,7 @@ func TestClaimsToContentCredentials(t *testing.T) {
 
 	// Claim content 1
 	cred := makeContentCredential(&didDoc.ID)
-	_ = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	_ = claims.AddProof(cred, didDoc.PublicKeys[0].ID, key)
 	err = claimService.ClaimContent(cred)
 	if err != nil {
 		t.Errorf("problem creating content claim: %v", err)
@@ -452,7 +439,7 @@ func TestGenerateProof(t *testing.T) {
 
 	// Claim content 1
 	cred := makeContentCredential(&didDoc.ID)
-	_ = addProof(cred, didDoc.PublicKeys[0].ID, key)
+	_ = claims.AddProof(cred, didDoc.PublicKeys[0].ID, key)
 	err = claimService.ClaimContent(cred)
 	if err != nil {
 		t.Errorf("problem creating content claim: %v", err)

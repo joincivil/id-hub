@@ -38,13 +38,13 @@ models:
       - github.com/joincivil/id-hub/pkg/graphql.DidSaveResponse
   Claim:
     model:
-      - github.com/joincivil/id-hub/pkg/claimsstore.ContentCredential
+      - github.com/joincivil/id-hub/pkg/claimtypes.ContentCredential
   ClaimCredentialSubject:
     model:
-      - github.com/joincivil/id-hub/pkg/claimsstore.ContentCredentialSubject
+      - github.com/joincivil/id-hub/pkg/claimtypes.ContentCredentialSubject
   ClaimCredentialSchema:
     model:
-      - github.com/joincivil/id-hub/pkg/claimsstore.CredentialSchema
+      - github.com/joincivil/id-hub/pkg/claimtypes.CredentialSchema
   ClaimGetResponse:
     model:
       - github.com/joincivil/id-hub/pkg/graphql.ClaimGetResponse

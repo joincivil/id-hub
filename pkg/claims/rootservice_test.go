@@ -1,12 +1,8 @@
 package claims_test
 
 import (
-	"fmt"
-	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	iden3db "github.com/iden3/go-iden3-core/db"
 	"github.com/iden3/go-iden3-core/merkletree"
 	isrv "github.com/iden3/go-iden3-core/services/claimsrv"
@@ -18,22 +14,11 @@ import (
 	didlib "github.com/ockam-network/did"
 )
 
-type fakeRootCommitter struct{}
-
-func (r *fakeRootCommitter) CommitRoot(root [32]byte, c chan<- *claims.ProgressUpdate) {
-	defer close(c)
-	c <- &claims.ProgressUpdate{Status: claims.Done, Result: &ethTypes.Receipt{
-		BlockNumber:     big.NewInt(2),
-		TxHash:          common.HexToHash("0x368782c63319f79c83cb937fefe1f0268c6fd098930e1d590a45ad233bcace37"),
-		ContractAddress: common.HexToAddress("0x6BBDd7B1a289C5bE8fAa29Cb1c0be66cb2582060"),
-	}, Err: nil}
-}
-
 func makeRootService(db *gorm.DB) (*claims.RootService, *claimsstore.RootCommitsPGPersister, iden3db.Storage, error) {
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	rootpersister := claimsstore.NewRootCommitsPGPersister(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
-	committer := &fakeRootCommitter{}
+	committer := &claims.FakeRootCommitter{}
 	rootService, err := claims.NewRootService(treeStore, committer, rootpersister)
 	return rootService, rootpersister, treeStore, err
 }
@@ -106,7 +91,6 @@ func TestRootServiceCommitRoot(t *testing.T) {
 	if err != nil {
 		t.Errorf("error fetching root commit: %v", err)
 	}
-	fmt.Printf("\n\n%v\n\n", rootCommit)
 	if rootCommit.BlockNumber != 2 {
 		t.Errorf("block number did not match expected")
 	}

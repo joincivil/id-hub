@@ -7,11 +7,12 @@ import (
 // RootCommit stores information about a root saved to the contract
 type RootCommit struct {
 	gorm.Model
-	Root            string `gorm:"primary_key"`
-	BlockNumber     int64
-	Prefix          string
-	TransactionHash string
-	ContractAddress string
+	Root             string `gorm:"primary_key"`
+	BlockNumber      int64
+	Prefix           string
+	TransactionHash  string
+	ContractAddress  string
+	CommitterAddress string
 }
 
 // TableName sets the table name for signed claims

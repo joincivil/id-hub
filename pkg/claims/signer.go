@@ -6,13 +6,13 @@ import (
 	"time"
 
 	ecrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 )
 
 // Signer interface is for signing content claims
 type Signer interface {
-	Sign(claim *claimsstore.ContentCredential, creator string) error
+	Sign(claim *claimtypes.ContentCredential, creator string) error
 }
 
 // ECDSASigner implements the signer interface for a given private key
@@ -28,7 +28,7 @@ func NewECDSASigner(privKey *ecdsa.PrivateKey) *ECDSASigner {
 }
 
 // Sign takes a credential and a creator did and adds the proof
-func (s ECDSASigner) Sign(claim *claimsstore.ContentCredential, creator string) error {
+func (s ECDSASigner) Sign(claim *claimtypes.ContentCredential, creator string) error {
 	canonical, err := CanonicalizeCredential(claim)
 	if err != nil {
 		return err
@@ -46,6 +46,7 @@ func (s ECDSASigner) Sign(claim *claimsstore.ContentCredential, creator string) 
 		Created:    time.Now(),
 		ProofValue: proofValue,
 	}
-	claim.Proof = proof
+	proofSlice := []interface{}{proof}
+	claim.Proof = proofSlice
 	return nil
 }

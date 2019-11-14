@@ -16,4 +16,6 @@ type MTProof struct {
 	TXHash                 common.Hash
 	Root                   merkletree.Hash
 	DIDRoot                merkletree.Hash
+	CommitterAddress       common.Address
+	DID                    string
 }

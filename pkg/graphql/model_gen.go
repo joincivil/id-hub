@@ -5,8 +5,14 @@ package graphql
 import (
 	"time"
 
+	"github.com/joincivil/go-common/pkg/article"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
+
+type Proof interface {
+	IsProof()
+}
 
 type ArticleMetadataContributorInput struct {
 	Role *string `json:"role"`
@@ -59,12 +65,35 @@ type ClaimInput struct {
 	Holder            string                       `json:"holder"`
 	CredentialSchema  *ClaimCredentialSchemaInput  `json:"credentialSchema"`
 	IssuanceDate      string                       `json:"issuanceDate"`
-	Proof             *LinkedDataProofInput        `json:"proof"`
+	Proof             []*LinkedDataProofInput      `json:"proof"`
 }
+
+type ClaimProofResponse struct {
+	Claim    *claimtypes.ContentCredential `json:"claim"`
+	ClaimRaw string                        `json:"claimRaw"`
+}
+
+type ClaimRegisteredProof struct {
+	Type                   string `json:"type"`
+	Did                    string `json:"did"`
+	ExistsInDIDMTProof     string `json:"existsInDIDMTProof"`
+	NotRevokedInDIDMTProof string `json:"notRevokedInDIDMTProof"`
+	DidMTRootExistsProof   string `json:"didMTRootExistsProof"`
+	DidRootExistsVersion   int    `json:"didRootExistsVersion"`
+	Root                   string `json:"Root"`
+	DidMTRoot              string `json:"didMTRoot"`
+}
+
+func (ClaimRegisteredProof) IsProof() {}
 
 type ClaimSaveRequestInput struct {
 	Claim     *ClaimInput `json:"claim"`
 	ClaimJSON *string     `json:"claimJson"`
+}
+
+type ContentClaimCredentialSubject struct {
+	ID       string            `json:"id"`
+	Metadata *article.Metadata `json:"metadata"`
 }
 
 type DidDocAuthenticationInput struct {
@@ -113,3 +142,14 @@ type LinkedDataProofInput struct {
 	Domain     *string    `json:"domain"`
 	Nonce      *string    `json:"nonce"`
 }
+
+type RootOnBlockChainProof struct {
+	Type             string `json:"type"`
+	BlockNumber      string `json:"BlockNumber"`
+	Root             string `json:"Root"`
+	ContractAddress  string `json:"ContractAddress"`
+	CommitterAddress string `json:"CommitterAddress"`
+	TxHash           string `json:"TxHash"`
+}
+
+func (RootOnBlockChainProof) IsProof() {}

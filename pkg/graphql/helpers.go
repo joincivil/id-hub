@@ -11,7 +11,7 @@ import (
 	didlib "github.com/ockam-network/did"
 
 	"github.com/joincivil/go-common/pkg/article"
-	cstore "github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
@@ -107,12 +107,12 @@ func InputServiceToDocService(in *DidDocServiceInput) *did.DocService {
 
 // InputClaimToContentCredential is convenience function to convert input claim to
 // content credential
-func InputClaimToContentCredential(in *ClaimSaveRequestInput) (*cstore.ContentCredential, error) {
+func InputClaimToContentCredential(in *ClaimSaveRequestInput) (*claimtypes.ContentCredential, error) {
 	var err error
 
 	// if json blob was passed in, unmarshal and return
 	if in.ClaimJSON != nil && *in.ClaimJSON != "" {
-		cc := &cstore.ContentCredential{}
+		cc := &claimtypes.ContentCredential{}
 		err = json.Unmarshal([]byte(*in.ClaimJSON), cc)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to unmarshal to content credential")
@@ -124,7 +124,7 @@ func InputClaimToContentCredential(in *ClaimSaveRequestInput) (*cstore.ContentCr
 		return nil, errors.New("no claim passed in input")
 	}
 
-	cc := &cstore.ContentCredential{
+	cc := &claimtypes.ContentCredential{
 		Context: in.Claim.Context,
 		Issuer:  in.Claim.Issuer,
 		Holder:  in.Claim.Holder,
@@ -138,11 +138,13 @@ func InputClaimToContentCredential(in *ClaimSaveRequestInput) (*cstore.ContentCr
 		return nil, err
 	}
 
-	proof, err := ConvertInputProof(in.Claim.Proof)
+	// XXX(WF): This works assuming that whats sent in to the id hub is just one signed claim
+	// this will need to become more complex in the future
+	proof, err := ConvertInputProof(in.Claim.Proof[0])
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to convert input proof")
 	}
-	cc.Proof = *proof
+	cc.Proof = []interface{}{*proof}
 
 	// issuance date
 	ts, err := time.Parse(timeFormat, in.Claim.IssuanceDate)
@@ -155,17 +157,17 @@ func InputClaimToContentCredential(in *ClaimSaveRequestInput) (*cstore.ContentCr
 }
 
 // ConvertCredentialTypes converts strings to credential types
-func ConvertCredentialTypes(in []string) []cstore.CredentialType {
-	types := make([]cstore.CredentialType, len(in))
+func ConvertCredentialTypes(in []string) []claimtypes.CredentialType {
+	types := make([]claimtypes.CredentialType, len(in))
 	for ind, val := range in {
-		types[ind] = cstore.CredentialType(val)
+		types[ind] = claimtypes.CredentialType(val)
 	}
 	return types
 }
 
 // ConvertCredentialSchema converts input cred schema to core credential schema
-func ConvertCredentialSchema(in ClaimCredentialSchemaInput) cstore.CredentialSchema {
-	return cstore.CredentialSchema{
+func ConvertCredentialSchema(in ClaimCredentialSchemaInput) claimtypes.CredentialSchema {
+	return claimtypes.CredentialSchema{
 		ID:   in.ID,
 		Type: in.Type,
 	}
@@ -173,18 +175,18 @@ func ConvertCredentialSchema(in ClaimCredentialSchemaInput) cstore.CredentialSch
 
 // ConvertCredentialSubject converts subject input to core credential subject
 func ConvertCredentialSubject(in *ClaimCredentialSubjectInput) (
-	cstore.ContentCredentialSubject, error) {
+	claimtypes.ContentCredentialSubject, error) {
 	if in == nil {
-		return cstore.ContentCredentialSubject{},
+		return claimtypes.ContentCredentialSubject{},
 			errors.New("no credential subject found")
 	}
 
 	md, err := ConvertArticleMetadata(in.Metadata)
 	if err != nil {
-		return cstore.ContentCredentialSubject{}, err
+		return claimtypes.ContentCredentialSubject{}, err
 	}
 
-	return cstore.ContentCredentialSubject{
+	return claimtypes.ContentCredentialSubject{
 		ID:       in.ID,
 		Metadata: *md,
 	}, nil
