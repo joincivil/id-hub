@@ -2,6 +2,7 @@ package idhubmain
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -13,31 +14,36 @@ import (
 )
 
 const (
-	defaultMaxIdleConns = 5
-	defaultMaxOpenConns = 10
+	defaultMaxIdleConns    = 5
+	defaultMaxOpenConns    = 5
+	defaultConnMaxLifetime = time.Second * 180 // 3 min
 )
 
 func initGorm(config *utils.IDHubConfig) (*gorm.DB, error) {
 	return NewGormPostgres(GormPostgresConfig{
-		Host:     config.PersisterPostgresAddress,
-		Port:     config.PersisterPostgresPort,
-		Dbname:   config.PersisterPostgresDbname,
-		User:     config.PersisterPostgresUser,
-		Password: config.PersisterPostgresPw,
+		Host:            config.PersisterPostgresAddress,
+		Port:            config.PersisterPostgresPort,
+		Dbname:          config.PersisterPostgresDbname,
+		User:            config.PersisterPostgresUser,
+		Password:        config.PersisterPostgresPw,
+		MaxIdleConns:    config.PersisterPostgresMaxIdle,
+		MaxOpenConns:    config.PersisterPostgresMaxConns,
+		ConnMaxLifetime: config.PersisterPostgresConnLife,
 	})
 }
 
 // GormPostgresConfig is the config struct for initializing a GORM object for
 // Postgres.
 type GormPostgresConfig struct {
-	Host         string
-	Port         int
-	Dbname       string
-	User         string
-	Password     string
-	MaxIdleConns *int
-	MaxOpenConns *int
-	LogMode      bool
+	Host            string
+	Port            int
+	Dbname          string
+	User            string
+	Password        string
+	MaxIdleConns    *int
+	MaxOpenConns    *int
+	ConnMaxLifetime *int
+	LogMode         bool
 }
 
 // NewGormPostgres initializes a new GORM object for Postgres
@@ -69,6 +75,12 @@ func NewGormPostgres(creds GormPostgresConfig) (*gorm.DB, error) {
 		db.DB().SetMaxOpenConns(*creds.MaxOpenConns)
 	} else {
 		db.DB().SetMaxOpenConns(defaultMaxOpenConns)
+	}
+
+	if creds.ConnMaxLifetime != nil {
+		db.DB().SetConnMaxLifetime(time.Second * time.Duration(*creds.ConnMaxLifetime))
+	} else {
+		db.DB().SetConnMaxLifetime(defaultConnMaxLifetime)
 	}
 
 	db.LogMode(creds.LogMode)
