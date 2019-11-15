@@ -84,21 +84,6 @@ func InitializeNewDocument(did *didlib.DID, firstPK *DocPublicKey, addRefToAuth 
 	return doc, nil
 }
 
-// CopyDID is a convenience function to make a copy a DID struct
-func CopyDID(d *didlib.DID) *didlib.DID {
-	cpy, err := didlib.Parse(d.String())
-	if err != nil {
-		log.Errorf("Error parsing did string for copy: err: %v", err)
-	}
-	return cpy
-}
-
-// ValidDid returns true if the given did string is of a valid DID format
-func ValidDid(did string) bool {
-	_, err := didlib.Parse(did)
-	return err == nil
-}
-
 // ValidDocPublicKey ensures that the given DocPublicKey is of a supported type,
 // has a valid key for that type and is using the correct public key field.
 // Returns true if it is valid, false if not.

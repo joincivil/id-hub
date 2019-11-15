@@ -97,32 +97,6 @@ func TestInitializeNewDocument(t *testing.T) {
 	t.Logf("%v", string(bys))
 }
 
-func TestCopyDID(t *testing.T) {
-	d, _ := did.GenerateEthURIDID()
-	cpy := did.CopyDID(d)
-	if cpy.String() != d.String() {
-		t.Errorf("Should have matching DID strings")
-	}
-	if cpy == d {
-		t.Errorf("Should not be the same exact struct value in mem")
-	}
-}
-
-func TestValidDid(t *testing.T) {
-	if did.ValidDid("notavaliddid") {
-		t.Errorf("Should not have returned true as valid did")
-	}
-	if did.ValidDid("") {
-		t.Errorf("Should not have returned true as valid did")
-	}
-	if did.ValidDid("uri:123345") {
-		t.Errorf("Should not have returned true as valid did")
-	}
-	if !did.ValidDid("did:uri:123345") {
-		t.Errorf("Should have returned true as valid did")
-	}
-}
-
 func TestKeyFromType(t *testing.T) {
 	pkey := "04f3df3cea421eac2a7f5dbd8e8d505470d42150334f512bd6383c7dc91bf8fa4d5458d498b4dcd05574c902fb4c233005b3f5f3ff3904b41be186ddbda600580b"
 	pk := &did.DocPublicKey{

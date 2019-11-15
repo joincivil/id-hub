@@ -2,7 +2,8 @@ package claimtypes
 
 import (
 	"bytes"
-	"fmt"
+
+	didhub "github.com/joincivil/id-hub/pkg/did"
 
 	"github.com/iden3/go-iden3-core/merkletree"
 	"github.com/iden3/go-iden3-crypto/poseidon"
@@ -12,16 +13,11 @@ import (
 // HashDID uses poseidon to hash the did to create a hash that fits in the merkletree's
 // 31 byte limit
 func HashDID(did *didlib.DID) ([]byte, error) {
-	bigInts, err := poseidon.HashBytes([]byte(DIDStringOnlyMethodID(did)))
+	bigInts, err := poseidon.HashBytes([]byte(didhub.MethodIDOnly(did)))
 	if err != nil {
 		return nil, err
 	}
 	return merkletree.BigIntToHash(bigInts).Bytes(), nil
-}
-
-// DIDStringOnlyMethodID returns did string without any fragments or paths
-func DIDStringOnlyMethodID(did *didlib.DID) string {
-	return fmt.Sprintf("did:%v:%v", did.Method, did.ID)
 }
 
 // Concat is  a internal method from iden3 db that seemed necessary to implement the interface
