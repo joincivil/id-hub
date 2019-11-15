@@ -28,6 +28,9 @@ type IDHubConfig struct {
 	PersisterPostgresDbname   string             `split_words:"true" desc:"If persister type is Postgresql, sets the database name"`
 	PersisterPostgresUser     string             `split_words:"true" desc:"If persister type is Postgresql, sets the database user"`
 	PersisterPostgresPw       string             `split_words:"true" desc:"If persister type is Postgresql, sets the database password"`
+	PersisterPostgresMaxConns *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conns in pool"`
+	PersisterPostgresMaxIdle  *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max idle conns in pool"`
+	PersisterPostgresConnLife *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conn lifetime in secs"`
 }
 
 // OutputUsage prints the usage string to os.Stdout
