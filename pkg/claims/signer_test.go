@@ -32,7 +32,11 @@ func TestSignerSign(t *testing.T) {
 	if err != nil {
 		t.Errorf("error canonicalizing the claim: %v", err)
 	}
-	linkedDataProof, ok := claim.Proof[0].(linkeddata.Proof)
+	proofs, ok := claim.Proof.([]interface{})
+	if !ok {
+		t.Fatalf("proofs is not []interface{}")
+	}
+	linkedDataProof, ok := proofs[0].(linkeddata.Proof)
 	if !ok {
 		t.Errorf("should be a linked data proof")
 	}

@@ -29,7 +29,7 @@ type ContentCredential struct {
 	Holder            string                   `json:"holder,omitempty"`
 	CredentialSchema  CredentialSchema         `json:"credentialSchema"`
 	IssuanceDate      time.Time                `json:"issuanceDate"`
-	Proof             []interface{}            `json:"proof,omitempty"`
+	Proof             interface{}              `json:"proof,omitempty"`
 }
 
 // ContentCredentialSubject the datatype for claiming a piece of content
@@ -47,31 +47,52 @@ type CredentialSchema struct {
 }
 
 // FindLinkedDataProof returns the first the linked data proof in the proof slice
-func FindLinkedDataProof(proofs []interface{}) (*linkeddata.Proof, error) {
-	for _, v := range proofs {
-		switch tv := v.(type) {
-		case *linkeddata.Proof:
-			return tv, nil
-		case linkeddata.Proof:
-			return &tv, nil
-		case map[string]interface{}:
-			t, ok := tv["type"]
-			if ok && t == string(linkeddata.SuiteTypeSecp256k1Signature) {
-				ld := &linkeddata.Proof{}
-				js, err := json.Marshal(tv)
-
-				if err != nil {
-					return nil, err
-				}
-
-				err = json.Unmarshal(js, ld)
-				if err != nil {
-					return nil, err
-				}
-				return ld, nil
+func FindLinkedDataProof(proofs interface{}) (*linkeddata.Proof, error) {
+	var err error
+	// If this is an interface slice
+	proofList, ok := proofs.([]interface{})
+	if ok {
+		var p *linkeddata.Proof
+		for _, v := range proofList {
+			p, err = ConvertToLinkedDataProof(v)
+			if err != nil {
+				continue
 			}
-			return nil, errors.New("proofs array didn't contain a linked data proof")
+			return p, nil
+		}
+		return nil, errors.New("proofs array didn't contain a valid linked data proof")
+	}
+
+	// If it is not an interface slice
+	return ConvertToLinkedDataProof(proofs)
+}
+
+// ConvertToLinkedDataProof returns a linkeddata.Proof from the proof interface{} value
+func ConvertToLinkedDataProof(proof interface{}) (*linkeddata.Proof, error) {
+	switch val := proof.(type) {
+	case *linkeddata.Proof:
+		return val, nil
+
+	case linkeddata.Proof:
+		return &val, nil
+
+	case map[string]interface{}:
+		t, ok := val["type"]
+		if ok && t == string(linkeddata.SuiteTypeSecp256k1Signature) {
+			ld := &linkeddata.Proof{}
+			js, err := json.Marshal(val)
+
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(js, ld)
+			if err != nil {
+				return nil, err
+			}
+			return ld, nil
 		}
 	}
-	return nil, errors.New("proofs array didn't contain a linked data proof")
+
+	return nil, errors.New("proof was not a valid linked data proof")
 }
