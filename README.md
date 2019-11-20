@@ -19,6 +19,7 @@ Some high level items:
 * Server UI v1 to access credentials and identities, along with credential verification and proofs.
 * Integration with [Kirby](https://github.com/joincivil/kirby-web3).
 * Work on generically handling DIDs and credentials from other sources.
+* Work on encrypting claims.
 * Peer-to-peer data sync to ensure redundancy and data consistency.
 * Ensuring the cost of running and maintaining an ID Hub is as low as possible.
 * As standards in this ecosystem emerge, moving ID Hub towards those standards.
