@@ -27,7 +27,7 @@ func (p *PostgresPersister) GetDocument(d *didlib.DID) (*Document, error) {
 		return nil, errors.New("nil did for get document")
 	}
 
-	theDID := d.String()
+	theDID := MethodIDOnly(d)
 
 	doc := &PostgresDocument{}
 	err := p.db.Where(&PostgresDocument{DID: theDID}).First(doc).Error
@@ -50,7 +50,7 @@ func (p *PostgresPersister) SaveDocument(doc *Document) error {
 	}
 
 	updated := &PostgresDocument{}
-	err = p.db.Where(&PostgresDocument{DID: doc.ID.String()}).
+	err = p.db.Where(&PostgresDocument{DID: MethodIDOnly(&doc.ID)}).
 		Assign(&PostgresDocument{Document: dbdoc.Document}).
 		FirstOrCreate(updated).Error
 	if err != nil {
