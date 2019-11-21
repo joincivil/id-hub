@@ -80,7 +80,7 @@ func (r *queryResolver) ClaimProof(ctx context.Context, in *ClaimSaveRequestInpu
 		DidMTRoot:              proof.DIDRoot.Hex(),
 	}
 
-	cc.Proof = append(cc.Proof, inTreeProof, rootProof)
+	cc.Proof = []interface{}{cc.Proof, inTreeProof, rootProof}
 
 	claimRaw, err := json.Marshal(cc)
 	if err != nil {
@@ -171,12 +171,19 @@ func (r *claimResolver) CredentialSubject(ctx context.Context, obj *claimtypes.C
 }
 
 func (r *claimResolver) Proof(ctx context.Context, obj *claimtypes.ContentCredential) ([]Proof, error) {
-	proofs := make([]Proof, len(obj.Proof))
-	for i, v := range obj.Proof {
-		tv, ok := v.(Proof)
-		if ok {
-			proofs[i] = tv
+	switch val := obj.Proof.(type) {
+	case []interface{}:
+		proofs := make([]Proof, len(val))
+		for i, v := range val {
+			tv, ok := v.(Proof)
+			if ok {
+				proofs[i] = tv
+			}
 		}
+		return proofs, nil
+
+	case interface{}:
+		return []Proof{val.(Proof)}, nil
 	}
-	return proofs, nil
+	return nil, errors.New("Invalid proof types")
 }

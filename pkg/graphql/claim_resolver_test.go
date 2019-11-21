@@ -173,7 +173,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("error generating proof: %v", err)
 	}
 
-	if len(proofResponse.Claim.Proof) != 3 {
+	if len(proofResponse.Claim.Proof.([]interface{})) != 3 {
 		t.Errorf("wrong number of proofs on claim")
 	}
 }

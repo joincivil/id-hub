@@ -270,13 +270,17 @@ func TestClaimContent(t *testing.T) {
 	if err == nil {
 		t.Errorf("should err for duplicate claim")
 	}
-	linkedDataProof, ok := cred.Proof[0].(linkeddata.Proof)
+	proofs, ok := cred.Proof.([]interface{})
+	if !ok {
+		t.Fatalf("proofs is not []interface{}")
+	}
+	linkedDataProof, ok := proofs[0].(linkeddata.Proof)
 	if !ok {
 		t.Errorf("should be a linked data proof")
 	}
 
 	linkedDataProof.ProofValue = "04e9627daa1419d73a7a3bdd9e907a9bf0ae4344149521d4b5d07377b589658265e705971b26da6d51bbea4ef7ecf5267f10437126add370f752a1b2f0af65c32f"
-	cred.Proof[0] = linkedDataProof
+	proofs[0] = linkedDataProof
 	err = claimService.ClaimContent(cred)
 	if err == nil {
 		t.Errorf("should have errored for the bad signature")

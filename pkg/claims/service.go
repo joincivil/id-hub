@@ -54,7 +54,7 @@ func NewService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.Si
 	}, nil
 }
 
-func (s *Service) getSignerDID(proofs []interface{}) (*didlib.DID, error) {
+func (s *Service) getSignerDID(proofs interface{}) (*didlib.DID, error) {
 	linkedDataProof, err := claimtypes.FindLinkedDataProof(proofs)
 	if err != nil {
 		return nil, errors.Wrap(err, "getSignerDID.FindLinkedDataProof")
