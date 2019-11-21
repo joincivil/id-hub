@@ -15,7 +15,8 @@ func (p *InMemoryPersister) GetDocument(d *didlib.DID) (*Document, error) {
 	if p.store == nil {
 		p.store = map[string]*Document{}
 	}
-	doc, ok := p.store[d.String()]
+	theDID := MethodIDOnly(d)
+	doc, ok := p.store[theDID]
 	if !ok {
 		return nil, nil
 	}
@@ -27,6 +28,7 @@ func (p *InMemoryPersister) SaveDocument(doc *Document) error {
 	if p.store == nil {
 		p.store = map[string]*Document{}
 	}
-	p.store[doc.ID.String()] = doc
+	theDID := MethodIDOnly(&doc.ID)
+	p.store[theDID] = doc
 	return nil
 }
