@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
+	"github.com/multiformats/go-multihash"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -16,9 +17,10 @@ func TestClaimRegisteredDoc(t *testing.T) {
 		t.Errorf("failed to parse did: %v", err)
 	}
 	hash := crypto.Keccak256([]byte("abcdefg"))
-	hash32 := [32]byte{}
-	copy(hash32[:], hash)
-	claim, err := claimtypes.NewClaimRegisteredDocument(hash32, did, 0)
+	mhash, _ := multihash.EncodeName(hash, "keccak-256")
+	hash34 := [34]byte{}
+	copy(hash34[:], mhash)
+	claim, err := claimtypes.NewClaimRegisteredDocument(hash34, did, 0)
 	if err != nil {
 		t.Errorf("error making claim: %v", err)
 	}

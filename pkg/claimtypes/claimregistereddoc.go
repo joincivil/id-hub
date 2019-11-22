@@ -19,13 +19,13 @@ const (
 // ClaimRegisteredDocument is a claim type for registering other claims like signed claims in the merkle tree
 type ClaimRegisteredDocument struct {
 	Version     uint32
-	ContentHash [256 / 8]byte
+	ContentHash [34]byte
 	DID         [32]byte
 	DocType     uint32
 }
 
 // NewClaimRegisteredDocument creates a new ClaimRegisteredDocument from a did a contentHash and a type
-func NewClaimRegisteredDocument(ch [256 / 8]byte, did *didlib.DID, dt uint32) (*ClaimRegisteredDocument, error) {
+func NewClaimRegisteredDocument(ch [34]byte, did *didlib.DID, dt uint32) (*ClaimRegisteredDocument, error) {
 	didbytes, err := HashDID(did)
 	if err != nil {
 		return nil, err
@@ -48,12 +48,12 @@ func NewClaimRegisteredDocumentFromEntry(e *merkletree.Entry) *ClaimRegisteredDo
 	copyFromElemBytes(docType[:], 4, &e.Data[0])
 	c.DocType = binary.BigEndian.Uint32(docType[:])
 
-	copyFromElemBytes(c.DID[:], 0, &e.Data[2])
+	copyFromElemBytes(c.DID[:], 0, &e.Data[1])
 
-	hashBeginning := [1]byte{}
+	hashBeginning := [3]byte{}
 	hashRest := [31]byte{}
 	copyFromElemBytes(hashBeginning[:], 4, &e.Data[0])
-	copyFromElemBytes(hashRest[:], 0, &e.Data[1])
+	copyFromElemBytes(hashRest[:], 0, &e.Data[2])
 	contentHash := Concat(hashBeginning[:], hashRest[:])
 	copy(c.ContentHash[:], contentHash)
 	return c
@@ -66,9 +66,9 @@ func (c ClaimRegisteredDocument) Entry() *merkletree.Entry {
 	var docType [4]byte
 	binary.BigEndian.PutUint32(docType[:], c.DocType)
 	copyToElemBytes(&e.Data[0], 0, docType[:])
-	copyToElemBytes(&e.Data[0], 4, c.ContentHash[0:1])
-	copyToElemBytes(&e.Data[1], 0, c.ContentHash[1:])
-	copyToElemBytes(&e.Data[2], 0, c.DID[:])
+	copyToElemBytes(&e.Data[0], 4, c.ContentHash[0:3])
+	copyToElemBytes(&e.Data[2], 0, c.ContentHash[3:])
+	copyToElemBytes(&e.Data[1], 0, c.DID[:])
 	return e
 }
 

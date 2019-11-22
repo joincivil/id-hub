@@ -29,6 +29,7 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mattn/go-runewidth v0.0.5 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
+	github.com/multiformats/go-multihash v0.0.9
 	github.com/ockam-network/did v0.1.3
 	github.com/onsi/ginkgo v1.10.2 // indirect
 	github.com/pkg/errors v0.8.1

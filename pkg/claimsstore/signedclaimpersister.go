@@ -11,6 +11,7 @@ import (
 	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
+	"github.com/multiformats/go-multihash"
 )
 
 // SignedClaimPostgres represents the schema for signed claims
@@ -85,7 +86,13 @@ func (c *SignedClaimPostgres) FromContentCredential(cred *claimtypes.ContentCred
 	if err != nil {
 		return err
 	}
-	c.Hash = hex.EncodeToString(crypto.Keccak256(credJSON))
+	hash := crypto.Keccak256(credJSON)
+	mHash, err := multihash.EncodeName(hash, "keccak-256")
+	if err != nil {
+		return err
+	}
+	c.Hash = hex.EncodeToString(mHash)
+
 	return nil
 }
 
@@ -115,9 +122,26 @@ func (p *SignedClaimPGPersister) AddCredential(claim *claimtypes.ContentCredenti
 }
 
 // GetCredentialByHash returns a credential from a hash taken from the associated merkle tree claim
-func (p *SignedClaimPGPersister) GetCredentialByHash(hash string) (*claimtypes.ContentCredential, error) {
+func (p *SignedClaimPGPersister) GetCredentialByHash(hash string) (*claimtypes.ContentCredential,
+	error) {
+	bytes, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	mHash, err := multihash.EncodeName(bytes, "keccak-256")
+	if err != nil {
+		return nil, err
+	}
+	mHashString := hex.EncodeToString(mHash)
+	return p.GetCredentialByMultihash(mHashString)
+}
+
+// GetCredentialByMultihash returns a credential from a multihash
+func (p *SignedClaimPGPersister) GetCredentialByMultihash(mHash string) (*claimtypes.ContentCredential,
+	error) {
 	signedClaim := &SignedClaimPostgres{}
-	if err := p.db.Where(&SignedClaimPostgres{Hash: hash}).First(signedClaim).Error; err != nil {
+	if err := p.db.Where(&SignedClaimPostgres{Hash: mHash}).First(signedClaim).Error; err != nil {
 		return nil, err
 	}
 	return signedClaim.ToCredential()
