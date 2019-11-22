@@ -17,6 +17,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
+	"github.com/multiformats/go-multihash"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -496,10 +497,11 @@ func TestGenerateProof(t *testing.T) {
 
 	claimJSON, _ := json.Marshal(cred)
 	hash := crypto.Keccak256(claimJSON)
-	hash32 := [32]byte{}
-	copy(hash32[:], hash)
+	mhash, _ := multihash.EncodeName(hash, "keccak-256")
+	hash34 := [34]byte{}
+	copy(hash34[:], mhash)
 
-	rdClaim, _ := claimtypes.NewClaimRegisteredDocument(hash32, signerDid, claimtypes.ContentCredentialDocType)
+	rdClaim, _ := claimtypes.NewClaimRegisteredDocument(hash34, signerDid, claimtypes.ContentCredentialDocType)
 
 	entry := rdClaim.Entry()
 	if !merkletree.VerifyProof(&proof.DIDRoot, existProof, entry.HIndex(), entry.HValue()) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jinzhu/gorm"
+	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 
 	log "github.com/golang/glog"
@@ -130,9 +131,13 @@ func (s *Service) makeContentClaimFromCred(claim *claimtypes.ContentCredential) 
 		return nil, errors.Wrap(err, "makeContentClaimFromCred json.Marshal")
 	}
 	hash := crypto.Keccak256(claimJSON)
-	hash32 := [32]byte{}
-	copy(hash32[:], hash)
-	return claimtypes.NewClaimRegisteredDocument(hash32, signerDID, claimtypes.ContentCredentialDocType)
+	mhash, err := multihash.EncodeName(hash, "keccak-256")
+	if err != nil {
+		return nil, errors.Wrap(err, "makeContentClaimFromCred multihash.EncodeName")
+	}
+	hash34 := [34]byte{}
+	copy(hash34[:], mhash)
+	return claimtypes.NewClaimRegisteredDocument(hash34, signerDID, claimtypes.ContentCredentialDocType)
 }
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
@@ -346,13 +351,13 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.decodestring")
 	}
-	if len(hashb) > 32 {
+	if len(hashb) > 34 {
 		return errors.New("hash hex string is the wrong size")
 	}
-	hashb32 := [32]byte{}
-	copy(hashb32[:], hashb)
+	hashb34 := [34]byte{}
+	copy(hashb34[:], hashb)
 
-	claim, err := claimtypes.NewClaimRegisteredDocument(hashb32, signerDid, claimtypes.ContentCredentialDocType)
+	claim, err := claimtypes.NewClaimRegisteredDocument(hashb34, signerDid, claimtypes.ContentCredentialDocType)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.newclaimregistereddocument")
 	}
@@ -415,7 +420,7 @@ func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 
 			claimHash := hex.EncodeToString(regDoc.ContentHash[:])
 			// XXX(PN): Needs a bulk loader here
-			signed, err := s.signedClaimStore.GetCredentialByHash(claimHash)
+			signed, err := s.signedClaimStore.GetCredentialByMultihash(claimHash)
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
 			}

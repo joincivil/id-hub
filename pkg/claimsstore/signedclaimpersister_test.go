@@ -124,7 +124,7 @@ func TestFromContentCredential(t *testing.T) {
 	if signedClaim.Type != claimtypes.ContentCredentialType {
 		t.Errorf("wrong claim type")
 	}
-	if signedClaim.Hash != "98bc8d129cae501aa1aa4fe8d92d3452a1e18b72267f77c354aba2b1e609196a" {
+	if signedClaim.Hash != "1b2098bc8d129cae501aa1aa4fe8d92d3452a1e18b72267f77c354aba2b1e609196a" {
 		t.Errorf("hash does not match expected")
 	}
 }
@@ -146,11 +146,19 @@ func TestSignedClaimPersister(t *testing.T) {
 		t.Errorf("error adding claim: %v", err)
 	}
 
-	retrievedCred, err := persister.GetCredentialByHash(hash)
+	retrievedCred, err := persister.GetCredentialByHash(hash[4:])
 	if err != nil {
 		t.Errorf("error getting claim: %v", err)
 	}
 	_, err = claimtypes.FindLinkedDataProof(retrievedCred.Proof)
+	if err != nil {
+		t.Errorf("error retrieving linked data proof from slice: %v", err)
+	}
+	retrievedCred2, err := persister.GetCredentialByMultihash(hash)
+	if err != nil {
+		t.Errorf("error getting claim: %v", err)
+	}
+	_, err = claimtypes.FindLinkedDataProof(retrievedCred2.Proof)
 	if err != nil {
 		t.Errorf("error retrieving linked data proof from slice: %v", err)
 	}
