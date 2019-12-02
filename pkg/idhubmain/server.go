@@ -1,17 +1,21 @@
 package idhubmain
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	log "github.com/golang/glog"
+
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
+	gqlgen "github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/vektah/gqlparser/gqlerror"
 )
 
 func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
@@ -20,6 +24,7 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 	if err != nil {
 		log.Fatalf("error initializing gorm")
 	}
+	// db.LogMode(true)
 
 	// DID init
 	didPersister := initDidPersister(db)
@@ -72,6 +77,20 @@ func RunServer() error {
 		graphql.NewExecutableSchema(
 			graphql.Config{Resolvers: resolver},
 		),
+		handler.ErrorPresenter(
+			func(ctx context.Context, e error) *gqlerror.Error {
+				log.Errorf("gql error: %v", e)
+				return gqlgen.DefaultErrorPresenter(ctx, e)
+			},
+		),
+		handler.RecoverFunc(func(ctx context.Context, err interface{}) error {
+			// Send the error to the error reporter
+			switch val := err.(type) {
+			case error:
+				log.Errorf("gql panic error: %v", val)
+			}
+			return fmt.Errorf("Internal server error: %v", err)
+		}),
 	)
 	router.Handle(
 		fmt.Sprintf("/%v/query", "v1"),
