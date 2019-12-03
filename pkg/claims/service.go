@@ -281,14 +281,17 @@ func (s *Service) CreateTreeForDID(userDid *didlib.DID) error {
 	)
 }
 
-func (s *Service) verifyCredential(cred *claimtypes.ContentCredential, userMt *merkletree.MerkleTree,
-	signerDid *didlib.DID) (bool, error) {
-	linkedDataProof, err := claimtypes.FindLinkedDataProof(cred.Proof)
+func (s *Service) verifyCredential(cred claimtypes.Credential) (bool, error) {
+	linkedDataProof, err := cred.FindLinkedDataProof()
 	if err != nil {
 		return false, errors.Wrap(err, "verifyCredential.FindLinkedDataProof")
 	}
 	if linkedDataProof.Type != string(linkeddata.SuiteTypeSecp256k1Signature) {
 		return false, errors.New("Only Secp256k1 signature types are implemented")
+	}
+	signerDid, err := didlib.Parse(linkedDataProof.Creator)
+	if err != nil {
+		return false, errors.Wrap(err, "verifyCredential parse creator did")
 	}
 	pubkey, err := s.didService.GetKeyFromDIDDocument(signerDid)
 	if err != nil {
@@ -299,10 +302,15 @@ func (s *Service) verifyCredential(cred *claimtypes.ContentCredential, userMt *m
 		return false, err
 	}
 
-	if !isrv.CheckKSignInIddb(userMt, ecpub) {
+	signerMt, err := s.buildDIDMt(signerDid)
+	if err != nil {
+		return false, errors.Wrap(err, "verifyCredential.buildDIDMt")
+	}
+
+	if !isrv.CheckKSignInIddb(signerMt, ecpub) {
 		return false, errors.New("key used to sign has not been claimed in the merkle tree")
 	}
-	canoncred, err := CanonicalizeCredential(cred)
+	canoncred, err := cred.CanonicalizeCredential()
 	if err != nil {
 		return false, err
 	}
@@ -336,12 +344,12 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.builddidMt")
 	}
-	verified, err := s.verifyCredential(cred, didMt, signerDid)
+	verified, err := s.verifyCredential(cred)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.verifycredential")
 	}
 	if !verified {
-		return errors.New("could not verify string on credential")
+		return errors.New("could not verify credential")
 	}
 	hash, err := s.signedClaimStore.AddCredential(cred)
 	if err != nil {
@@ -368,6 +376,52 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	err = s.addNewRootClaim(signerDid)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.addnewrootclaim")
+	}
+
+	return nil
+}
+
+// ClaimLicense adds a license claim to the claimers claim tree
+func (s *Service) ClaimLicense(cred *claimtypes.LicenseCredential, claimer *didlib.DID) error {
+	didMt, err := s.buildDIDMt(claimer)
+	if err != nil {
+		return errors.Wrap(err, "claimlicense.builddidMt")
+	}
+
+	verified, err := s.verifyCredential(cred)
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.verifycredential")
+	}
+
+	if !verified {
+		return errors.New("could not verify credential")
+	}
+
+	hash, err := s.signedClaimStore.AddCredential(cred)
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.addcredential")
+	}
+	hashb, err := hex.DecodeString(hash)
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.decodestring")
+	}
+	if len(hashb) > 34 {
+		return errors.New("hash hex string is the wrong size")
+	}
+	hashb34 := [34]byte{}
+	copy(hashb34[:], hashb)
+
+	claim, err := claimtypes.NewClaimRegisteredDocument(hashb34, claimer, claimtypes.LicenseCredentialDocType)
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.newclaimregistereddocument")
+	}
+	err = didMt.Add(claim.Entry())
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.add")
+	}
+	err = s.addNewRootClaim(claimer)
+	if err != nil {
+		return errors.Wrap(err, "ClaimLicense.addnewrootclaim")
 	}
 
 	return nil
@@ -418,14 +472,19 @@ func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 				regDoc = tv.(claimtypes.ClaimRegisteredDocument)
 			}
 
-			claimHash := hex.EncodeToString(regDoc.ContentHash[:])
-			// XXX(PN): Needs a bulk loader here
-			signed, err := s.signedClaimStore.GetCredentialByMultihash(claimHash)
-			if err != nil {
-				return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
-			}
+			if regDoc.DocType == claimtypes.ContentCredentialDocType {
+				claimHash := hex.EncodeToString(regDoc.ContentHash[:])
+				// XXX(PN): Needs a bulk loader here
+				signed, err := s.signedClaimStore.GetCredentialByMultihash(claimHash)
+				if err != nil {
+					return nil, errors.Wrapf(err, "could not retrieve credential: hash: %v, err: %v", claimHash, err)
+				}
 
-			creds = append(creds, signed)
+				signedCont, ok := signed.(*claimtypes.ContentCredential)
+				if ok {
+					creds = append(creds, signedCont)
+				}
+			}
 
 		case *icore.ClaimAuthorizeKSignSecp256k1:
 			// Known claim type to ignore here

@@ -28,7 +28,7 @@ func TestSignerSign(t *testing.T) {
 	if err != nil {
 		t.Errorf("should not have errored creating proof: %v", err)
 	}
-	canoncred, err := claims.CanonicalizeCredential(claim)
+	canoncred, err := claim.CanonicalizeCredential()
 	if err != nil {
 		t.Errorf("error canonicalizing the claim: %v", err)
 	}

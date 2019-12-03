@@ -54,6 +54,29 @@ func makeContentCredential(issuerDID *didlib.DID) *claimtypes.ContentCredential 
 	}
 }
 
+func makeLicenseCredential(issuerDID *didlib.DID, subjectDID *didlib.DID) *claimtypes.LicenseCredential {
+	subj1 := &claimtypes.ContentSubject{
+		ID:    "https://id.civil.co/contentcredentials/v1/abcde",
+		Owner: issuerDID.String(),
+	}
+	subj2 := &claimtypes.LicenserSubject{
+		ID:   subjectDID.String(),
+		Name: "Some Publisher",
+	}
+	credSubj := &[]interface{}{subj1, subj2}
+	proof := linkeddata.Proof{}
+	proofSlice := &[]interface{}{proof}
+	return &claimtypes.LicenseCredential{
+		Context:           []string{"https://something.com/some/stuff/v1"},
+		Type:              []claimtypes.CredentialType{claimtypes.VerifiableCredentialType, claimtypes.LicenseCredentialType},
+		CredentialSubject: credSubj,
+		Issuer:            issuerDID.String(),
+		IssuanceDate:      time.Date(2018, 2, 1, 12, 30, 0, 0, time.UTC),
+		ExpirationDate:    time.Date(2019, 2, 1, 12, 30, 0, 0, time.UTC),
+		Proof:             proofSlice,
+	}
+}
+
 func makeService(db *gorm.DB, didService *did.Service,
 	signedClaimStore *claimsstore.SignedClaimPGPersister) (*claims.Service, *claims.RootService, error) {
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
@@ -310,9 +333,13 @@ func TestClaimContent(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not retrieve credential: %v", err)
 			}
-			if signedClaim.CredentialSubject.ID != "https://ap.com/article/1" {
-				t.Errorf("unexpected value for credential")
+			switch signedClaimValue := signedClaim.(type) {
+			case *claimtypes.ContentCredential:
+				if signedClaimValue.CredentialSubject.ID != "https://ap.com/article/1" {
+					t.Errorf("unexpected value for credential")
+				}
 			}
+
 		}
 	}
 }
@@ -385,7 +412,6 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	if err != nil {
 		t.Errorf("error converting claims to content creds: %v", err)
 	}
-
 	if len(listDidClaims) == 2 && len(contentCreds) != 1 {
 		t.Errorf("should have filtered down to 1 content cred from 2 claims")
 	}
@@ -520,5 +546,69 @@ func TestGenerateProof(t *testing.T) {
 
 	if !merkletree.VerifyProof(&proof.Root, didRoot, rootClaimEntry.HIndex(), rootClaimEntry.HValue()) {
 		t.Errorf("couldn't verify root tree proof")
+	}
+}
+
+func TestClaimLicense(t *testing.T) {
+	db, err := setupConnection()
+	if err != nil {
+		t.Errorf("error setting up the db: %v", err)
+	}
+
+	cleaner := testutils.DeleteCreatedEntities(db)
+	defer cleaner()
+	didPersister := did.NewPostgresPersister(db)
+	didService := did.NewService(didPersister)
+	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
+	claimService, _, err := makeService(db, didService, signedClaimStore)
+	if err != nil {
+		t.Errorf("error setting up service: %v", err)
+	}
+	key, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
+	if err != nil {
+		t.Fatalf("should be able to make a key")
+	}
+	pubBytes := crypto.FromECDSAPub(&key.PublicKey)
+	pub := hex.EncodeToString(pubBytes)
+	docPubKey := &did.DocPublicKey{
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pub,
+	}
+	signerDid, err := didlib.Parse("did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1")
+	if err != nil {
+		t.Errorf("error creating did: %v", err)
+	}
+	docPubKey.ID = signerDid
+	docPubKey.Controller = did.CopyDID(signerDid)
+	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	if err != nil {
+		t.Errorf("error making the did doc: %v", err)
+	}
+	if err := didService.SaveDocument(didDoc); err != nil {
+		t.Errorf("error saving the did doc: %v", err)
+	}
+	subjDid, _ := did.GenerateEthURIDID()
+
+	license := makeLicenseCredential(signerDid, subjDid)
+	err = claims.AddProof(license, didDoc.PublicKeys[0].ID, key)
+	if err != nil {
+		t.Errorf("error adding proof: %v", err)
+	}
+	err = claimService.ClaimLicense(license, signerDid)
+	if err == nil {
+		t.Errorf("should have errored because couldn't resolv the key")
+	}
+	err = claimService.CreateTreeForDIDWithPks(&didDoc.ID,
+		[]*ecdsa.PublicKey{&key.PublicKey})
+	if err != nil {
+		t.Errorf("problem creating did tree: %v", err)
+	}
+	err = claimService.ClaimLicense(license, signerDid)
+	if err != nil {
+		t.Errorf("problem creating content claim: %v", err)
+	}
+	err = claimService.ClaimLicense(license, signerDid)
+	if err == nil {
+		t.Errorf("should err for duplicate claim")
 	}
 }

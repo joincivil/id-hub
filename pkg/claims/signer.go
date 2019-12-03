@@ -29,7 +29,7 @@ func NewECDSASigner(privKey *ecdsa.PrivateKey) *ECDSASigner {
 
 // Sign takes a credential and a creator did and adds the proof
 func (s ECDSASigner) Sign(claim *claimtypes.ContentCredential, creator string) error {
-	canonical, err := CanonicalizeCredential(claim)
+	canonical, err := claim.CanonicalizeCredential()
 	if err != nil {
 		return err
 	}
