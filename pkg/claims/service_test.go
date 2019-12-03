@@ -11,6 +11,7 @@ import (
 	"github.com/iden3/go-iden3-core/merkletree"
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/go-common/pkg/article"
+	"github.com/joincivil/go-common/pkg/lock"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
@@ -60,8 +61,9 @@ func makeService(db *gorm.DB, didService *did.Service,
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
 	committer := &claims.FakeRootCommitter{}
+	dlock := lock.NewLocalDLock()
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
-	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService)
+	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	return claimService, rootService, err
 }
 

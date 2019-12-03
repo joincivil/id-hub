@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/iden3/go-iden3-core/db"
 	"github.com/joincivil/go-common/pkg/eth"
+	"github.com/joincivil/go-common/pkg/lock"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
@@ -15,8 +16,8 @@ func initDidService(persister did.Persister) *did.Service {
 }
 
 func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,
-	didService *did.Service, rootService *claims.RootService) (*claims.Service, error) {
-	return claims.NewService(treeStore, signedClaimStore, didService, rootService)
+	didService *did.Service, rootService *claims.RootService, dlock lock.DLock) (*claims.Service, error) {
+	return claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 }
 
 func initRootService(config *utils.IDHubConfig, ethHelper *eth.Helper,
