@@ -28,7 +28,7 @@ jobs:
             fi
       - checkout
       - setup_remote_docker: # (2)
-          docker_layer_caching: true # (3)
+          docker_layer_caching: false # (3)
       - run:
           name: Setting up tools
           command: make check-go-env
