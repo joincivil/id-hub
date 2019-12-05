@@ -19,12 +19,19 @@ import (
 	"github.com/iden3/go-iden3-core/merkletree"
 	isrv "github.com/iden3/go-iden3-core/services/claimsrv"
 
+	"github.com/joincivil/go-common/pkg/lock"
+	"github.com/joincivil/go-common/pkg/numbers"
+
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 
 	didlib "github.com/ockam-network/did"
+)
+
+var (
+	lockExpirationMillis = numbers.IntToPtr(1000 * 5)
 )
 
 // Service is a service for creating and reading claims
@@ -34,11 +41,12 @@ type Service struct {
 	signedClaimStore *claimsstore.SignedClaimPGPersister
 	didService       *did.Service
 	rootService      *RootService
+	dlock            lock.DLock
 }
 
 // NewService returns a new service
 func NewService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,
-	didService *did.Service, rootService *RootService) (*Service, error) {
+	didService *did.Service, rootService *RootService, dlock lock.DLock) (*Service, error) {
 	rootStore := treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
 
 	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
@@ -52,6 +60,7 @@ func NewService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.Si
 		signedClaimStore: signedClaimStore,
 		didService:       didService,
 		rootService:      rootService,
+		dlock:            dlock,
 	}, nil
 }
 
@@ -203,6 +212,12 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 		return errors.Wrap(err, "addNewRootClaim.NewClaimSetRootKeyDID")
 	}
 
+	// distributed locking around the root claim version and addition
+	lerr := s.dlock.Lock(userDid.String(), lockExpirationMillis)
+	if lerr != nil {
+		return errors.Wrapf(lerr, "addNewRootClaim.Lock: %v", userDid.String())
+	}
+
 	// get next version of the claim
 	version, err := s.treeStore.NodePersister.GetNextRootClaimVersion(userDid)
 	if gorm.IsRecordNotFoundError(err) {
@@ -210,11 +225,17 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 	} else if err != nil {
 		return errors.Wrap(err, "addNewRootClaim.NodePersister.GetNextRootClaimVersion")
 	}
+
 	claimSetRootKey.Version = version
 	err = s.rootMt.Add(claimSetRootKey.Entry())
+	lerr = s.dlock.Unlock(userDid.String())
+	if lerr != nil {
+		log.Infof("addNewRootClaim.Unlock: err: %v, did: %v", lerr, userDid.String())
+	}
 	if err != nil {
 		return errors.Wrap(err, "addNewRootClaim.rootMt.Add")
 	}
+
 	return nil
 }
 
@@ -240,13 +261,10 @@ func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.
 
 	// Claim all the valid public keys that could be used to sign
 	var claimKey *icore.ClaimAuthorizeKSignSecp256k1
-	var pkhex string
 	var addRoot bool
 	for _, k := range signPks {
 		// Check to ensure the key claim isn't already in tree
 		if isrv.CheckKSignInIddb(didMt, k) {
-			pkhex = hex.EncodeToString(crypto.FromECDSAPub(k))
-			log.Infof("key already in tree: %v", pkhex)
 			continue
 		}
 

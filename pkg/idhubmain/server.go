@@ -42,11 +42,13 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 	if err != nil {
 		log.Fatalf("error initializing root service: %v", err)
 	}
+	dlock := initDLock(config)
 	claimsService, err := initClaimsService(
 		treePersister,
 		signedClaimPersister,
 		didService,
 		rootService,
+		dlock,
 	)
 	if err != nil {
 		log.Fatalf("error initializing claims service")

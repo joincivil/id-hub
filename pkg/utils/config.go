@@ -17,10 +17,11 @@ const (
 // IDHubConfig is the master config for the ID Hub API derived from environment
 // variables.
 type IDHubConfig struct {
-	GqlPort                   int                `required:"true" desc:"Sets the ID Hub GraphQL port"`
-	RootCommitsAddress        string             `split_words:"true" desc:"address where root commits are stored"`
-	EthereumDefaultPrivateKey string             `split_words:"true" desc:"Private key to use when sending Ethereum transactions"`
-	EthAPIURL                 string             `envconfig:"eth_api_url" desc:"Ethereum API address"`
+	GqlPort                   int    `required:"true" desc:"Sets the ID Hub GraphQL port"`
+	RootCommitsAddress        string `split_words:"true" desc:"address where root commits are stored"`
+	EthereumDefaultPrivateKey string `split_words:"true" desc:"Private key to use when sending Ethereum transactions"`
+	EthAPIURL                 string `envconfig:"eth_api_url" desc:"Ethereum API address"`
+
 	PersisterType             ccfg.PersisterType `ignored:"true"`
 	PersisterTypeName         string             `split_words:"true" required:"true" desc:"Sets the persister type to use"`
 	PersisterPostgresAddress  string             `split_words:"true" desc:"If persister type is Postgresql, sets the address"`
@@ -31,6 +32,8 @@ type IDHubConfig struct {
 	PersisterPostgresMaxConns *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conns in pool"`
 	PersisterPostgresMaxIdle  *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max idle conns in pool"`
 	PersisterPostgresConnLife *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conn lifetime in secs"`
+
+	RedisHosts []string `split_words:"true" desc:"List of Redis host:port for caching and locking"`
 }
 
 // OutputUsage prints the usage string to os.Stdout

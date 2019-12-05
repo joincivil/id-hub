@@ -29,6 +29,10 @@ func setEnvironmentVariables() {
 		"IDHUB_PERSISTER_POSTGRES_DBNAME",
 		"docker",
 	)
+	_ = os.Setenv(
+		"IDHUB_REDIS_HOSTS",
+		"localhost:6379",
+	)
 }
 
 func TestIDHubConfig(t *testing.T) {

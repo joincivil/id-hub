@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jinzhu/gorm"
+	"github.com/joincivil/go-common/pkg/lock"
 	ctime "github.com/joincivil/go-common/pkg/time"
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/claims"
@@ -62,8 +63,9 @@ func makeService(db *gorm.DB, didService *did.Service,
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
 	committer := &claims.FakeRootCommitter{}
+	dlock := lock.NewLocalDLock()
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
-	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService)
+	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	return claimService, rootService, err
 }
 
