@@ -15,7 +15,7 @@ require (
 	github.com/iden3/go-iden3-crypto v0.0.3-0.20190831180703-c95c95b7b161
 	github.com/jinzhu/gorm v1.9.11
 	github.com/jinzhu/now v1.1.1 // indirect
-	github.com/joincivil/go-common v0.0.0-20191204214730-c59dbdde9b12
+	github.com/joincivil/go-common v0.0.0-20191205050703-0a4c979eb8c7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect

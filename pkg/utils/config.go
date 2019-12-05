@@ -33,7 +33,7 @@ type IDHubConfig struct {
 	PersisterPostgresMaxIdle  *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max idle conns in pool"`
 	PersisterPostgresConnLife *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conn lifetime in secs"`
 
-	RedisHosts []string `required:"true" split_words:"true" desc:"List of Redis host:port for caching and locking"`
+	RedisHosts []string `split_words:"true" desc:"List of Redis host:port for caching and locking"`
 }
 
 // OutputUsage prints the usage string to os.Stdout
