@@ -106,7 +106,11 @@ func TestToCredential(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to convert the claim: %v", err)
 	}
-	if cred.CredentialSubject.Metadata.Title != "an article of great importance" {
+	cc, ok := cred.(*claimtypes.ContentCredential)
+	if !ok {
+		t.Errorf("should have been a content credential")
+	}
+	if cc.CredentialSubject.Metadata.Title != "an article of great importance" {
 		t.Errorf("didn't hydrate right")
 	}
 }
@@ -150,7 +154,7 @@ func TestSignedClaimPersister(t *testing.T) {
 	if err != nil {
 		t.Errorf("error getting claim: %v", err)
 	}
-	_, err = claimtypes.FindLinkedDataProof(retrievedCred.Proof)
+	_, err = retrievedCred.FindLinkedDataProof()
 	if err != nil {
 		t.Errorf("error retrieving linked data proof from slice: %v", err)
 	}
@@ -158,7 +162,7 @@ func TestSignedClaimPersister(t *testing.T) {
 	if err != nil {
 		t.Errorf("error getting claim: %v", err)
 	}
-	_, err = claimtypes.FindLinkedDataProof(retrievedCred2.Proof)
+	_, err = retrievedCred2.FindLinkedDataProof()
 	if err != nil {
 		t.Errorf("error retrieving linked data proof from slice: %v", err)
 	}

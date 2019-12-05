@@ -15,8 +15,8 @@ import (
 )
 
 // AddProof takes a content cred a did and a pk and adds a proof to it
-func AddProof(cred *claimtypes.ContentCredential, signerDID *didlib.DID, pk *ecdsa.PrivateKey) error {
-	canonical, err := CanonicalizeCredential(cred)
+func AddProof(cred claimtypes.Credential, signerDID *didlib.DID, pk *ecdsa.PrivateKey) error {
+	canonical, err := cred.CanonicalizeCredential()
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,13 @@ func AddProof(cred *claimtypes.ContentCredential, signerDID *didlib.DID, pk *ecd
 		ProofValue: proofValue,
 	}
 	proofs = append(proofs, ld)
-	cred.Proof = proofs
+
+	switch tcred := cred.(type) {
+	case *claimtypes.ContentCredential:
+		tcred.Proof = proofs
+	case *claimtypes.LicenseCredential:
+		tcred.Proof = proofs
+	}
 	return nil
 }
 

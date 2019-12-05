@@ -25,7 +25,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/auth"
-	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/graphql"
@@ -148,7 +147,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 
 	// Create a new content credential / claim
 	cred := makeContentCredential(&didDoc.ID)
-	canoncred, _ := claims.CanonicalizeCredential(cred)
+	canoncred, _ := cred.CanonicalizeCredential()
 	fmt.Printf("canoncred = %v\n", string(canoncred))
 
 	// Create proof on credential

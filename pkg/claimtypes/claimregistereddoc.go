@@ -14,6 +14,8 @@ var ClaimTypeRegisteredDocument = core.NewClaimTypeNum(11)
 const (
 	// ContentCredentialDocType is an enum value that differentiates content credentials from other document types that may be registered later
 	ContentCredentialDocType uint32 = iota
+	// LicenseCredentialDocType is an enum value that differentiates license credentials from other documents
+	LicenseCredentialDocType uint32 = iota
 )
 
 // ClaimRegisteredDocument is a claim type for registering other claims like signed claims in the merkle tree
@@ -44,8 +46,8 @@ func NewClaimRegisteredDocument(ch [34]byte, did *didlib.DID, dt uint32) (*Claim
 func NewClaimRegisteredDocumentFromEntry(e *merkletree.Entry) *ClaimRegisteredDocument {
 	c := &ClaimRegisteredDocument{}
 	_, c.Version = core.GetClaimTypeVersionFromData(&e.Data)
-	var docType [32 / 8]byte
-	copyFromElemBytes(docType[:], 4, &e.Data[0])
+	var docType [4]byte
+	copyFromElemBytes(docType[:], 0, &e.Data[0])
 	c.DocType = binary.BigEndian.Uint32(docType[:])
 
 	copyFromElemBytes(c.DID[:], 0, &e.Data[1])
