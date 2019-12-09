@@ -7,6 +7,7 @@ POSTGRES_USER=docker
 POSTGRES_PSWD=docker
 
 PUBSUB_SIM_DOCKER_IMAGE=kinok/google-pubsub-emulator:latest
+REDIS_DOCKER_IMAGE=redis:4.0.14
 
 GOVERSION=go1.12.7
 
@@ -122,6 +123,19 @@ pubsub-start: check-docker-env pubsub-setup-launch ## Starts up the pubsub simul
 pubsub-stop: check-docker-env ## Stops the pubsub simulator
 	@docker stop `docker ps -q --filter "ancestor=$(PUBSUB_SIM_DOCKER_IMAGE)"`
 	@echo 'Google pubsub simulator down'
+
+.PHONY: redis-setup-launch
+redis-setup-launch:
+	@docker run -it -d -p 6379:6379 $(REDIS_DOCKER_IMAGE)
+
+.PHONY: redis-start
+redis-start: check-docker-env redis-setup-launch ## Starts up local test redis
+	@echo 'Redis up'
+
+.PHONY: redis-stop
+redis-stop: check-docker-env ## Stops the local test redis
+	@docker stop `docker ps -q --filter "ancestor=$(REDIS_DOCKER_IMAGE)"`
+	@echo 'Redis down'
 
 ## golangci-lint config in .golangci.yml
 .PHONY: lint
