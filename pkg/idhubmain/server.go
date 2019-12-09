@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	log "github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/graphql"
@@ -81,15 +82,15 @@ func RunServer() error {
 		),
 		handler.ErrorPresenter(
 			func(ctx context.Context, e error) *gqlerror.Error {
-				log.Errorf("gql error: %v", e)
-				return gqlgen.DefaultErrorPresenter(ctx, e)
+				err := errors.Cause(e)
+				log.Errorf("gql error: %v", err)
+				return gqlgen.DefaultErrorPresenter(ctx, err)
 			},
 		),
 		handler.RecoverFunc(func(ctx context.Context, err interface{}) error {
-			// Send the error to the error reporter
 			switch val := err.(type) {
 			case error:
-				log.Errorf("gql panic error: %v", val)
+				log.Errorf("gql panic error: %v", errors.Cause(val))
 			}
 			return fmt.Errorf("Internal server error: %v", err)
 		}),
