@@ -83,14 +83,14 @@ func RunServer() error {
 		handler.ErrorPresenter(
 			func(ctx context.Context, e error) *gqlerror.Error {
 				err := errors.Cause(e)
-				log.Errorf("gql error: %v", err)
+				log.Errorf("gql error: %+v", err)
 				return gqlgen.DefaultErrorPresenter(ctx, err)
 			},
 		),
 		handler.RecoverFunc(func(ctx context.Context, err interface{}) error {
 			switch val := err.(type) {
 			case error:
-				log.Errorf("gql panic error: %v", errors.Cause(val))
+				log.Errorf("gql panic error: %+v", errors.Cause(val))
 			}
 			return fmt.Errorf("Internal server error: %v", err)
 		}),

@@ -10,6 +10,7 @@ require (
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-redsync/redsync v1.3.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/iden3/go-iden3-core v0.0.7-0.20190910103140-0195e977d998
 	github.com/iden3/go-iden3-crypto v0.0.3-0.20190831180703-c95c95b7b161
