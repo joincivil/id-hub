@@ -174,16 +174,19 @@ func (p *SignedClaimPGPersister) AddCredential(claim claimtypes.Credential) (str
 	case *claimtypes.ContentCredential:
 		err := signedClaim.FromContentCredential(val)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "addcredential.fromcontentcred: hash: %v, sub: %v",
+				signedClaim.Hash, string(signedClaim.CredentialSubject.RawMessage))
 		}
 	case *claimtypes.LicenseCredential:
 		err := signedClaim.FromLicenseCredential(val)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "addcredential.fromlicencecred: hash: %v, sub: %v",
+				signedClaim.Hash, string(signedClaim.CredentialSubject.RawMessage))
 		}
 	}
 	if err := p.db.Create(signedClaim).Error; err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "addcredential.dbcreate: hash: %v, sub: %v",
+			signedClaim.Hash, string(signedClaim.CredentialSubject.RawMessage))
 	}
 	return signedClaim.Hash, nil
 }
