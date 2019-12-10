@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jinzhu/gorm"
@@ -72,21 +73,21 @@ func (s *Service) getSignerDID(proofs interface{}) (*didlib.DID, error) {
 	return didlib.Parse(linkedDataProof.Creator)
 }
 
-func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tree *merkletree.MerkleTree) (string, string, error) {
+func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tree *merkletree.MerkleTree) (*merkletree.Proof, *merkletree.Proof, error) {
 	hi := entry.HIndex()
 	proof, err := tree.GenerateProof(hi, tree.RootKey())
 	if err != nil {
-		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GenerateProof")
+		return &merkletree.Proof{}, &merkletree.Proof{}, errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GenerateProof")
 	}
 	leafData, err := tree.GetDataByIndex(hi)
 	if err != nil {
-		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GetDataByIndex")
+		return &merkletree.Proof{}, &merkletree.Proof{}, errors.Wrap(err, "generateProofAndNonRevokeFromEntry.tree.GetDataByIndex")
 	}
 	revoke, err := icore.GetNonRevocationMTProof(tree, leafData, hi)
 	if err != nil {
-		return "", "", errors.Wrap(err, "generateProofAndNonRevokeFromEntry.GetNonRevocationMTProof")
+		return &merkletree.Proof{}, &merkletree.Proof{}, errors.Wrap(err, "generateProofAndNonRevokeFromEntry.GetNonRevocationMTProof")
 	}
-	return hex.EncodeToString(proof.Bytes()), hex.EncodeToString(revoke.Bytes()), nil
+	return proof, revoke, nil
 }
 
 func (s *Service) getLastRootClaim(claim *claimtypes.ContentCredential,
@@ -129,12 +130,7 @@ func (s *Service) getRootSnapshot(commit *claimsstore.RootCommit) (*merkletree.M
 	return s.rootMt.Snapshot(&lastrootHash)
 }
 
-func (s *Service) makeContentClaimFromCred(claim *claimtypes.ContentCredential) (*claimtypes.ClaimRegisteredDocument, error) {
-	signerDID, err := s.getSignerDID(claim.Proof)
-	if err != nil {
-		return nil, errors.Wrap(err, "makeContentClaimFromCred.getSignerDID")
-	}
-
+func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential, claimer *didlib.DID) (*claimtypes.ClaimRegisteredDocument, error) {
 	claimJSON, err := json.Marshal(claim)
 	if err != nil {
 		return nil, errors.Wrap(err, "makeContentClaimFromCred json.Marshal")
@@ -146,7 +142,7 @@ func (s *Service) makeContentClaimFromCred(claim *claimtypes.ContentCredential) 
 	}
 	hash34 := [34]byte{}
 	copy(hash34[:], mhash)
-	return claimtypes.NewClaimRegisteredDocument(hash34, signerDID, claimtypes.ContentCredentialDocType)
+	return claimtypes.NewClaimRegisteredDocument(hash34, claimer, claimtypes.ContentCredentialDocType)
 }
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
@@ -171,35 +167,80 @@ func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, 
 		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim")
 	}
 
-	didRootExistsProof, err := lastRootSnapshot.GenerateProof(latestRootClaim.Entry().HIndex(), lastRootSnapshot.RootKey())
-	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.lastRootSnapshot.GenerateProof")
-	}
-
-	rdClaim, err := s.makeContentClaimFromCred(claim)
+	rdClaim, err := s.makeContentClaimFromCred(claim, signerDID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.makeContentClaimFromCred")
 	}
 
 	entry := rdClaim.Entry()
 	existsInDIDMTProof, notRevokedInDIDMTProof, err := s.generateProofAndNonRevokeFromEntry(entry, didTreeSnapshot)
+	// will error here if the proof is revoked in the anchored tree
+	if err != nil && strings.HasSuffix(err.Error(), "node index not found in the DB") {
+		existsInDIDMTProof = &merkletree.Proof{
+			Existence: false,
+		}
+	} else if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
+	}
+
+	didMt, err := s.buildDIDMt(signerDID)
+	if err != nil {
+		return nil, err
+	}
+
+	existsInDIDMTProofNoAnchor, notRevokedInDIDMTProofNoAnchor, err := s.generateProofAndNonRevokeFromEntry(entry, didMt)
+	// will anchore here if the the proof is revoked in the unanchored tree
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
 	}
 
+	// Will error before this for revocation
+	// if the claim exists in the anchored tree
+	if existsInDIDMTProof.Existence {
+		didRootExistsProof, err := lastRootSnapshot.GenerateProof(latestRootClaim.Entry().HIndex(), lastRootSnapshot.RootKey())
+		if err != nil {
+			return nil, errors.Wrap(err, "GenerateProof.lastRootSnapshot.GenerateProof")
+		}
+
+		return &MTProof{
+			ExistsInDIDMTProof:     hex.EncodeToString(existsInDIDMTProof.Bytes()),
+			NotRevokedInDIDMTProof: hex.EncodeToString(notRevokedInDIDMTProof.Bytes()),
+			DIDRootExistsProof:     hex.EncodeToString(didRootExistsProof.Bytes()),
+			DIDRootExistsVersion:   latestRootClaim.Version,
+			BlockNumber:            lastRootCommit.BlockNumber,
+			ContractAddress:        common.HexToAddress(lastRootCommit.ContractAddress),
+			TXHash:                 common.HexToHash(lastRootCommit.TransactionHash),
+			Root:                   *lastRootSnapshot.RootKey(),
+			DIDRoot:                *didTreeSnapshot.RootKey(),
+			CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
+			DID:                    signerDID.String(),
+		}, nil
+	}
+
+	rootClaimNoAnchor, _, err := s.getLastRootClaim(claim, s.rootMt)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim failed for current root tree")
+	}
+
+	didRootExistsProofNoAnchor, err := lastRootSnapshot.GenerateProof(rootClaimNoAnchor.Entry().HIndex(), s.rootMt.RootKey())
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.lastRootSnapshot.GenerateProof")
+	}
+
 	return &MTProof{
-		ExistsInDIDMTProof:     existsInDIDMTProof,
-		NotRevokedInDIDMTProof: notRevokedInDIDMTProof,
-		DIDRootExistsProof:     hex.EncodeToString(didRootExistsProof.Bytes()),
-		DIDRootExistsVersion:   latestRootClaim.Version,
-		BlockNumber:            lastRootCommit.BlockNumber,
+		ExistsInDIDMTProof:     hex.EncodeToString(existsInDIDMTProofNoAnchor.Bytes()),
+		NotRevokedInDIDMTProof: hex.EncodeToString(notRevokedInDIDMTProofNoAnchor.Bytes()),
+		DIDRootExistsProof:     hex.EncodeToString(didRootExistsProofNoAnchor.Bytes()),
+		DIDRootExistsVersion:   rootClaimNoAnchor.Version,
+		BlockNumber:            -1,
 		ContractAddress:        common.HexToAddress(lastRootCommit.ContractAddress),
-		TXHash:                 common.HexToHash(lastRootCommit.TransactionHash),
-		Root:                   *lastRootSnapshot.RootKey(),
-		DIDRoot:                *didTreeSnapshot.RootKey(),
+		TXHash:                 common.HexToHash("0x0"),
+		Root:                   *s.rootMt.RootKey(),
+		DIDRoot:                *didMt.RootKey(),
 		CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
 		DID:                    signerDID.String(),
 	}, nil
+
 }
 
 func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
@@ -394,6 +435,33 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	err = s.addNewRootClaim(signerDid)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.addnewrootclaim")
+	}
+
+	return nil
+}
+
+// RevokeClaim adds a revocation to the registered doc associated with a credential
+func (s *Service) RevokeClaim(cred claimtypes.Credential, claimer *didlib.DID) error {
+	didMt, err := s.buildDIDMt(claimer)
+	if err != nil {
+		return errors.Wrap(err, "revokeclaim.builddidMt")
+	}
+
+	rdClaim, err := s.makeContentClaimFromCred(cred, claimer)
+	if err != nil {
+		return errors.Wrap(err, "RevokeClaim.makeContentClaimFromCred")
+	}
+
+	rdClaim.Version = 1 // 1 signifies revokation for all registered document claims
+
+	err = didMt.Add(rdClaim.Entry())
+	if err != nil {
+		return errors.Wrap(err, "RevokeClaim.add")
+	}
+
+	err = s.addNewRootClaim(claimer)
+	if err != nil {
+		return errors.Wrap(err, "RevokeClaim.addnewrootclaim")
 	}
 
 	return nil
