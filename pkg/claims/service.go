@@ -65,15 +65,16 @@ func NewService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.Si
 	}, nil
 }
 
-func (s *Service) getSignerDID(proofs interface{}) (*didlib.DID, error) {
-	linkedDataProof, err := claimtypes.FindLinkedDataProof(proofs)
+func (s *Service) getSignerDID(cred claimtypes.Credential) (*didlib.DID, error) {
+	linkedDataProof, err := cred.FindLinkedDataProof()
 	if err != nil {
 		return nil, errors.Wrap(err, "getSignerDID.FindLinkedDataProof")
 	}
 	return didlib.Parse(linkedDataProof.Creator)
 }
 
-func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tree *merkletree.MerkleTree) (*merkletree.Proof, *merkletree.Proof, error) {
+func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry,
+	tree *merkletree.MerkleTree) (*merkletree.Proof, *merkletree.Proof, error) {
 	hi := entry.HIndex()
 	proof, err := tree.GenerateProof(hi, tree.RootKey())
 	if err != nil {
@@ -90,9 +91,9 @@ func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry, tr
 	return proof, revoke, nil
 }
 
-func (s *Service) getLastRootClaim(claim *claimtypes.ContentCredential,
+func (s *Service) getLastRootClaim(claim claimtypes.Credential,
 	rootSnapShotTree *merkletree.MerkleTree) (*claimtypes.ClaimSetRootKeyDID, *merkletree.MerkleTree, error) {
-	signerDID, err := s.getSignerDID(claim.Proof)
+	signerDID, err := s.getSignerDID(claim)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "getLastRootClaim.getSignerDID")
 	}
@@ -130,7 +131,8 @@ func (s *Service) getRootSnapshot(commit *claimsstore.RootCommit) (*merkletree.M
 	return s.rootMt.Snapshot(&lastrootHash)
 }
 
-func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential, claimer *didlib.DID) (*claimtypes.ClaimRegisteredDocument, error) {
+func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential,
+	claimer *didlib.DID) (*claimtypes.ClaimRegisteredDocument, error) {
 	claimJSON, err := json.Marshal(claim)
 	if err != nil {
 		return nil, errors.Wrap(err, "makeContentClaimFromCred json.Marshal")
@@ -146,7 +148,7 @@ func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential, claimer 
 }
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
-func (s *Service) GenerateProof(claim *claimtypes.ContentCredential, claimer *didlib.DID) (*MTProof, error) {
+func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID) (*MTProof, error) {
 	lastRootCommit, err := s.rootService.GetLatest()
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.rootService.GetLatest")
@@ -384,7 +386,7 @@ func (s *Service) verifyCredential(cred claimtypes.Credential) (bool, error) {
 // ClaimContent takes a content credential and saves it to the signed credential table
 // and then registers it in the tree
 func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
-	signerDid, err := s.getSignerDID(cred.Proof)
+	signerDid, err := s.getSignerDID(cred)
 	if err != nil {
 		return errors.Wrap(err, "ClaimContent.getSignerDID")
 	}
