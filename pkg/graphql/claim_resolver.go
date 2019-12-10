@@ -49,14 +49,23 @@ func (r *queryResolver) ClaimGet(ctx context.Context, in *ClaimGetRequestInput) 
 	return &ClaimGetResponse{Claims: creds}, nil
 }
 
-func (r *queryResolver) ClaimProof(ctx context.Context, in *ClaimSaveRequestInput) (
+func (r *queryResolver) ClaimProof(ctx context.Context, in *ClaimProofRequestInput) (
 	*ClaimProofResponse, error) {
-	cc, err := InputClaimToContentCredential(in)
+	claimSaveInput := &ClaimSaveRequestInput{
+		Claim:     in.Claim,
+		ClaimJSON: in.ClaimJSON,
+	}
+	cc, err := InputClaimToContentCredential(claimSaveInput)
 	if err != nil {
 		return nil, errors.Wrap(err, "error converting claim to credential")
 	}
 
-	proof, err := r.ClaimService.GenerateProof(cc)
+	requesterDid, err := didlib.Parse(in.Did)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing did")
+	}
+
+	proof, err := r.ClaimService.GenerateProof(cc, requesterDid)
 	if err != nil {
 		return nil, errors.Wrap(err, "error generating proof that claim is in tree")
 	}

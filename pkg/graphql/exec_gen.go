@@ -196,7 +196,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		ClaimGet   func(childComplexity int, in *ClaimGetRequestInput) int
-		ClaimProof func(childComplexity int, in *ClaimSaveRequestInput) int
+		ClaimProof func(childComplexity int, in *ClaimProofRequestInput) int
 		DidGet     func(childComplexity int, in *DidGetRequestInput) int
 		Version    func(childComplexity int) int
 	}
@@ -249,7 +249,7 @@ type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
 	DidGet(ctx context.Context, in *DidGetRequestInput) (*DidGetResponse, error)
 	ClaimGet(ctx context.Context, in *ClaimGetRequestInput) (*ClaimGetResponse, error)
-	ClaimProof(ctx context.Context, in *ClaimSaveRequestInput) (*ClaimProofResponse, error)
+	ClaimProof(ctx context.Context, in *ClaimProofRequestInput) (*ClaimProofResponse, error)
 }
 
 type executableSchema struct {
@@ -547,7 +547,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ClaimRegisteredProof.NotRevokedInDIDMTProof(childComplexity), true
 
-	case "ClaimRegisteredProof.Root":
+	case "ClaimRegisteredProof.root":
 		if e.complexity.ClaimRegisteredProof.Root == nil {
 			break
 		}
@@ -894,7 +894,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.ClaimProof(childComplexity, args["in"].(*ClaimSaveRequestInput)), true
+		return e.complexity.Query.ClaimProof(childComplexity, args["in"].(*ClaimProofRequestInput)), true
 
 	case "Query.didGet":
 		if e.complexity.Query.DidGet == nil {
@@ -915,35 +915,35 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
-	case "RootOnBlockChainProof.BlockNumber":
+	case "RootOnBlockChainProof.blockNumber":
 		if e.complexity.RootOnBlockChainProof.BlockNumber == nil {
 			break
 		}
 
 		return e.complexity.RootOnBlockChainProof.BlockNumber(childComplexity), true
 
-	case "RootOnBlockChainProof.CommitterAddress":
+	case "RootOnBlockChainProof.committerAddress":
 		if e.complexity.RootOnBlockChainProof.CommitterAddress == nil {
 			break
 		}
 
 		return e.complexity.RootOnBlockChainProof.CommitterAddress(childComplexity), true
 
-	case "RootOnBlockChainProof.ContractAddress":
+	case "RootOnBlockChainProof.contractAddress":
 		if e.complexity.RootOnBlockChainProof.ContractAddress == nil {
 			break
 		}
 
 		return e.complexity.RootOnBlockChainProof.ContractAddress(childComplexity), true
 
-	case "RootOnBlockChainProof.Root":
+	case "RootOnBlockChainProof.root":
 		if e.complexity.RootOnBlockChainProof.Root == nil {
 			break
 		}
 
 		return e.complexity.RootOnBlockChainProof.Root(childComplexity), true
 
-	case "RootOnBlockChainProof.TxHash":
+	case "RootOnBlockChainProof.txHash":
 		if e.complexity.RootOnBlockChainProof.TxHash == nil {
 			break
 		}
@@ -1033,7 +1033,7 @@ type Mutation {
 
 extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
-	claimProof(in: ClaimSaveRequestInput): ClaimProofResponse
+	claimProof(in: ClaimProofRequestInput): ClaimProofResponse
 }
 
 extend type Mutation {
@@ -1054,6 +1054,12 @@ type ClaimGetResponse {
 type ClaimProofResponse {
 	claim: Claim!
 	claimRaw: String!
+}
+
+input ClaimProofRequestInput{
+	claim: ClaimInput
+	claimJson: String
+	did: String!
 }
 
 input ClaimSaveRequestInput {
@@ -1100,7 +1106,7 @@ input ArticleMetadataInput {
 	primaryTag: String
 	revisionDate: String
 	originalPublishDate: String
-	Opinion: Boolean
+	opinion: Boolean
 	civilSchemaVersion: String
 }
 
@@ -1148,17 +1154,17 @@ type ClaimRegisteredProof {
 	notRevokedInDIDMTProof: String!
 	didMTRootExistsProof: String!
 	didRootExistsVersion: Int!
-	Root: String!
+	root: String!
 	didMTRoot: String!
 }
 
 type RootOnBlockChainProof {
 	type: String!
-	BlockNumber: String!
-	Root: String!
-	ContractAddress: String!
-	CommitterAddress: String!
-	TxHash: String!
+	blockNumber: String!
+	root: String!
+	contractAddress: String!
+	committerAddress: String!
+	txHash: String!
 }
 
 type ArticleMetadata {
@@ -1371,9 +1377,9 @@ func (ec *executionContext) field_Query_claimGet_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_claimProof_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *ClaimSaveRequestInput
+	var arg0 *ClaimProofRequestInput
 	if tmp, ok := rawArgs["in"]; ok {
-		arg0, err = ec.unmarshalOClaimSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx, tmp)
+		arg0, err = ec.unmarshalOClaimProofRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimProofRequestInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2846,7 +2852,7 @@ func (ec *executionContext) _ClaimRegisteredProof_didRootExistsVersion(ctx conte
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ClaimRegisteredProof_Root(ctx context.Context, field graphql.CollectedField, obj *ClaimRegisteredProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _ClaimRegisteredProof_root(ctx context.Context, field graphql.CollectedField, obj *ClaimRegisteredProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4556,7 +4562,7 @@ func (ec *executionContext) _Query_claimProof(ctx context.Context, field graphql
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ClaimProof(rctx, args["in"].(*ClaimSaveRequestInput))
+		return ec.resolvers.Query().ClaimProof(rctx, args["in"].(*ClaimProofRequestInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4683,7 +4689,7 @@ func (ec *executionContext) _RootOnBlockChainProof_type(ctx context.Context, fie
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RootOnBlockChainProof_BlockNumber(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _RootOnBlockChainProof_blockNumber(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4720,7 +4726,7 @@ func (ec *executionContext) _RootOnBlockChainProof_BlockNumber(ctx context.Conte
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RootOnBlockChainProof_Root(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _RootOnBlockChainProof_root(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4757,7 +4763,7 @@ func (ec *executionContext) _RootOnBlockChainProof_Root(ctx context.Context, fie
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RootOnBlockChainProof_ContractAddress(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _RootOnBlockChainProof_contractAddress(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4794,7 +4800,7 @@ func (ec *executionContext) _RootOnBlockChainProof_ContractAddress(ctx context.C
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RootOnBlockChainProof_CommitterAddress(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _RootOnBlockChainProof_committerAddress(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -4831,7 +4837,7 @@ func (ec *executionContext) _RootOnBlockChainProof_CommitterAddress(ctx context.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RootOnBlockChainProof_TxHash(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
+func (ec *executionContext) _RootOnBlockChainProof_txHash(ctx context.Context, field graphql.CollectedField, obj *RootOnBlockChainProof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -6157,7 +6163,7 @@ func (ec *executionContext) unmarshalInputArticleMetadataInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
-		case "Opinion":
+		case "opinion":
 			var err error
 			it.Opinion, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -6292,6 +6298,36 @@ func (ec *executionContext) unmarshalInputClaimInput(ctx context.Context, obj in
 		case "proof":
 			var err error
 			it.Proof, err = ec.unmarshalNLinkedDataProofInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputClaimProofRequestInput(ctx context.Context, obj interface{}) (ClaimProofRequestInput, error) {
+	var it ClaimProofRequestInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "claim":
+			var err error
+			it.Claim, err = ec.unmarshalOClaimInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "claimJson":
+			var err error
+			it.ClaimJSON, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "did":
+			var err error
+			it.Did, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6951,8 +6987,8 @@ func (ec *executionContext) _ClaimRegisteredProof(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Root":
-			out.Values[i] = ec._ClaimRegisteredProof_Root(ctx, field, obj)
+		case "root":
+			out.Values[i] = ec._ClaimRegisteredProof_root(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7462,28 +7498,28 @@ func (ec *executionContext) _RootOnBlockChainProof(ctx context.Context, sel ast.
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "BlockNumber":
-			out.Values[i] = ec._RootOnBlockChainProof_BlockNumber(ctx, field, obj)
+		case "blockNumber":
+			out.Values[i] = ec._RootOnBlockChainProof_blockNumber(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Root":
-			out.Values[i] = ec._RootOnBlockChainProof_Root(ctx, field, obj)
+		case "root":
+			out.Values[i] = ec._RootOnBlockChainProof_root(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "ContractAddress":
-			out.Values[i] = ec._RootOnBlockChainProof_ContractAddress(ctx, field, obj)
+		case "contractAddress":
+			out.Values[i] = ec._RootOnBlockChainProof_contractAddress(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "CommitterAddress":
-			out.Values[i] = ec._RootOnBlockChainProof_CommitterAddress(ctx, field, obj)
+		case "committerAddress":
+			out.Values[i] = ec._RootOnBlockChainProof_committerAddress(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "TxHash":
-			out.Values[i] = ec._RootOnBlockChainProof_TxHash(ctx, field, obj)
+		case "txHash":
+			out.Values[i] = ec._RootOnBlockChainProof_txHash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -8538,6 +8574,18 @@ func (ec *executionContext) unmarshalOClaimInput2ᚖgithubᚗcomᚋjoincivilᚋi
 		return nil, nil
 	}
 	res, err := ec.unmarshalOClaimInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) unmarshalOClaimProofRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimProofRequestInput(ctx context.Context, v interface{}) (ClaimProofRequestInput, error) {
+	return ec.unmarshalInputClaimProofRequestInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOClaimProofRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimProofRequestInput(ctx context.Context, v interface{}) (*ClaimProofRequestInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOClaimProofRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimProofRequestInput(ctx, v)
 	return &res, err
 }
 

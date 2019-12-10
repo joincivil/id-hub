@@ -146,12 +146,7 @@ func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential, claimer 
 }
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
-func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, error) {
-	signerDID, err := s.getSignerDID(claim.Proof)
-	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.getSignerDID")
-	}
-
+func (s *Service) GenerateProof(claim *claimtypes.ContentCredential, claimer *didlib.DID) (*MTProof, error) {
 	lastRootCommit, err := s.rootService.GetLatest()
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.rootService.GetLatest")
@@ -167,7 +162,7 @@ func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, 
 		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim")
 	}
 
-	rdClaim, err := s.makeContentClaimFromCred(claim, signerDID)
+	rdClaim, err := s.makeContentClaimFromCred(claim, claimer)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.makeContentClaimFromCred")
 	}
@@ -183,7 +178,7 @@ func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, 
 		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
 	}
 
-	didMt, err := s.buildDIDMt(signerDID)
+	didMt, err := s.buildDIDMt(claimer)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +208,7 @@ func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, 
 			Root:                   *lastRootSnapshot.RootKey(),
 			DIDRoot:                *didTreeSnapshot.RootKey(),
 			CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
-			DID:                    signerDID.String(),
+			DID:                    claimer.String(),
 		}, nil
 	}
 
@@ -238,7 +233,7 @@ func (s *Service) GenerateProof(claim *claimtypes.ContentCredential) (*MTProof, 
 		Root:                   *s.rootMt.RootKey(),
 		DIDRoot:                *didMt.RootKey(),
 		CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
-		DID:                    signerDID.String(),
+		DID:                    claimer.String(),
 	}, nil
 
 }

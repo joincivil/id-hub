@@ -39,7 +39,7 @@ type ArticleMetadataInput struct {
 	PrimaryTag          *string                            `json:"primaryTag"`
 	RevisionDate        *string                            `json:"revisionDate"`
 	OriginalPublishDate *string                            `json:"originalPublishDate"`
-	Opinion             *bool                              `json:"Opinion"`
+	Opinion             *bool                              `json:"opinion"`
 	CivilSchemaVersion  *string                            `json:"civilSchemaVersion"`
 }
 
@@ -68,6 +68,12 @@ type ClaimInput struct {
 	Proof             []*LinkedDataProofInput      `json:"proof"`
 }
 
+type ClaimProofRequestInput struct {
+	Claim     *ClaimInput `json:"claim"`
+	ClaimJSON *string     `json:"claimJson"`
+	Did       string      `json:"did"`
+}
+
 type ClaimProofResponse struct {
 	Claim    *claimtypes.ContentCredential `json:"claim"`
 	ClaimRaw string                        `json:"claimRaw"`
@@ -80,7 +86,7 @@ type ClaimRegisteredProof struct {
 	NotRevokedInDIDMTProof string `json:"notRevokedInDIDMTProof"`
 	DidMTRootExistsProof   string `json:"didMTRootExistsProof"`
 	DidRootExistsVersion   int    `json:"didRootExistsVersion"`
-	Root                   string `json:"Root"`
+	Root                   string `json:"root"`
 	DidMTRoot              string `json:"didMTRoot"`
 }
 
@@ -145,11 +151,11 @@ type LinkedDataProofInput struct {
 
 type RootOnBlockChainProof struct {
 	Type             string `json:"type"`
-	BlockNumber      string `json:"BlockNumber"`
-	Root             string `json:"Root"`
-	ContractAddress  string `json:"ContractAddress"`
-	CommitterAddress string `json:"CommitterAddress"`
-	TxHash           string `json:"TxHash"`
+	BlockNumber      string `json:"blockNumber"`
+	Root             string `json:"root"`
+	ContractAddress  string `json:"contractAddress"`
+	CommitterAddress string `json:"committerAddress"`
+	TxHash           string `json:"txHash"`
 }
 
 func (RootOnBlockChainProof) IsProof() {}

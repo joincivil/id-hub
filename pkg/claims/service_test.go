@@ -485,7 +485,7 @@ func TestGenerateProof(t *testing.T) {
 		t.Errorf("problem creating content claim: %v", err)
 	}
 
-	proofBeforeCommit, err := claimService.GenerateProof(cred)
+	proofBeforeCommit, err := claimService.GenerateProof(cred, signerDid)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
@@ -499,7 +499,7 @@ func TestGenerateProof(t *testing.T) {
 	if err != nil {
 		t.Errorf("error committing root: %v", err)
 	}
-	proof, err := claimService.GenerateProof(cred)
+	proof, err := claimService.GenerateProof(cred, signerDid)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
@@ -570,7 +570,7 @@ func TestGenerateProof(t *testing.T) {
 		t.Errorf("couldn't revoke claim")
 	}
 
-	_, err = claimService.GenerateProof(cred)
+	_, err = claimService.GenerateProof(cred, signerDid)
 	if err == nil {
 		t.Errorf("it should error if the claim is revoked")
 	}

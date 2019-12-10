@@ -2,7 +2,7 @@
 
 extend type Query {
 	claimGet(in: ClaimGetRequestInput): ClaimGetResponse
-	claimProof(in: ClaimSaveRequestInput): ClaimProofResponse
+	claimProof(in: ClaimProofRequestInput): ClaimProofResponse
 }
 
 extend type Mutation {
@@ -23,6 +23,12 @@ type ClaimGetResponse {
 type ClaimProofResponse {
 	claim: Claim!
 	claimRaw: String!
+}
+
+input ClaimProofRequestInput{
+	claim: ClaimInput
+	claimJson: String
+	did: String!
 }
 
 input ClaimSaveRequestInput {

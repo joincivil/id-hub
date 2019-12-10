@@ -171,7 +171,13 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("error committing root: %v", err)
 	}
 
-	proofResponse, err := queries.ClaimProof(c, claimSaveInput)
+	proofInput := &graphql.ClaimProofRequestInput{
+		Claim:     claimSaveInput.Claim,
+		ClaimJSON: claimSaveInput.ClaimJSON,
+		Did:       claimerDid.String(),
+	}
+
+	proofResponse, err := queries.ClaimProof(c, proofInput)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
