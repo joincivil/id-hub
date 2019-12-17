@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"math/big"
 	"testing"
 	"time"
 
@@ -83,8 +84,8 @@ func makeService(db *gorm.DB, didService *did.Service,
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
-	committer := &claims.FakeRootCommitter{}
 	dlock := lock.NewLocalDLock()
+	committer := &claims.FakeRootCommitter{CurrentBlockNumber: big.NewInt(1)}
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	return claimService, rootService, err
@@ -470,6 +471,12 @@ func TestGenerateProof(t *testing.T) {
 		t.Errorf("problem creating did tree: %v", err)
 	}
 
+	// commit the root
+	err = rootService.CommitRoot()
+	if err != nil {
+		t.Errorf("error committing root: %v", err)
+	}
+
 	// Claim content 1
 	cred := makeContentCredential(&didDoc.ID)
 	_ = claims.AddProof(cred, didDoc.PublicKeys[0].ID, key)
@@ -478,18 +485,26 @@ func TestGenerateProof(t *testing.T) {
 		t.Errorf("problem creating content claim: %v", err)
 	}
 
+	proofBeforeCommit, err := claimService.GenerateProof(cred, signerDid)
+	if err != nil {
+		t.Errorf("error generating proof: %v", err)
+	}
+
+	if proofBeforeCommit.BlockNumber != -1 {
+		t.Errorf("block number should be -1 before committing the root")
+	}
+
 	// commit the root
 	err = rootService.CommitRoot()
 	if err != nil {
 		t.Errorf("error committing root: %v", err)
 	}
-
-	proof, err := claimService.GenerateProof(cred)
+	proof, err := claimService.GenerateProof(cred, signerDid)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
 
-	if proof.BlockNumber != 2 {
+	if proof.BlockNumber != 3 {
 		t.Errorf("didn't get the right blocknumber")
 	}
 
@@ -549,6 +564,17 @@ func TestGenerateProof(t *testing.T) {
 	if !merkletree.VerifyProof(&proof.Root, didRoot, rootClaimEntry.HIndex(), rootClaimEntry.HValue()) {
 		t.Errorf("couldn't verify root tree proof")
 	}
+
+	err = claimService.RevokeClaim(cred, signerDid)
+	if err != nil {
+		t.Errorf("couldn't revoke claim")
+	}
+
+	_, err = claimService.GenerateProof(cred, signerDid)
+	if err == nil {
+		t.Errorf("it should error if the claim is revoked")
+	}
+
 }
 
 func TestClaimLicense(t *testing.T) {

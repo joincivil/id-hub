@@ -3,6 +3,7 @@ package graphql_test
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strconv"
 	"testing"
 
@@ -62,8 +63,8 @@ func makeService(db *gorm.DB, didService *did.Service,
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
-	committer := &claims.FakeRootCommitter{}
 	dlock := lock.NewLocalDLock()
+	committer := &claims.FakeRootCommitter{CurrentBlockNumber: big.NewInt(2)}
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	return claimService, rootService, err
@@ -170,7 +171,13 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("error committing root: %v", err)
 	}
 
-	proofResponse, err := queries.ClaimProof(c, claimSaveInput)
+	proofInput := &graphql.ClaimProofRequestInput{
+		Claim:     claimSaveInput.Claim,
+		ClaimJSON: claimSaveInput.ClaimJSON,
+		Did:       claimerDid.String(),
+	}
+
+	proofResponse, err := queries.ClaimProof(c, proofInput)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}

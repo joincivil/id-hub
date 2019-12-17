@@ -1,6 +1,7 @@
 package claims_test
 
 import (
+	"math/big"
 	"testing"
 
 	iden3db "github.com/iden3/go-iden3-core/db"
@@ -18,7 +19,7 @@ func makeRootService(db *gorm.DB) (*claims.RootService, *claimsstore.RootCommits
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	rootpersister := claimsstore.NewRootCommitsPGPersister(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
-	committer := &claims.FakeRootCommitter{}
+	committer := &claims.FakeRootCommitter{CurrentBlockNumber: big.NewInt(1)}
 	rootService, err := claims.NewRootService(treeStore, committer, rootpersister)
 	return rootService, rootpersister, treeStore, err
 }

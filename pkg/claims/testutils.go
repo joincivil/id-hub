@@ -46,17 +46,20 @@ func AddProof(cred claimtypes.Credential, signerDID *didlib.DID, pk *ecdsa.Priva
 }
 
 // FakeRootCommitter fakes the blockchain part of the committing roots for testing
-type FakeRootCommitter struct{}
+type FakeRootCommitter struct {
+	CurrentBlockNumber *big.Int
+}
 
 // CommitRoot fakely commits the root
 func (r *FakeRootCommitter) CommitRoot(root [32]byte,
 	c chan<- *ProgressUpdate) {
 	defer close(c)
 	c <- &ProgressUpdate{Status: Done, Result: &ethTypes.Receipt{
-		BlockNumber:     big.NewInt(2),
+		BlockNumber:     r.CurrentBlockNumber,
 		TxHash:          common.HexToHash("0x368782c63319f79c83cb937fefe1f0268c6fd098930e1d590a45ad233bcace37"),
 		ContractAddress: common.HexToAddress("0x6BBDd7B1a289C5bE8fAa29Cb1c0be66cb2582060"),
 	}, Err: nil}
+	r.CurrentBlockNumber = r.CurrentBlockNumber.Add(r.CurrentBlockNumber, big.NewInt(1))
 }
 
 // GetAccount returns an account that could have been the one used for testing
