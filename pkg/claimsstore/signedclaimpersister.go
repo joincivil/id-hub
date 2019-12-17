@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	log "github.com/golang/glog"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/postgres"
@@ -188,6 +190,8 @@ func (p *SignedClaimPGPersister) AddCredential(claim claimtypes.Credential) (str
 		return "", errors.Wrapf(err, "addcredential.dbcreate: hash: %v, sub: %v",
 			signedClaim.Hash, string(signedClaim.CredentialSubject.RawMessage))
 	}
+	// Debug remove!
+	log.Infof("addcredential.success: hash: %v", signedClaim.Hash)
 	return signedClaim.Hash, nil
 }
 
