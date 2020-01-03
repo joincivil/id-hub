@@ -13,10 +13,21 @@ const (
 	SuiteTypeRsaSignature SuiteType = "RsaSignature2018"
 	// SuiteTypeRsaVerification defines LD crypto suite type for RSA verifications
 	SuiteTypeRsaVerification SuiteType = "RsaVerificationKey2018"
+
 	// SuiteTypeSecp256k1Signature defines LD crypto suite type for Secp256k signatures
 	SuiteTypeSecp256k1Signature SuiteType = "EcdsaSecp256k1Signature2019"
 	// SuiteTypeSecp256k1Verification defines LD crypto suite type for Secp256k verifications
 	SuiteTypeSecp256k1Verification SuiteType = "EcdsaSecp256k1VerificationKey2019"
+	// SuiteTypeSecp256k1SignatureAuth defines LD crypto suite type for Secp256k authentication
+	SuiteTypeSecp256k1SignatureAuth SuiteType = "EcdsaSecp256k1SignatureAuthentication2019"
+
+	// SuiteTypeSecp256k1Signature2018 defines LD crypto suite type for Secp256k signatures
+	SuiteTypeSecp256k1Signature2018 SuiteType = "Secp256k1Signature2018"
+	// SuiteTypeSecp256k1Verification2018 defines LD crypto suite type for Secp256k verifications
+	SuiteTypeSecp256k1Verification2018 SuiteType = "Secp256k1VerificationKey2018"
+	// SuiteTypeSecp256k1SignatureAuth2018 defines LD crypto suite type for Secp256k authentication
+	SuiteTypeSecp256k1SignatureAuth2018 SuiteType = "Secp256k1SignatureAuthentication2018"
+
 	// SuiteTypeEd25519Signature defines LD crypto suite type for Ed25519 signatures
 	SuiteTypeEd25519Signature SuiteType = "Ed25519Signature2018"
 	// SuiteTypeEd25519Verification defines LD crypto suite type for Ed25519 verifications
@@ -32,6 +43,10 @@ func IsEcdsaKeySuiteType(keytype SuiteType) bool {
 	case SuiteTypeSecp256k1Signature:
 		return true
 	case SuiteTypeSecp256k1Verification:
+		return true
+	case SuiteTypeSecp256k1Signature2018:
+		return true
+	case SuiteTypeSecp256k1Verification2018:
 		return true
 	}
 	return false

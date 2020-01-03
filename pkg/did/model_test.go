@@ -22,6 +22,7 @@ const testDIDDoc = `
 		{
 		"id": "did:example:123456789abcdefghi#keys-1",
 		"type": "RsaVerificationKey2018",
+		"owner": "did:example:123456789abcdefghi",
 		"controller": "did:example:123456789abcdefghi",
 		"publicKeyPem": "-----BEGIN PUBLIC KEY...END PUBLIC KEY-----\r\n"
 		}
@@ -31,8 +32,15 @@ const testDIDDoc = `
 		{
 			"id": "did:example:123456789abcdefghi#keys-2",
 			"type": "RsaVerificationKey2018",
+			"owner": "did:example:123456789abcdefghi",
 			"controller": "did:example:123456789abcdefghi",
 			"publicKeyPem": "-----BEGIN PUBLIC KEY...END PUBLIC KEY-----\r\n"
+		},
+		{
+			"type": "Secp256k1SignatureAuthentication2018",
+			"publicKey": [
+				"did:example:123456789abcdefghi#keys-1"
+			]
 		}
 	],
 	"service": [
@@ -158,6 +166,9 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 		if key.ID.String() != "did:example:123456789abcdefghi#keys-1" {
 			t.Errorf("Should have returned correct key id")
 		}
+		if key.Owner.String() != "did:example:123456789abcdefghi" {
+			t.Errorf("Should have returned correct owner")
+		}
 		if key.Controller.String() != "did:example:123456789abcdefghi" {
 			t.Errorf("Should have returned correct controller")
 		}
@@ -176,6 +187,9 @@ func TestDocumentModelUnmarshal(t *testing.T) {
 		key := doc.Authentications[0]
 		if key.ID.String() != "did:example:123456789abcdefghi#keys-1" {
 			t.Errorf("Should have returned id pointer")
+		}
+		if key.Owner != nil {
+			t.Errorf("Should not have returned Owner for auth")
 		}
 		// This is the full public key object
 		key = doc.Authentications[1]
