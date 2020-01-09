@@ -22,7 +22,7 @@ const (
 )
 
 func TestHTTPUniversalResolverLiveWeb(t *testing.T) {
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 	dd, _ := didlib.Parse("did:web:uport.me")
 	doc, err := res.Resolve(dd)
@@ -74,7 +74,7 @@ func TestHTTPUniversalResolverLiveWeb(t *testing.T) {
 }
 
 func TestHTTPUniversalResolverLiveEthr(t *testing.T) {
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 	dd, _ := didlib.Parse("did:ethr:0x3b0BC51Ab9De1e5B7B6E34E5b960285805C41736")
 	doc, err := res.Resolve(dd)
@@ -90,7 +90,7 @@ func TestHTTPUniversalResolverLiveEthr(t *testing.T) {
 }
 
 func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 	dd, _ := didlib.Parse("did:ccp:ceNobbK6Me9F5zwyE3MKY88QZLw")
 	doc, err := res.Resolve(dd)
@@ -110,7 +110,7 @@ func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
 // fork it for Civil.
 
 // func TestHTTPUniversalResolverLiveNacl(t *testing.T) {
-// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 // 	dd, err := didlib.Parse("did:nacl:Md8JiMIwsapml_FtQ2ngnGftNP5UmVCAUuhnLyAsPxI")
 // 	t.Logf("err = %v", err)
@@ -128,7 +128,7 @@ func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
 
 // NOTE(PN): The resolver for this method doesn't seem to work
 // func TestHTTPUniversalResolverLiveSov(t *testing.T) {
-// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 // 	dd, _ := didlib.Parse("did:sov:WRfXPg8dantKVubE3HX8pw")
 // 	doc, err := res.Resolve(dd)
@@ -145,7 +145,7 @@ func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
 
 // NOTE(PN): The resolver for this method doesn't seem to work
 // func TestHTTPUniversalResolverLiveBtcr(t *testing.T) {
-// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 // 	dd, _ := didlib.Parse("did:btcr:xz35-jznz-q6mr-7q6")
 // 	doc, err := res.Resolve(dd)
@@ -162,7 +162,7 @@ func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
 
 // NOTE(PN): The resolver for this method doesn't seem to work
 // func TestHTTPUniversalResolverLiveWork(t *testing.T) {
-// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort))
+// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
 // 	dd, _ := didlib.Parse("did:work:2UUHQCd4psvkPLZGnWY33L")
 // 	doc, err := res.Resolve(dd)

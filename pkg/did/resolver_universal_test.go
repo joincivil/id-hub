@@ -7,7 +7,9 @@ import (
 	"net/url"
 	"strconv"
 	"testing"
+	"time"
 
+	"github.com/allegro/bigcache"
 	cnum "github.com/joincivil/go-common/pkg/numbers"
 	cstr "github.com/joincivil/go-common/pkg/strings"
 
@@ -108,7 +110,7 @@ func TestHTTPUniversalResolver(t *testing.T) {
 	host := u.Hostname()
 	port, _ := strconv.Atoi(u.Port())
 
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
 
 	dd, _ := didlib.Parse("did:web:uport.me")
 	doc, err := res.Resolve(dd)
@@ -158,6 +160,63 @@ func TestHTTPUniversalResolver(t *testing.T) {
 	server.Close()
 }
 
+func TestHTTPUniversalResolverWithCache(t *testing.T) {
+	count := 0
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if count > 1 {
+			t.Error("Should have been cached")
+		}
+		t.Logf("here")
+		fmt.Fprintln(w, validResponse)
+		count++
+	})
+
+	server := httptest.NewServer(h)
+	u, _ := url.Parse(server.URL)
+	host := u.Hostname()
+	port, _ := strconv.Atoi(u.Port())
+
+	cache, _ := bigcache.NewBigCache(bigcache.Config{
+		Shards:             1024,
+		LifeWindow:         2 * time.Second,
+		CleanWindow:        3 * time.Second,
+		MaxEntriesInWindow: 1000 * 10 * 60,
+		MaxEntrySize:       500,
+		Verbose:            true,
+		HardMaxCacheSize:   16384,
+	})
+	rcache := did.NewBigCacheResolverCache(cache)
+
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), rcache)
+
+	dd, _ := didlib.Parse("did:web:uport.me")
+	doc, err := res.Resolve(dd)
+	if err != nil {
+		t.Fatalf("Should not have gotten error resolving did: err: %v", err)
+	}
+	if doc == nil {
+		t.Errorf("Should have received a valid doc")
+	}
+
+	doc, err = res.Resolve(dd)
+	if err != nil {
+		t.Fatalf("Should not have gotten error resolving did: err: %v", err)
+	}
+	if doc == nil {
+		t.Errorf("Should have received a valid doc")
+	}
+
+	doc, err = res.Resolve(dd)
+	if err != nil {
+		t.Fatalf("Should not have gotten error resolving did: err: %v", err)
+	}
+	if doc == nil {
+		t.Errorf("Should have received a valid doc")
+	}
+
+	server.Close()
+}
+
 func TestHTTPUniversalRawResolver(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, validResponse)
@@ -168,7 +227,7 @@ func TestHTTPUniversalRawResolver(t *testing.T) {
 	host := u.Hostname()
 	port, _ := strconv.Atoi(u.Port())
 
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
 
 	dd, _ := didlib.Parse("did:web:uport.me")
 	resp, err := res.RawResolve(dd)
@@ -238,7 +297,7 @@ func TestHTTPUniversalResolverErrorEmptyDID(t *testing.T) {
 	host := u.Hostname()
 	port, _ := strconv.Atoi(u.Port())
 
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
 
 	resp, err := res.Resolve(nil)
 	if err == nil {
@@ -259,7 +318,7 @@ func TestHTTPUniversalResolverErrorHttp(t *testing.T) {
 	host := u.Hostname()
 	port, _ := strconv.Atoi(u.Port())
 
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
 
 	dd, _ := didlib.Parse("did:web:uport.me")
 	resp, err := res.Resolve(dd)
@@ -281,7 +340,7 @@ func TestHTTPUniversalRawResolverError(t *testing.T) {
 	host := u.Hostname()
 	port, _ := strconv.Atoi(u.Port())
 
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port))
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
 
 	dd, _ := didlib.Parse("did:web:uport.me")
 	resp, err := res.Resolve(dd)

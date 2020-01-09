@@ -60,7 +60,8 @@ type UniversalResolverMetadata struct {
 }
 
 // NewHTTPUniversalResolver initializes and returns a new HTTPUniversalResolver
-func NewHTTPUniversalResolver(resolverHost *string, resolverPort *int) *HTTPUniversalResolver {
+func NewHTTPUniversalResolver(resolverHost *string, resolverPort *int,
+	cache ResolverCache) *HTTPUniversalResolver {
 	host := defaultResolverHost
 	if resolverHost != nil {
 		host = *resolverHost
@@ -72,6 +73,7 @@ func NewHTTPUniversalResolver(resolverHost *string, resolverPort *int) *HTTPUniv
 	return &HTTPUniversalResolver{
 		resolverHost: host,
 		resolverPort: port,
+		cache:        cache,
 	}
 }
 
@@ -80,14 +82,33 @@ func NewHTTPUniversalResolver(resolverHost *string, resolverPort *int) *HTTPUniv
 type HTTPUniversalResolver struct {
 	resolverHost string
 	resolverPort int
+	cache        ResolverCache
 }
 
 // Resolve returns the DID document given the DID
 // Implements the Resolver interface.
 func (h *HTTPUniversalResolver) Resolve(d *did.DID) (*Document, error) {
+	if h.cache != nil {
+		doc, err := h.cache.Get(d)
+		if err == nil && doc != nil {
+			return doc, nil
+		}
+
+		if err != nil && err != ErrResolverCacheNotFound {
+			return nil, errors.Wrap(err, "resolve.get")
+		}
+	}
+
 	resp, err := h.RawResolve(d)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve.rawresolve")
+	}
+
+	if h.cache != nil && resp != nil {
+		err = h.cache.Set(d, resp.DidDocument)
+		if err != nil {
+			return nil, errors.Wrap(err, "resolve.set")
+		}
 	}
 
 	return resp.DidDocument, nil
