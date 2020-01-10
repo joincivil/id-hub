@@ -1,180 +1,142 @@
 package did_test
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"testing"
 
-	"github.com/jinzhu/gorm"
+	cnum "github.com/joincivil/go-common/pkg/numbers"
+	cstr "github.com/joincivil/go-common/pkg/strings"
 	"github.com/joincivil/id-hub/pkg/did"
-	"github.com/joincivil/id-hub/pkg/testutils"
-	"github.com/joincivil/id-hub/pkg/utils"
+	didlib "github.com/ockam-network/did"
 )
 
-func initPersister(t *testing.T) (did.Persister, *gorm.DB) {
-	db, err := testutils.GetTestDBConnection()
-	if err != nil {
-		t.Fatalf("Should have returned a new gorm db conn")
-		return nil, nil
-	}
-
-	err = db.AutoMigrate(&did.PostgresDocument{}).Error
-	if err != nil {
-		t.Fatalf("Should have auto-migrated")
-		return nil, nil
-	}
-
-	return did.NewPostgresPersister(db), db
+type NoResolutionResolver struct {
 }
 
-func initService(t *testing.T) (*did.Service, *gorm.DB) {
-	persister, db := initPersister(t)
-	return did.NewService(persister), db
+func (n *NoResolutionResolver) Resolve(d *didlib.DID) (*did.Document, error) {
+	return nil, did.ErrResolverDIDNotFound
 }
 
-func TestServiceSaveGetDocument(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
+func TestGetDocument(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, validResponse)
+	})
 
-	doc := did.BuildTestDocument()
+	server := httptest.NewServer(h)
+	u, _ := url.Parse(server.URL)
+	host := u.Hostname()
+	port, _ := strconv.Atoi(u.Port())
 
-	// Save document
-	err := service.SaveDocument(doc)
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
+
+	serv := did.NewService([]did.Resolver{res})
+
+	doc, err := serv.GetDocument("did:web:uport.me")
 	if err != nil {
-		t.Errorf("Should have not gotten error saving document: err: %v", err)
+		t.Errorf("Should not have gotten error: err: %v", err)
 	}
 
-	// Get document
-	doc, err = service.GetDocument(doc.ID.String())
-	if err != nil {
-		t.Errorf("Should have not gotten error retrieving document: err: %v", err)
-	}
-	if doc == nil {
-		t.Errorf("Should have not gotten nil document: err: %v", err)
+	if doc.ID.String() != "did:web:uport.me" {
+		t.Errorf("Should have gotten the correct ID")
 	}
 
-	// Get document via a did
-	doc, err = service.GetDocumentFromDID(&doc.ID)
-	if err != nil {
-		t.Errorf("Should have not gotten error retrieving document: err: %v", err)
-	}
-	if doc == nil {
-		t.Errorf("Should have not gotten nil document: err: %v", err)
-	}
-}
-
-func TestServiceSaveGetDocumentErr(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
-
-	doc := did.BuildTestDocument()
-
-	// Save document
-	err := service.SaveDocument(doc)
-	if err != nil {
-		t.Errorf("Should have not gotten error saving document: err: %v", err)
-	}
-
-	// Get document with invalid DID
-	doc, err = service.GetDocument("thisisnotadid")
+	doc, err = serv.GetDocument("did")
 	if err == nil {
-		t.Errorf("Should have gotten error retrieving document")
+		t.Errorf("Should have gotten error")
 	}
 	if doc != nil {
-		t.Errorf("Should have gotten nil document: err: %v", err)
+		t.Errorf("Should have gotten empty doc")
 	}
+}
 
-	// Get document with unknown DID
-	doc, err = service.GetDocument("did:example:1234567")
-	if err != nil {
-		t.Errorf("Should have not gotten error retrieving document for unknown DID")
-	}
-	if doc != nil {
-		t.Errorf("Should have gotten nil document: err: %v", err)
-	}
+func TestGetDocumentNoResolution(t *testing.T) {
+	res := &NoResolutionResolver{}
 
-	// Get document via a nil did
-	doc, err = service.GetDocumentFromDID(nil)
+	serv := did.NewService([]did.Resolver{res})
+
+	doc, err := serv.GetDocument("did:web:idontexist.co")
 	if err == nil {
-		t.Errorf("Should have gotten error retrieving document from nil DID")
+		t.Errorf("Should have gotten error")
 	}
 	if doc != nil {
-		t.Errorf("Should have gotten nil document: err: %v", err)
+		t.Errorf("Should have gotten empty doc")
+	}
+	if err != did.ErrResolverDIDNotFound {
+		t.Errorf("Should have gotten did not found error")
 	}
 }
 
-func TestCreateOrUpdateDocumentCreate(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
+func TestGetDocumentFromDID(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, validResponse)
+	})
 
-	doc := did.BuildTestDocument()
+	server := httptest.NewServer(h)
+	u, _ := url.Parse(server.URL)
+	host := u.Hostname()
+	port, _ := strconv.Atoi(u.Port())
 
-	newDoc, err := service.CreateOrUpdateDocument(
-		&did.CreateOrUpdateParams{
-			PublicKeys:       doc.PublicKeys,
-			Auths:            doc.Authentications,
-			Services:         doc.Services,
-			KeepKeyFragments: true,
-		},
-	)
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
+
+	serv := did.NewService([]did.Resolver{res})
+
+	dd, _ := didlib.Parse("did:web:uport.me")
+
+	doc, err := serv.GetDocumentFromDID(dd)
 	if err != nil {
-		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+		t.Errorf("Should not have gotten error: err: %v", err)
 	}
 
-	if len(doc.PublicKeys) != len(newDoc.PublicKeys) {
-		t.Error("Should have had same number of public keys")
-	}
-	if len(doc.Authentications) != len(newDoc.Authentications) {
-		t.Errorf("Should have had same number of authentications")
-	}
-	if len(newDoc.Authentications) != 2 {
-		t.Error("Should have had 2 authentications")
-	}
-	if newDoc.Authentications[0].ID.Fragment != "keys-1" {
-		t.Error("Should have had been keys-1")
-	}
-	if newDoc.Authentications[1].ID.Fragment != "keys-2" {
-		t.Error("Should have had been keys-2")
-	}
-	if len(doc.Services) != len(newDoc.Services) {
-		t.Error("Should have had same number of services")
-	}
-	if doc.ID.String() == "" {
-		t.Error("Should have initialized a DID")
+	if doc.ID.String() != "did:web:uport.me" {
+		t.Errorf("Should have gotten the correct ID")
 	}
 }
 
-func TestCreateOrUpdateDocumentUpdate(t *testing.T) {
-	service, db := initService(t)
-	defer db.DropTable(&did.PostgresDocument{})
+func TestGetKeyFromDIDDocument(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, validResponse)
+	})
 
-	doc := did.BuildTestDocument()
+	server := httptest.NewServer(h)
+	u, _ := url.Parse(server.URL)
+	host := u.Hostname()
+	port, _ := strconv.Atoi(u.Port())
 
-	newDoc, err := service.CreateOrUpdateDocument(
-		&did.CreateOrUpdateParams{
-			PublicKeys:       doc.PublicKeys,
-			Auths:            doc.Authentications,
-			Services:         doc.Services,
-			KeepKeyFragments: true,
-		},
-	)
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(host), cnum.IntToPtr(port), nil)
+
+	serv := did.NewService([]did.Resolver{res})
+
+	// Test normal scenario
+	dd, _ := didlib.Parse("did:web:uport.me#owner")
+	key, err := serv.GetKeyFromDIDDocument(dd)
 	if err != nil {
-		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+		t.Errorf("Should not have gotten error: err: %v", err)
 	}
 
-	updatedDoc, err := service.CreateOrUpdateDocument(
-		&did.CreateOrUpdateParams{
-			Did:              utils.StrToPtr(newDoc.ID.String()),
-			PublicKeys:       newDoc.PublicKeys,
-			Auths:            newDoc.Authentications,
-			Services:         newDoc.Services,
-			KeepKeyFragments: true,
-		},
-	)
-	if err != nil {
-		t.Fatalf("Should have not gotten error creating or updating doc: err: %v", err)
+	if key.ID.String() != "did:web:uport.me#owner" {
+		t.Errorf("Should have gotten the correct ID")
 	}
 
-	if len(updatedDoc.PublicKeys) != len(doc.PublicKeys) {
-		t.Errorf("Should have not added additional public keys")
+	// Test no fragment
+	dd, _ = didlib.Parse("did:web:uport.me")
+	_, err = serv.GetKeyFromDIDDocument(dd)
+	if err == nil {
+		t.Errorf("Should have gotten error: err: %v", err)
 	}
+}
 
+func TestGetKeyFromDIDDocumentNoDID(t *testing.T) {
+	res := &NoResolutionResolver{}
+	serv := did.NewService([]did.Resolver{res})
+
+	// Test no did
+	dd, _ := didlib.Parse("did:web:civil.co#owner")
+	_, err := serv.GetKeyFromDIDDocument(dd)
+	if err == nil {
+		t.Errorf("Should have gotten error: err: %v", err)
+	}
 }

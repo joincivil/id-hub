@@ -4,6 +4,7 @@ package did_test
 
 // Enable the running universal resolver either locally via Docker or via
 // SSH tunnel.  Set up to port 8888 on localhost.
+// kubectl port-forward deployment/unir-uni-resolver-web 8888:8080 --namespace=staging
 
 import (
 	"encoding/json"
@@ -14,12 +15,29 @@ import (
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	didlib "github.com/ockam-network/did"
+	"github.com/pkg/errors"
 )
 
 const (
 	resolverHost = "localhost"
 	resolverPort = 8888
 )
+
+func TestHTTPUniversalResolverLiveBadDid(t *testing.T) {
+	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
+
+	dd, _ := didlib.Parse("did:web:idontexist.co")
+	doc, err := res.Resolve(dd)
+	if err == nil {
+		t.Fatalf("Should have gotten error resolving did")
+	}
+	if errors.Cause(err) != did.ErrResolverDIDNotFound {
+		t.Fatalf("Should have gotten resolver did not found err: %v", errors.Cause(err))
+	}
+	if doc != nil {
+		t.Fatalf("Should have returned empty doc")
+	}
+}
 
 func TestHTTPUniversalResolverLiveWeb(t *testing.T) {
 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
@@ -89,21 +107,21 @@ func TestHTTPUniversalResolverLiveEthr(t *testing.T) {
 	t.Logf("ethr = %v", string(bys))
 }
 
-func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
-	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
+// func TestHTTPUniversalResolverLiveCcp(t *testing.T) {
+// 	res := did.NewHTTPUniversalResolver(cstr.StrToPtr(resolverHost), cnum.IntToPtr(resolverPort), nil)
 
-	dd, _ := didlib.Parse("did:ccp:ceNobbK6Me9F5zwyE3MKY88QZLw")
-	doc, err := res.Resolve(dd)
-	if err != nil {
-		t.Fatalf("Should not have gotten error resolving did: err: %v", err)
-	}
-	if doc == nil {
-		t.Errorf("Should have received a valid doc")
-	}
+// 	dd, _ := didlib.Parse("did:ccp:ceNobbK6Me9F5zwyE3MKY88QZLw")
+// 	doc, err := res.Resolve(dd)
+// 	if err != nil {
+// 		t.Fatalf("Should not have gotten error resolving did: err: %v", err)
+// 	}
+// 	if doc == nil {
+// 		t.Errorf("Should have received a valid doc")
+// 	}
 
-	bys, _ := json.MarshalIndent(doc, "", "    ")
-	t.Logf("ccp = %v", string(bys))
-}
+// 	bys, _ := json.MarshalIndent(doc, "", "    ")
+// 	t.Logf("ccp = %v", string(bys))
+// }
 
 // NOTE(PN): DID library is based on old ABNF spec for DIDs, so the underscore in
 // nacl fails via this lib.  Going to ping the library maintainers about it or potentially

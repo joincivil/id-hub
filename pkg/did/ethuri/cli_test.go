@@ -1,4 +1,4 @@
-package did
+package ethuri
 
 import (
 	"io/ioutil"

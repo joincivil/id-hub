@@ -1,58 +1,11 @@
 # DID specific schema
 
-extend type Mutation {
-	didSave(in: DidSaveRequestInput): DidSaveResponse
-}
-
 extend type Query {
 	didGet(in: DidGetRequestInput): DidGetResponse
 }
 
 input DidGetRequestInput {
 	did: String
-}
-
-input DidSaveRequestInput {
-	did: String
-	publicKeys: [DidDocPublicKeyInput!]
-	authentications: [DidDocAuthenticationInput!]
-    services: [DidDocServiceInput!]
-    proof: LinkedDataProofInput
-}
-
-input DidDocAuthenticationInput {
-	publicKey: DidDocPublicKeyInput
-	idOnly: Boolean
-}
-
-input DidDocPublicKeyInput {
-	id: String
-	type: String
-	controller: String
-	publicKeyPem: String
-	publicKeyJwk: String
-	publicKeyHex: String
-	publicKeyBase64: String
-	publicKeyBase58: String
-	publicKeyMultibase: String
-	ethereumAddress: String
-}
-
-input DidDocServiceInput {
-	id: String
-	type: String
-	description: String
-	publicKey: String
-	serviceEndpoint: AnyValue
-}
-
-input LinkedDataProofInput {
-	type: String
-	creator: String
-	created: Time
-	proofValue: String
-	domain: String
-	nonce: String
 }
 
 type DidGetResponse {
@@ -104,6 +57,15 @@ type DidDocument {
 }
 
 type LinkedDataProof {
+	type: String
+	creator: String
+	created: Time
+	proofValue: String
+	domain: String
+	nonce: String
+}
+
+input LinkedDataProofInput {
 	type: String
 	creator: String
 	created: Time

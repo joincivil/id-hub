@@ -36,7 +36,7 @@ func TestBigCacheResolverCache(t *testing.T) {
 	if doc != nil {
 		t.Errorf("Should have gotten a nil doc")
 	}
-	if err != did.ErrResolverCacheNotFound {
+	if err != did.ErrResolverCacheDIDNotFound {
 		t.Errorf("Should have been an ErrResolverNotFound")
 	}
 
@@ -80,7 +80,7 @@ func TestBigCacheResolverCache(t *testing.T) {
 	if doc != nil {
 		t.Errorf("Should have gotten a nil doc")
 	}
-	if err != did.ErrResolverCacheNotFound {
+	if err != did.ErrResolverCacheDIDNotFound {
 		t.Errorf("Should have been an ErrResolverNotFound")
 	}
 

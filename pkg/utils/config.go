@@ -34,6 +34,9 @@ type IDHubConfig struct {
 	PersisterPostgresConnLife *int               `split_words:"true" desc:"If persister type is Postgresql, sets the max conn lifetime in secs"`
 
 	RedisHosts []string `split_words:"true" desc:"List of Redis host:port for caching and locking"`
+
+	DidUniversalResolverHost *string `split_words:"true" desc:"Sets the host for the universal DID resolver"`
+	DidUniversalResolverPort *int    `split_words:"true" desc:"Sets the port for the universal DID resolver"`
 }
 
 // OutputUsage prints the usage string to os.Stdout

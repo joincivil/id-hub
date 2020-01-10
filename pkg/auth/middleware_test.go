@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -24,9 +25,10 @@ const (
 	testDID = "did:ethuri:fbaf6bb3-2a82-4173-b31a-160a143c931c"
 )
 
-func initService() *did.Service {
-	persister := &did.InMemoryPersister{}
-	return did.NewService(persister)
+func initService() (*did.Service, *ethuri.Service) {
+	persister := &ethuri.InMemoryPersister{}
+	ethURIService := ethuri.NewService(persister)
+	return did.NewService([]did.Resolver{ethURIService}), ethURIService
 }
 
 type testHandler struct {
@@ -124,14 +126,14 @@ func (h *testHandlerForContext) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 func TestForContext(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, ethURI := initService()
 
 	acct, _ := ceth.MakeAccount()
 	privKey := acct.Key
 
 	d := buildTestDocument(privKey)
 
-	err := ds.SaveDocument(d)
+	err := ethURI.SaveDocument(d)
 	if err != nil {
 		t.Fatalf("Should have not gotten error saving doc")
 	}
@@ -185,7 +187,7 @@ func (h *testHandlerForContextFail) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 func TestForContextNewDid(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, _ := initService()
 
 	acct, _ := ceth.MakeAccount()
 	privKey := acct.Key
@@ -223,12 +225,12 @@ func TestForContextNewDid(t *testing.T) {
 
 func TestForContextDidWithKeyFragment(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, ethURI := initService()
 
 	privKey, _ := crypto.GenerateKey()
 	d := buildTestDocument(privKey)
 
-	err := ds.SaveDocument(d)
+	err := ethURI.SaveDocument(d)
 	if err != nil {
 		t.Fatalf("Should have not gotten error saving doc")
 	}
@@ -260,12 +262,12 @@ func TestForContextDidWithKeyFragment(t *testing.T) {
 
 func TestForContextDidWithInvalidKeyFragment(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, ethURI := initService()
 
 	privKey, _ := crypto.GenerateKey()
 	d := buildTestDocument(privKey)
 
-	err := ds.SaveDocument(d)
+	err := ethURI.SaveDocument(d)
 	if err != nil {
 		t.Fatalf("Should have not gotten error saving doc")
 	}
@@ -297,7 +299,7 @@ func TestForContextDidWithInvalidKeyFragment(t *testing.T) {
 
 func TestForContextNewDidNoPk(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, _ := initService()
 
 	acct, _ := ceth.MakeAccount()
 	privKey := acct.Key
@@ -328,12 +330,12 @@ func TestForContextNewDidNoPk(t *testing.T) {
 
 func TestForContextBadSignature(t *testing.T) {
 	middleware := Middleware()
-	ds := initService()
+	ds, ethURI := initService()
 
 	privKey, _ := crypto.GenerateKey()
 	d := buildTestDocument(privKey)
 
-	err := ds.SaveDocument(d)
+	err := ethURI.SaveDocument(d)
 	if err != nil {
 		t.Fatalf("Should have not gotten error saving doc")
 	}
