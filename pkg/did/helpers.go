@@ -3,86 +3,14 @@ package did
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"fmt"
-	"time"
 
 	log "github.com/golang/glog"
-	"github.com/google/uuid"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	didlib "github.com/ockam-network/did"
 )
-
-// GenerateNewDocument generates a new DID and DID document and sets the first public
-// key for the DID. Sets the public key into the publicKeys field and adds a
-// reference to the key to the authentication field. If firstPK has an empty ID
-// field, will populate it with the new DID.
-func GenerateNewDocument(firstPK *DocPublicKey, addRefToAuth bool,
-	addFragment bool) (*Document, error) {
-
-	newDID, err := GenerateEthURIDID()
-	if err != nil {
-		return nil, errors.Wrap(err, "error generating new ethuri did")
-	}
-
-	// If firstPK ID is not set, then set it to the newly created DID
-	if firstPK.ID == nil {
-		firstPK.ID = newDID
-		firstPK.Controller = CopyDID(newDID)
-	}
-
-	if !ValidDocPublicKey(firstPK) {
-		return nil, errors.New("invalid doc public key")
-	}
-
-	doc, err := InitializeNewDocument(newDID, firstPK, addRefToAuth, addFragment)
-	if err != nil {
-		return nil, errors.Wrap(err, "error initializing new did document")
-	}
-
-	return doc, nil
-}
-
-// GenerateEthURIDID generates a new EthURI method DID
-func GenerateEthURIDID() (*didlib.DID, error) {
-	// Generate a new UUID v4
-	newUUID := uuid.New()
-	didStr := fmt.Sprintf("%s:%s", EthURISchemeMethod, newUUID.String())
-	return didlib.Parse(didStr)
-}
-
-// InitializeNewDocument generates a simple version of a DID document given
-// the DID and an initial public key.
-func InitializeNewDocument(did *didlib.DID, firstPK *DocPublicKey, addRefToAuth bool,
-	addFragment bool) (*Document, error) {
-	if !ValidDocPublicKey(firstPK) {
-		return nil, errors.New("invalid doc public key")
-	}
-
-	created := time.Now().UTC()
-	updated := time.Now().UTC()
-
-	doc := &Document{
-		Context:         DefaultDIDContextV1,
-		ID:              *did,
-		Controller:      did,
-		PublicKeys:      []DocPublicKey{},
-		Authentications: []DocAuthenicationWrapper{},
-		Services:        []DocService{},
-		Created:         &created,
-		Updated:         &updated,
-	}
-
-	err := doc.AddPublicKey(firstPK, addRefToAuth, addFragment)
-	if err != nil {
-		return nil, err
-	}
-
-	return doc, nil
-}
 
 // ValidDocPublicKey ensures that the given DocPublicKey is of a supported type,
 // has a valid key for that type and is using the correct public key field.

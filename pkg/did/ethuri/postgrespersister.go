@@ -1,10 +1,12 @@
-package did
+package ethuri
 
 import (
 	"github.com/pkg/errors"
 
 	"github.com/jinzhu/gorm"
 	didlib "github.com/ockam-network/did"
+
+	"github.com/joincivil/id-hub/pkg/did"
 
 	cpersist "github.com/joincivil/go-common/pkg/persistence"
 )
@@ -22,12 +24,12 @@ type PostgresPersister struct {
 }
 
 // GetDocument retrieves a DID document from the given DID
-func (p *PostgresPersister) GetDocument(d *didlib.DID) (*Document, error) {
+func (p *PostgresPersister) GetDocument(d *didlib.DID) (*did.Document, error) {
 	if d == nil {
 		return nil, errors.New("nil did for get document")
 	}
 
-	theDID := MethodIDOnly(d)
+	theDID := did.MethodIDOnly(d)
 
 	doc := &PostgresDocument{}
 	err := p.db.Where(&PostgresDocument{DID: theDID}).First(doc).Error
@@ -42,7 +44,7 @@ func (p *PostgresPersister) GetDocument(d *didlib.DID) (*Document, error) {
 }
 
 // SaveDocument saves a DID document with the given DID
-func (p *PostgresPersister) SaveDocument(doc *Document) error {
+func (p *PostgresPersister) SaveDocument(doc *did.Document) error {
 	dbdoc := &PostgresDocument{}
 	err := dbdoc.FromDocument(doc)
 	if err != nil {
@@ -50,7 +52,7 @@ func (p *PostgresPersister) SaveDocument(doc *Document) error {
 	}
 
 	updated := &PostgresDocument{}
-	err = p.db.Where(&PostgresDocument{DID: MethodIDOnly(&doc.ID)}).
+	err = p.db.Where(&PostgresDocument{DID: did.MethodIDOnly(&doc.ID)}).
 		Assign(&PostgresDocument{Document: dbdoc.Document}).
 		FirstOrCreate(updated).Error
 	if err != nil {

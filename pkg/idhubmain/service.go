@@ -11,8 +11,8 @@ import (
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
-func initDidService(persister did.Persister) *did.Service {
-	return did.NewService(persister)
+func initDidService(resolvers []did.Resolver) *did.Service {
+	return did.NewService(resolvers)
 }
 
 func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,

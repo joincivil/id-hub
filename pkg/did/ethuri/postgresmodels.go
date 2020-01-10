@@ -1,10 +1,11 @@
-package did
+package ethuri
 
 import (
 	"encoding/json"
 	"time"
 
 	"github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/pkg/errors"
 )
 
@@ -24,12 +25,12 @@ func (PostgresDocument) TableName() string {
 }
 
 // ToDocument returns the did.Document from this PostgresDocument
-func (p *PostgresDocument) ToDocument() (*Document, error) {
+func (p *PostgresDocument) ToDocument() (*did.Document, error) {
 	if p.Document.RawMessage == nil || len(p.Document.RawMessage) == 0 {
 		return nil, errors.New("no jsonb document data to unmarshal")
 	}
 
-	doc := &Document{}
+	doc := &did.Document{}
 	err := json.Unmarshal(p.Document.RawMessage, doc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error unmarshalling db postgres doc")
@@ -39,7 +40,7 @@ func (p *PostgresDocument) ToDocument() (*Document, error) {
 }
 
 // FromDocument sets up this PostgresDocument with data from the given did.Document
-func (p *PostgresDocument) FromDocument(doc *Document) error {
+func (p *PostgresDocument) FromDocument(doc *did.Document) error {
 	bys, err := json.Marshal(doc)
 	if err != nil {
 		return errors.Wrap(err, "error marshalling doc for postgres doc")

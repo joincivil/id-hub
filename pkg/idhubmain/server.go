@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/joincivil/id-hub/pkg/auth"
+	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -28,8 +29,11 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 	// db.LogMode(true)
 
 	// DID init
-	didPersister := initDidPersister(db)
-	didService := initDidService(didPersister)
+	resolver, err := initHTTPUniversalResolver(config)
+	if err != nil {
+		log.Fatalf("error initializing universal resolver")
+	}
+	didService := initDidService([]did.Resolver{resolver})
 
 	// Claims init
 	treePersister := initTreePersister(db)

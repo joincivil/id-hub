@@ -3,12 +3,8 @@ package graphql
 import (
 	"context"
 
-	log "github.com/golang/glog"
-	didlib "github.com/ockam-network/did"
-
 	"github.com/pkg/errors"
 
-	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/utils"
 
 	"github.com/joincivil/id-hub/pkg/did"
@@ -50,74 +46,6 @@ func (r *queryResolver) DidGet(ctx context.Context, in *DidGetRequestInput) (
 	}
 
 	return &DidGetResponse{Doc: doc}, nil
-}
-
-// Mutations
-
-func (r *mutationResolver) DidSave(ctx context.Context, in *DidSaveRequestInput) (
-	*DidSaveResponse, error) {
-
-	// Validate/convert all the PKs in the public key list and create a slice of pks
-	pks, pkMap, err := ConvertInputPublicKeys(in.PublicKeys)
-	if err != nil {
-		return nil, err
-	}
-
-	// Auth needed here, DID owner only
-	fcd, authErr := auth.ForContext(ctx, r.DidService, pks)
-	if authErr != nil {
-		log.Infof("Access denied err: %v", authErr)
-		return nil, ErrAccessDenied
-	}
-
-	// Auth to ensure the requestor did matches the doc did.
-	if in.Did != nil && *in.Did != fcd.Did {
-		log.Infof("Access denied, requestor did does not match incoming did: %v, %v",
-			in.Did, fcd.Did)
-		return nil, ErrAccessDenied
-	}
-
-	// Validate/convert all the PKs in the authentications key list
-	auths, err := ConvertInputAuthentications(in.Authentications, pkMap)
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate/convert all the doc services in the services key list
-	srvs, err := ConvertInputServices(in.Services)
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate/convert proof
-	proof, err := ConvertInputProof(in.Proof)
-	if err != nil {
-		return nil, err
-	}
-
-	doc, err := r.DidService.CreateOrUpdateDocument(&did.CreateOrUpdateParams{
-		Did:        in.Did,
-		PublicKeys: pks,
-		Auths:      auths,
-		Services:   srvs,
-		Proof:      proof,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create or update doc")
-	}
-
-	inDid, err := didlib.Parse(*in.Did)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse the incoming did")
-	}
-
-	// Adds any keys that don't exist into the claims tree (or creates the tree)
-	err = r.ClaimService.CreateTreeForDIDWithPks(inDid, did.DocPublicKeyToEcdsaKeys(doc.PublicKeys))
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to add keys or create tree for did")
-	}
-
-	return &DidSaveResponse{Doc: doc}, nil
 }
 
 // Did Resolvers
