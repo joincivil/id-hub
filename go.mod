@@ -3,6 +3,7 @@ module github.com/joincivil/id-hub
 require (
 	github.com/99designs/gqlgen v0.10.1
 	github.com/agnivade/levenshtein v1.0.3 // indirect
+	github.com/allegro/bigcache v1.2.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20191001013358-cfbb681360f0 // indirect
 	github.com/dgryski/trifles v0.0.0-20190809233526-a06f71cd0619 // indirect
@@ -16,7 +17,7 @@ require (
 	github.com/iden3/go-iden3-crypto v0.0.3-0.20190831180703-c95c95b7b161
 	github.com/jinzhu/gorm v1.9.11
 	github.com/jinzhu/now v1.1.1 // indirect
-	github.com/joincivil/go-common v0.0.0-20191205055435-2066ffa678cb
+	github.com/joincivil/go-common v0.0.0-20200103202232-1e3c9960d3e7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect

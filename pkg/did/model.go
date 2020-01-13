@@ -282,7 +282,7 @@ func (d *Document) NextKeyFragment() string {
 		}
 	}
 	for _, k := range d.Authentications {
-		if !k.IDOnly && strings.HasPrefix(k.ID.Fragment, keyPrefix) {
+		if k.ID != nil && !k.IDOnly && strings.HasPrefix(k.ID.Fragment, keyPrefix) {
 			keys = append(keys, k.ID.Fragment)
 		}
 	}
@@ -310,9 +310,10 @@ func (d *Document) NextKeyFragment() string {
 
 // DocPublicKey defines a publickey within a DID document
 type DocPublicKey struct {
-	ID                 *didlib.DID          `json:"id"`
-	Type               linkeddata.SuiteType `json:"type"`
-	Controller         *didlib.DID          `json:"controller"`
+	ID                 *didlib.DID          `json:"id,omitempty"`
+	Type               linkeddata.SuiteType `json:"type,omitempty"`
+	Owner              *didlib.DID          `json:"owner,omitempty"`
+	Controller         *didlib.DID          `json:"controller,omitempty"`
 	PublicKeyPem       *string              `json:"publicKeyPem,omitempty"`
 	PublicKeyJwk       *string              `json:"publicKeyJwk,omitempty"`
 	PublicKeyHex       *string              `json:"publicKeyHex,omitempty"`
@@ -320,6 +321,11 @@ type DocPublicKey struct {
 	PublicKeyBase58    *string              `json:"publicKeyBase58,omitempty"`
 	PublicKeyMultibase *string              `json:"publicKeyMultibase,omitempty"`
 	EthereumAddress    *string              `json:"ethereumAddress,omitempty"`
+
+	// NOTE(PN): This field does not seem to be in DID spec, but is commonly
+	// returned by universal resolver implementations, so we'll support it.
+	// Used to alias a key to a list of other key ids.
+	PublicKey []string `json:"publicKey,omitempty"`
 }
 
 // SetIDFragment sets the ID fragment of the public key.  For convenience,
@@ -333,8 +339,9 @@ func (p *DocPublicKey) SetIDFragment(fragment string) *DocPublicKey {
 func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 	type pkAlias DocPublicKey
 	aux := &struct {
-		ID         string `json:"id"`
-		Controller string `json:"controller"`
+		ID         string `json:"id,omitempty"`
+		Owner      string `json:"owner,omitempty"`
+		Controller string `json:"controller,omitempty"`
 		*pkAlias
 	}{
 		pkAlias: (*pkAlias)(p),
@@ -346,11 +353,21 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 	}
 
 	// Set the DID as a struct
-	id, err := didlib.Parse(aux.ID)
-	if err != nil {
-		return errors.Wrap(err, "unable to parse did for public key")
+	if aux.ID != "" {
+		id, err := didlib.Parse(aux.ID)
+		if err != nil {
+			return errors.Wrap(err, "unable to parse did for public key")
+		}
+		p.ID = id
 	}
-	p.ID = id
+
+	if aux.Owner != "" {
+		owner, err := didlib.Parse(aux.Owner)
+		if err != nil {
+			return errors.Wrap(err, "unable to parse owner for public key")
+		}
+		p.Owner = owner
+	}
 
 	if aux.Controller != "" {
 		controller, err := didlib.Parse(aux.Controller)
@@ -371,12 +388,20 @@ func (p *DocPublicKey) UnmarshalJSON(b []byte) error {
 func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 	type pkAlias DocPublicKey
 	aux := &struct {
-		ID         string `json:"id"`
-		Controller string `json:"controller"`
+		ID         string `json:"id,omitempty"`
+		Owner      string `json:"owner,omitempty"`
+		Controller string `json:"controller,omitempty"`
 		*pkAlias
 	}{
-		ID:      p.ID.String(),
 		pkAlias: (*pkAlias)(p),
+	}
+
+	if p.ID != nil {
+		aux.ID = p.ID.String()
+	}
+
+	if p.Owner != nil {
+		aux.Owner = p.Owner.String()
 	}
 
 	if p.Controller != nil && p.Controller.String() != "" {
@@ -428,7 +453,7 @@ func (a *DocAuthenicationWrapper) SetIDFragment(fragment string) *DocAuthenicati
 func (a *DocAuthenicationWrapper) UnmarshalJSON(b []byte) error {
 	type awAlias DocAuthenicationWrapper
 	aux := &struct {
-		ID string `json:"id"`
+		ID string `json:"id,omitempty"`
 		*awAlias
 	}{
 		awAlias: (*awAlias)(a),
@@ -466,11 +491,14 @@ func (a *DocAuthenicationWrapper) MarshalJSON() ([]byte, error) {
 
 	type awAlias DocAuthenicationWrapper
 	aux := &struct {
-		ID string `json:"id"`
+		ID string `json:"id,omitempty"`
 		*awAlias
 	}{
-		ID:      a.ID.String(),
 		awAlias: (*awAlias)(a),
+	}
+
+	if a.ID != nil {
+		aux.ID = a.ID.String()
 	}
 
 	return json.Marshal(aux)
@@ -516,7 +544,7 @@ func (s *DocService) PopulateServiceEndpointVals() error {
 func (s *DocService) UnmarshalJSON(b []byte) error {
 	type alias DocService
 	aux := &struct {
-		ID string `json:"id"`
+		ID string `json:"id,omitempty"`
 		*alias
 	}{
 		alias: (*alias)(s),
@@ -527,11 +555,13 @@ func (s *DocService) UnmarshalJSON(b []byte) error {
 		return errors.Wrap(err, "unable to unmarshal public key")
 	}
 
-	id, err := didlib.Parse(aux.ID)
-	if err != nil {
-		return errors.Wrap(err, "unable to parse did for service")
+	if aux.ID != "" {
+		id, err := didlib.Parse(aux.ID)
+		if err != nil {
+			return errors.Wrap(err, "unable to parse did for service")
+		}
+		s.ID = *id
 	}
-	s.ID = *id
 
 	err = s.PopulateServiceEndpointVals()
 	if err != nil {
@@ -545,11 +575,14 @@ func (s *DocService) UnmarshalJSON(b []byte) error {
 func (s *DocService) MarshalJSON() ([]byte, error) {
 	type alias DocService
 	aux := &struct {
-		ID string `json:"id"`
+		ID string `json:"id,omitempty"`
 		*alias
 	}{
-		ID:    s.ID.String(),
 		alias: (*alias)(s),
+	}
+
+	if s.ID.String() != "" {
+		aux.ID = s.ID.String()
 	}
 
 	return json.Marshal(aux)
