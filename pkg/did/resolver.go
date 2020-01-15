@@ -8,7 +8,8 @@ import (
 
 // Resolver interface that defines a DID resolver
 type Resolver interface {
-	// Resolve returns the DID document given the DID
+	// Resolve returns the DID document given the DID. Expects
+	// ErrResolverDIDNotFound as error when DID is not found.
 	Resolve(d *didlib.DID) (*Document, error)
 }
 

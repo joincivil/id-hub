@@ -2,6 +2,7 @@ module github.com/joincivil/id-hub
 
 require (
 	github.com/99designs/gqlgen v0.10.1
+	github.com/Jeffail/tunny v0.0.0-20190930221602-f13eb662a36a
 	github.com/agnivade/levenshtein v1.0.3 // indirect
 	github.com/allegro/bigcache v1.2.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
@@ -27,7 +28,6 @@ require (
 	github.com/multiformats/go-multihash v0.0.9
 	github.com/ockam-network/did v0.1.3
 	github.com/pkg/errors v0.8.1
-	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.22.1
