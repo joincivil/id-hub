@@ -3,6 +3,7 @@ package did
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -412,27 +413,32 @@ func (p *DocPublicKey) MarshalJSON() ([]byte, error) {
 }
 
 // AsEcdsaPubKey returns this key as an ECDSA public key. Will return error
-// if not ECDSA and Secp256k1 parameters
+// if not ECDSA and Secp256k1 or Secp256r1 parameters
 func (p *DocPublicKey) AsEcdsaPubKey() (*ecdsa.PublicKey, error) {
-	if p.Type != linkeddata.SuiteTypeSecp256k1Verification &&
-		p.Type != linkeddata.SuiteTypeSecp256k1Signature {
-		return nil, errors.New("not in ecdsa secp256k1 suite")
-	}
-
 	if p.PublicKeyHex == nil || *p.PublicKeyHex == "" {
 		return nil, errors.New("no hex key found")
 	}
-
 	pubBytes, err := hex.DecodeString(*p.PublicKeyHex)
 	if err != nil {
 		return nil, errors.Wrap(err, "asEcdsa hex decode failed")
 	}
-	ecpub, err := crypto.UnmarshalPubkey(pubBytes[:])
-	if err != nil {
-		return nil, errors.Wrap(err, "asEcdsa unable to unmarshal pub key")
-	}
 
-	return ecpub, nil
+	if p.Type == linkeddata.SuiteTypeSecp256r1Verification ||
+		p.Type == linkeddata.SuiteTypeSecp256r1Signature {
+		x, y := elliptic.Unmarshal(elliptic.P256(), pubBytes[:])
+		if x == nil {
+			return nil, errors.New("asEcdsa unable to unmarshal pub key")
+		}
+		return &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, nil
+	} else if p.Type == linkeddata.SuiteTypeSecp256k1Verification ||
+		p.Type == linkeddata.SuiteTypeSecp256k1Signature {
+		ecpub, err := crypto.UnmarshalPubkey(pubBytes[:])
+		if err != nil {
+			return nil, errors.Wrap(err, "asEcdsa unable to unmarshal pub key")
+		}
+		return ecpub, nil
+	}
+	return nil, errors.New("not in ecdsa secp256k1 or secp256r1 suite")
 }
 
 // DocAuthenicationWrapper allows us to handle two different types for an authentication
