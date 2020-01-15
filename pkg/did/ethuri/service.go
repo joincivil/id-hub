@@ -1,6 +1,8 @@
 package ethuri
 
 import (
+	"strings"
+
 	cpersist "github.com/joincivil/go-common/pkg/persistence"
 	didlib "github.com/ockam-network/did"
 	"github.com/pkg/errors"
@@ -32,7 +34,21 @@ type Service struct {
 // Resolve implements the did.Resolver interface and returns the did document of a
 // given DID for the ethuri method.
 func (s *Service) Resolve(d *didlib.DID) (*did.Document, error) {
-	return s.GetDocumentFromDID(d)
+	if !s.IsEthURI(d.String()) {
+		return nil, did.ErrResolverDIDNotFound
+	}
+
+	doc, err := s.GetDocumentFromDID(d)
+	if doc == nil && err == nil {
+		return nil, did.ErrResolverDIDNotFound
+	}
+
+	return doc, err
+}
+
+// IsEthURI is a quick check to see if a did is for ethuri
+func (s *Service) IsEthURI(d string) bool {
+	return strings.HasPrefix(d, EthURISchemeMethod)
 }
 
 // CreateOrUpdateParams are input params for CreateOrUpdateDocument

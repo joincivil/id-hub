@@ -1,24 +1,39 @@
 package did
 
 import (
+	"sync"
+
 	log "github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/Jeffail/tunny"
 	didlib "github.com/ockam-network/did"
-	// "github.com/joincivil/id-hub/pkg/linkeddata"
+)
+
+const (
+	numWorkers = 3
 )
 
 // NewService is a convenience function to return a new populated did.Service object
 func NewService(resolvers []Resolver) *Service {
-	return &Service{
+	service := &Service{
 		resolvers: resolvers,
+	}
+	pool := tunny.NewFunc(
+		numWorkers,
+		service.resolveProcess,
+	)
+	return &Service{
+		resolvers:   resolvers,
+		resProcPool: pool,
 	}
 }
 
 // Service is the service module for DIDs. It is the direct interface for
 // managing DIDs and DID documents and should be used when possible.
 type Service struct {
-	resolvers []Resolver
+	resolvers   []Resolver
+	resProcPool *tunny.Pool
 }
 
 // GetDocument retrieves the DID document given the DID as a string id
@@ -61,20 +76,59 @@ func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) 
 	return doc.GetPublicKeyFromFragment(fragment)
 }
 
-// resolve runs through the given slice of Resolvers and returns the
-// first valid result. To later improve performance, can spawn goroutines in a pool
-// and query the resolvers simultaneously, returning the "best" answer.
-func (s *Service) resolve(d *didlib.DID) (*Document, error) {
-	var doc *Document
-	var err error
+type resolveParams struct {
+	r Resolver
+	d *didlib.DID
+}
 
-	for _, r := range s.resolvers {
-		doc, err = r.Resolve(d)
-		if err == nil && doc != nil {
-			return doc, nil
-		}
-		log.Infof("%v -> err: %v", d.String(), err)
+func (s *Service) resolveProcess(payload interface{}) interface{} {
+	p, ok := payload.(resolveParams)
+	if !ok {
+		log.Errorf("Payload is not resolveParams: %v", payload)
+		return nil
 	}
 
-	return nil, err
+	doc, err := p.r.Resolve(p.d)
+	if err == nil && doc != nil {
+		return doc
+	}
+
+	log.Infof("%v -> err: %v", p.d.String(), err)
+	return nil
+}
+
+// resolve runs through the given slice of Resolvers, spawns them in different
+// goroutines and returns the first valid result.
+func (s *Service) resolve(d *didlib.DID) (*Document, error) {
+	results := make([]*Document, len(s.resolvers))
+	var wg sync.WaitGroup
+
+	for ind, r := range s.resolvers {
+		wg.Add(1)
+		go func(r Resolver, d *didlib.DID, ind int) {
+			defer wg.Done()
+			result := s.resProcPool.Process(resolveParams{
+				r: r,
+				d: d,
+			})
+
+			doc, ok := result.(*Document)
+			if ok {
+				results[ind] = doc
+			} else {
+				results[ind] = nil
+			}
+		}(r, d, ind)
+	}
+
+	wg.Wait()
+
+	// Return the first non-nil result
+	for _, doc := range results {
+		if doc != nil {
+			return doc, nil
+		}
+	}
+
+	return nil, ErrResolverDIDNotFound
 }

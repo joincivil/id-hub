@@ -2,6 +2,7 @@ module github.com/joincivil/id-hub
 
 require (
 	github.com/99designs/gqlgen v0.10.1
+	github.com/Jeffail/tunny v0.0.0-20190930221602-f13eb662a36a
 	github.com/agnivade/levenshtein v1.0.3 // indirect
 	github.com/allegro/bigcache v1.2.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
