@@ -8,7 +8,7 @@ import (
 	didlib "github.com/ockam-network/did"
 )
 
-func TestMethodIDOnlyFromSTring(t *testing.T) {
+func TestMethodIDOnlyFromString(t *testing.T) {
 	testDidMethodID := "did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485"
 	testDid := "did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485#keys-1"
 
@@ -26,6 +26,21 @@ func TestMethodIDOnlyFromSTring(t *testing.T) {
 	}
 	if onlyMethodID != testDidMethodID {
 		t.Error("should have gotten proper did without fragments/paths")
+	}
+}
+
+func TestMethodIDOnlyFromStringInvalid(t *testing.T) {
+	testDidMethodID := "did"
+	testDid := "did#keys-1"
+
+	_, err := did.MethodIDOnlyFromString(testDid)
+	if err == nil {
+		t.Fatal("should have gotten error")
+	}
+
+	_, err = did.MethodIDOnlyFromString(testDidMethodID)
+	if err == nil {
+		t.Fatal("should have gotten error")
 	}
 }
 
@@ -47,7 +62,7 @@ func TestMethodIDOnly(t *testing.T) {
 }
 
 func TestCopyDID(t *testing.T) {
-	d, _ := did.GenerateEthURIDID()
+	d, _ := didlib.Parse("did:web:civil.co")
 	cpy := did.CopyDID(d)
 	if cpy.String() != d.String() {
 		t.Errorf("Should have matching DID strings")

@@ -47,7 +47,7 @@ func (c *BigCacheResolverCache) Get(d *didlib.DID) (*Document, error) {
 	docBys, err := c.cache.Get(d.String())
 	if err != nil {
 		if err == bigcache.ErrEntryNotFound {
-			return nil, ErrResolverCacheNotFound
+			return nil, ErrResolverCacheDIDNotFound
 		}
 
 		return nil, errors.Wrap(err, "getfromcache.didcacheget")

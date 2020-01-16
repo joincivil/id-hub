@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
@@ -24,8 +25,9 @@ func TestAddJWT(t *testing.T) {
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
 
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didPersister := ethuri.NewPostgresPersister(db)
+	ethURIRes := ethuri.NewService(didPersister)
+	didService := did.NewService([]did.Resolver{ethURIRes})
 	didJWTService := didjwt.NewService(didService)
 
 	jwtClaimPersister := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
@@ -58,11 +60,11 @@ func TestAddJWT(t *testing.T) {
 
 	docPubKey.ID = did.CopyDID(userDID)
 	docPubKey.Controller = did.CopyDID(userDID)
-	didDoc, err := did.InitializeNewDocument(userDID, docPubKey, false, true)
+	didDoc, err := ethuri.InitializeNewDocument(userDID, docPubKey, false, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURIRes.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 

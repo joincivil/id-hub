@@ -190,7 +190,6 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		ClaimSave func(childComplexity int, in *ClaimSaveRequestInput) int
-		DidSave   func(childComplexity int, in *DidSaveRequestInput) int
 		Version   func(childComplexity int) int
 	}
 
@@ -242,7 +241,6 @@ type DidDocumentResolver interface {
 }
 type MutationResolver interface {
 	Version(ctx context.Context) (string, error)
-	DidSave(ctx context.Context, in *DidSaveRequestInput) (*DidSaveResponse, error)
 	ClaimSave(ctx context.Context, in *ClaimSaveRequestInput) (*ClaimSaveResponse, error)
 }
 type QueryResolver interface {
@@ -853,18 +851,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ClaimSave(childComplexity, args["in"].(*ClaimSaveRequestInput)), true
 
-	case "Mutation.didSave":
-		if e.complexity.Mutation.DidSave == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_didSave_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DidSave(childComplexity, args["in"].(*DidSaveRequestInput)), true
-
 	case "Mutation.version":
 		if e.complexity.Mutation.Version == nil {
 			break
@@ -1198,59 +1184,12 @@ type ArticleMetadataImage {
 `},
 	&ast.Source{Name: "did.graphql", Input: `# DID specific schema
 
-extend type Mutation {
-	didSave(in: DidSaveRequestInput): DidSaveResponse
-}
-
 extend type Query {
 	didGet(in: DidGetRequestInput): DidGetResponse
 }
 
 input DidGetRequestInput {
 	did: String
-}
-
-input DidSaveRequestInput {
-	did: String
-	publicKeys: [DidDocPublicKeyInput!]
-	authentications: [DidDocAuthenticationInput!]
-    services: [DidDocServiceInput!]
-    proof: LinkedDataProofInput
-}
-
-input DidDocAuthenticationInput {
-	publicKey: DidDocPublicKeyInput
-	idOnly: Boolean
-}
-
-input DidDocPublicKeyInput {
-	id: String
-	type: String
-	controller: String
-	publicKeyPem: String
-	publicKeyJwk: String
-	publicKeyHex: String
-	publicKeyBase64: String
-	publicKeyBase58: String
-	publicKeyMultibase: String
-	ethereumAddress: String
-}
-
-input DidDocServiceInput {
-	id: String
-	type: String
-	description: String
-	publicKey: String
-	serviceEndpoint: AnyValue
-}
-
-input LinkedDataProofInput {
-	type: String
-	creator: String
-	created: Time
-	proofValue: String
-	domain: String
-	nonce: String
 }
 
 type DidGetResponse {
@@ -1310,6 +1249,15 @@ type LinkedDataProof {
 	nonce: String
 }
 
+input LinkedDataProofInput {
+	type: String
+	creator: String
+	created: Time
+	proofValue: String
+	domain: String
+	nonce: String
+}
+
 scalar AnyValue
 scalar Time`},
 )
@@ -1324,20 +1272,6 @@ func (ec *executionContext) field_Mutation_claimSave_args(ctx context.Context, r
 	var arg0 *ClaimSaveRequestInput
 	if tmp, ok := rawArgs["in"]; ok {
 		arg0, err = ec.unmarshalOClaimSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveRequestInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["in"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_didSave_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *DidSaveRequestInput
-	if tmp, ok := rawArgs["in"]; ok {
-		arg0, err = ec.unmarshalODidSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveRequestInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4335,47 +4269,6 @@ func (ec *executionContext) _Mutation_version(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_didSave(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_didSave_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	rctx.Args = args
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DidSave(rctx, args["in"].(*DidSaveRequestInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*DidSaveResponse)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalODidSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveResponse(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_claimSave(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -6361,144 +6254,6 @@ func (ec *executionContext) unmarshalInputClaimSaveRequestInput(ctx context.Cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputDidDocAuthenticationInput(ctx context.Context, obj interface{}) (DidDocAuthenticationInput, error) {
-	var it DidDocAuthenticationInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "publicKey":
-			var err error
-			it.PublicKey, err = ec.unmarshalODidDocPublicKeyInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "idOnly":
-			var err error
-			it.IDOnly, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputDidDocPublicKeyInput(ctx context.Context, obj interface{}) (DidDocPublicKeyInput, error) {
-	var it DidDocPublicKeyInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "type":
-			var err error
-			it.Type, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "controller":
-			var err error
-			it.Controller, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyPem":
-			var err error
-			it.PublicKeyPem, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyJwk":
-			var err error
-			it.PublicKeyJwk, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyHex":
-			var err error
-			it.PublicKeyHex, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyBase64":
-			var err error
-			it.PublicKeyBase64, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyBase58":
-			var err error
-			it.PublicKeyBase58, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeyMultibase":
-			var err error
-			it.PublicKeyMultibase, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "ethereumAddress":
-			var err error
-			it.EthereumAddress, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputDidDocServiceInput(ctx context.Context, obj interface{}) (DidDocServiceInput, error) {
-	var it DidDocServiceInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "type":
-			var err error
-			it.Type, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "description":
-			var err error
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKey":
-			var err error
-			it.PublicKey, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "serviceEndpoint":
-			var err error
-			it.ServiceEndpoint, err = ec.unmarshalOAnyValue2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋutilsᚐAnyValue(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputDidGetRequestInput(ctx context.Context, obj interface{}) (DidGetRequestInput, error) {
 	var it DidGetRequestInput
 	var asMap = obj.(map[string]interface{})
@@ -6508,48 +6263,6 @@ func (ec *executionContext) unmarshalInputDidGetRequestInput(ctx context.Context
 		case "did":
 			var err error
 			it.Did, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputDidSaveRequestInput(ctx context.Context, obj interface{}) (DidSaveRequestInput, error) {
-	var it DidSaveRequestInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "did":
-			var err error
-			it.Did, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "publicKeys":
-			var err error
-			it.PublicKeys, err = ec.unmarshalODidDocPublicKeyInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "authentications":
-			var err error
-			it.Authentications, err = ec.unmarshalODidDocAuthenticationInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "services":
-			var err error
-			it.Services, err = ec.unmarshalODidDocServiceInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "proof":
-			var err error
-			it.Proof, err = ec.unmarshalOLinkedDataProofInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7390,8 +7103,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "didSave":
-			out.Values[i] = ec._Mutation_didSave(ctx, field)
 		case "claimSave":
 			out.Values[i] = ec._Mutation_claimSave(ctx, field)
 		default:
@@ -7879,48 +7590,12 @@ func (ec *executionContext) marshalNDidDocAuthentication2githubᚗcomᚋjoincivi
 	return ec._DidDocAuthentication(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNDidDocAuthenticationInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx context.Context, v interface{}) (DidDocAuthenticationInput, error) {
-	return ec.unmarshalInputDidDocAuthenticationInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalNDidDocAuthenticationInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx context.Context, v interface{}) (*DidDocAuthenticationInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalNDidDocAuthenticationInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) marshalNDidDocPublicKey2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocPublicKey(ctx context.Context, sel ast.SelectionSet, v did.DocPublicKey) graphql.Marshaler {
 	return ec._DidDocPublicKey(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNDidDocPublicKeyInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx context.Context, v interface{}) (DidDocPublicKeyInput, error) {
-	return ec.unmarshalInputDidDocPublicKeyInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalNDidDocPublicKeyInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx context.Context, v interface{}) (*DidDocPublicKeyInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalNDidDocPublicKeyInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) marshalNDidDocService2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocService(ctx context.Context, sel ast.SelectionSet, v did.DocService) graphql.Marshaler {
 	return ec._DidDocService(ctx, sel, &v)
-}
-
-func (ec *executionContext) unmarshalNDidDocServiceInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx context.Context, v interface{}) (DidDocServiceInput, error) {
-	return ec.unmarshalInputDidDocServiceInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalNDidDocServiceInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx context.Context, v interface{}) (*DidDocServiceInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalNDidDocServiceInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx, v)
-	return &res, err
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -8663,26 +8338,6 @@ func (ec *executionContext) marshalODidDocAuthentication2ᚕgithubᚗcomᚋjoinc
 	return ret
 }
 
-func (ec *executionContext) unmarshalODidDocAuthenticationInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx context.Context, v interface{}) ([]*DidDocAuthenticationInput, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*DidDocAuthenticationInput, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNDidDocAuthenticationInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocAuthenticationInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
 func (ec *executionContext) marshalODidDocPublicKey2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocPublicKey(ctx context.Context, sel ast.SelectionSet, v did.DocPublicKey) graphql.Marshaler {
 	return ec._DidDocPublicKey(ctx, sel, &v)
 }
@@ -8734,38 +8389,6 @@ func (ec *executionContext) marshalODidDocPublicKey2ᚖgithubᚗcomᚋjoincivil�
 	return ec._DidDocPublicKey(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalODidDocPublicKeyInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx context.Context, v interface{}) (DidDocPublicKeyInput, error) {
-	return ec.unmarshalInputDidDocPublicKeyInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalODidDocPublicKeyInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx context.Context, v interface{}) ([]*DidDocPublicKeyInput, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*DidDocPublicKeyInput, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNDidDocPublicKeyInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalODidDocPublicKeyInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx context.Context, v interface{}) (*DidDocPublicKeyInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalODidDocPublicKeyInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocPublicKeyInput(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) marshalODidDocService2ᚕgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocService(ctx context.Context, sel ast.SelectionSet, v []did.DocService) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -8806,26 +8429,6 @@ func (ec *executionContext) marshalODidDocService2ᚕgithubᚗcomᚋjoincivilᚋ
 	return ret
 }
 
-func (ec *executionContext) unmarshalODidDocServiceInput2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx context.Context, v interface{}) ([]*DidDocServiceInput, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*DidDocServiceInput, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNDidDocServiceInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidDocServiceInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
 func (ec *executionContext) marshalODidDocument2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocument(ctx context.Context, sel ast.SelectionSet, v did.Document) graphql.Marshaler {
 	return ec._DidDocument(ctx, sel, &v)
 }
@@ -8858,29 +8461,6 @@ func (ec *executionContext) marshalODidGetResponse2ᚖgithubᚗcomᚋjoincivil�
 		return graphql.Null
 	}
 	return ec._DidGetResponse(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalODidSaveRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveRequestInput(ctx context.Context, v interface{}) (DidSaveRequestInput, error) {
-	return ec.unmarshalInputDidSaveRequestInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalODidSaveRequestInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveRequestInput(ctx context.Context, v interface{}) (*DidSaveRequestInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalODidSaveRequestInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveRequestInput(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalODidSaveResponse2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveResponse(ctx context.Context, sel ast.SelectionSet, v DidSaveResponse) graphql.Marshaler {
-	return ec._DidSaveResponse(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalODidSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐDidSaveResponse(ctx context.Context, sel ast.SelectionSet, v *DidSaveResponse) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DidSaveResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -8917,18 +8497,6 @@ func (ec *executionContext) marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivil�
 	return ec._LinkedDataProof(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOLinkedDataProofInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx context.Context, v interface{}) (LinkedDataProofInput, error) {
-	return ec.unmarshalInputLinkedDataProofInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOLinkedDataProofInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx context.Context, v interface{}) (*LinkedDataProofInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOLinkedDataProofInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐLinkedDataProofInput(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
@@ -8949,7 +8517,7 @@ func (ec *executionContext) unmarshalOString2ᚕstring(ctx context.Context, v in
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		res[i], err = ec.unmarshalOString2string(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -8963,7 +8531,7 @@ func (ec *executionContext) marshalOString2ᚕstring(ctx context.Context, sel as
 	}
 	ret := make(graphql.Array, len(v))
 	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+		ret[i] = ec.marshalOString2string(ctx, sel, v[i])
 	}
 
 	return ret

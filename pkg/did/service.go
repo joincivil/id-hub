@@ -1,31 +1,39 @@
 package did
 
 import (
+	"sync"
+
+	log "github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/Jeffail/tunny"
 	didlib "github.com/ockam-network/did"
-
-	"github.com/joincivil/id-hub/pkg/linkeddata"
-
-	cpersist "github.com/joincivil/go-common/pkg/persistence"
 )
 
 const (
-	// EthURISchemeMethod is the prefix string for all DIDs in the ethuri DID method
-	EthURISchemeMethod = "did:ethuri"
+	numWorkers = 3
 )
 
 // NewService is a convenience function to return a new populated did.Service object
-func NewService(persister Persister) *Service {
+func NewService(resolvers []Resolver) *Service {
+	service := &Service{
+		resolvers: resolvers,
+	}
+	pool := tunny.NewFunc(
+		numWorkers,
+		service.resolveProcess,
+	)
 	return &Service{
-		persister: persister,
+		resolvers:   resolvers,
+		resProcPool: pool,
 	}
 }
 
 // Service is the service module for DIDs. It is the direct interface for
 // managing DIDs and DID documents and should be used when possible.
 type Service struct {
-	persister Persister
+	resolvers   []Resolver
+	resProcPool *tunny.Pool
 }
 
 // GetDocument retrieves the DID document given the DID as a string id
@@ -36,20 +44,13 @@ func (s *Service) GetDocument(did string) (*Document, error) {
 		return nil, errors.Wrap(err, "error parsing did for get document")
 	}
 
-	return s.GetDocumentFromDID(d)
+	return s.resolve(d)
 }
 
 // GetDocumentFromDID retrieves the DID document given the DID as a DID object
 // If document is not found, will return a nil Document.
 func (s *Service) GetDocumentFromDID(did *didlib.DID) (*Document, error) {
-	doc, err := s.persister.GetDocument(did)
-	if err != nil {
-		if err == cpersist.ErrPersisterNoResults {
-			return nil, nil
-		}
-		return nil, errors.Wrap(err, "error getting document from did")
-	}
-	return doc, nil
+	return s.resolve(did)
 }
 
 // GetKeyFromDIDDocument returns a public key document from a did with a fragment if it can be found
@@ -62,6 +63,7 @@ func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) 
 		return nil, errors.New("no fragment on did")
 	}
 	d.Fragment = ""
+
 	doc, err := s.GetDocumentFromDID(d)
 	if err != nil {
 		return nil, err
@@ -74,133 +76,59 @@ func (s *Service) GetKeyFromDIDDocument(did *didlib.DID) (*DocPublicKey, error) 
 	return doc.GetPublicKeyFromFragment(fragment)
 }
 
-// SaveDocument saves the DID document given the DID as a string id
-func (s *Service) SaveDocument(doc *Document) error {
-	return s.persister.SaveDocument(doc)
+type resolveParams struct {
+	r Resolver
+	d *didlib.DID
 }
 
-// CreateOrUpdateParams are input params for CreateOrUpdateDocument
-type CreateOrUpdateParams struct {
-	Did              *string
-	PublicKeys       []DocPublicKey
-	Auths            []DocAuthenicationWrapper
-	Services         []DocService
-	Proof            *linkeddata.Proof
-	KeepKeyFragments bool
+func (s *Service) resolveProcess(payload interface{}) interface{} {
+	p, ok := payload.(resolveParams)
+	if !ok {
+		log.Errorf("Payload is not resolveParams: %v", payload)
+		return nil
+	}
+
+	doc, err := p.r.Resolve(p.d)
+	if err == nil && doc != nil {
+		return doc
+	}
+
+	log.Infof("%v -> err: %v", p.d.String(), err)
+	return nil
 }
 
-// CreateOrUpdateDocument will create a new document or update an existing one given
-// the params in CreateOrUpdateParams.  If did is given and valid, will attempt to
-// retrieve the existing did and document and add any new data to the document
-// If no did is given, it will create a new document with a new DID and the given data.
-// In both cases it will persist to store.
-func (s *Service) CreateOrUpdateDocument(p *CreateOrUpdateParams) (*Document, error) {
-	var doc *Document
-	var err error
+// resolve runs through the given slice of Resolvers, spawns them in different
+// goroutines and returns the first valid result.
+func (s *Service) resolve(d *didlib.DID) (*Document, error) {
+	results := make([]*Document, len(s.resolvers))
+	var wg sync.WaitGroup
 
-	if p.Did != nil {
-		doc, err = s.updateDocumentFromParams(p)
-		if err != nil {
-			return nil, errors.Wrap(err, "error updating new document")
-		}
+	for ind, r := range s.resolvers {
+		wg.Add(1)
+		go func(r Resolver, d *didlib.DID, ind int) {
+			defer wg.Done()
+			result := s.resProcPool.Process(resolveParams{
+				r: r,
+				d: d,
+			})
 
-	} else {
-		doc, err = s.createNewDocumentFromParams(p)
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating new document")
-		}
+			doc, ok := result.(*Document)
+			if ok {
+				results[ind] = doc
+			} else {
+				results[ind] = nil
+			}
+		}(r, d, ind)
 	}
 
-	err = s.SaveDocument(doc)
-	if err != nil {
-		return nil, errors.Wrap(err, "error storing new did")
-	}
+	wg.Wait()
 
-	return doc, nil
-}
-
-func (s *Service) updateDocumentFromParams(p *CreateOrUpdateParams) (*Document, error) {
-	var doc *Document
-	var err error
-
-	// Validate the DID
-	if !ValidDid(*p.Did) {
-		return nil, errors.New("did is invalid")
-	}
-
-	// Try to retrieve the DID document
-	doc, err = s.GetDocument(*p.Did)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get document for did")
-	}
-
-	if doc == nil {
-		return nil, errors.New("no did found to update")
-	}
-
-	for _, pk := range p.PublicKeys {
-		err = doc.AddPublicKey(&pk, false, !p.KeepKeyFragments)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add public key")
+	// Return the first non-nil result
+	for _, doc := range results {
+		if doc != nil {
+			return doc, nil
 		}
 	}
 
-	for _, auth := range p.Auths {
-		err = doc.AddAuthentication(&auth, !p.KeepKeyFragments)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add authentication")
-		}
-	}
-
-	for _, srv := range p.Services {
-		err = doc.AddService(&srv)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add service")
-		}
-	}
-
-	// Update proof
-	doc.Proof = p.Proof
-
-	return doc, nil
-}
-
-func (s *Service) createNewDocumentFromParams(p *CreateOrUpdateParams) (*Document, error) {
-	if len(p.PublicKeys) == 0 {
-		return nil, errors.New("at least one public key required")
-	}
-
-	// Generate a new document with the first key
-	doc, err := GenerateNewDocument(&p.PublicKeys[0], true, !p.KeepKeyFragments)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to generate new did document")
-	}
-
-	// Add rest of keys if more than one
-	for _, pk := range p.PublicKeys[1:] {
-		err = doc.AddPublicKey(&pk, false, !p.KeepKeyFragments)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add public key")
-		}
-	}
-
-	// Add the auths
-	for _, auth := range p.Auths {
-		err = doc.AddAuthentication(&auth, !p.KeepKeyFragments)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add auth")
-		}
-	}
-
-	// Add the services
-	for _, srv := range p.Services {
-		err = doc.AddService(&srv)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add service")
-		}
-	}
-
-	doc.Proof = p.Proof
-
-	return doc, nil
+	return nil, ErrResolverDIDNotFound
 }

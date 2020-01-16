@@ -13,7 +13,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joincivil/id-hub/pkg/auth"
-	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/urfave/cli"
 )
@@ -91,7 +91,7 @@ func cmdGenerateDID() *cli.Command {
 		user := c.String("user")
 		pwd := c.String("password")
 
-		var persister did.Persister
+		var persister ethuri.Persister
 		if store {
 			grm, err := NewGormPostgres(GormPostgresConfig{
 				Host:     host,
@@ -103,12 +103,12 @@ func cmdGenerateDID() *cli.Command {
 			if err != nil {
 				log.Errorf("Error initializing GORM: err: %v", err)
 			} else {
-				grm.AutoMigrate(&did.PostgresDocument{})
-				persister = did.NewPostgresPersister(grm)
+				grm.AutoMigrate(&ethuri.PostgresDocument{})
+				persister = ethuri.NewPostgresPersister(grm)
 			}
 		}
 
-		_, err := did.GenerateDIDCli(linkeddata.SuiteType(pktype), pkfile, persister)
+		_, err := ethuri.GenerateDIDCli(linkeddata.SuiteType(pktype), pkfile, persister)
 		return err
 	}
 

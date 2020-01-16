@@ -16,6 +16,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
@@ -58,19 +59,44 @@ var claimJSON = `{
 	}]
 }`
 
-func makeService(db *gorm.DB, didService *did.Service,
-	signedClaimStore *claimsstore.SignedClaimPGPersister) (*claims.Service, *claims.RootService, error) {
+func initPersister(t *testing.T) (ethuri.Persister, *gorm.DB) {
+	db, err := testutils.GetTestDBConnection()
+	if err != nil {
+		t.Fatalf("Should have returned a new gorm db conn")
+		return nil, nil
+	}
+
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}).Error
+	if err != nil {
+		t.Fatalf("Should have auto-migrated")
+		return nil, nil
+	}
+
+	return ethuri.NewPostgresPersister(db), db
+}
+
+func initEthURIService(t *testing.T) (*did.Service, *ethuri.Service, *gorm.DB) {
+	persister, db := initPersister(t)
+	ethURIService := ethuri.NewService(persister)
+	didService := did.NewService([]did.Resolver{ethURIService})
+	return didService, ethURIService, db
+}
+
+func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimsstore.SignedClaimPGPersister) (
+	*claims.Service, *claims.RootService, error) {
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
 	dlock := lock.NewLocalDLock()
+
 	committer := &claims.FakeRootCommitter{CurrentBlockNumber: big.NewInt(2)}
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
+
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	return claimService, rootService, err
 }
 
-func createDID(service *did.Service, claimerDid *didlib.DID) error {
+func createDID(service *ethuri.Service, claimerDid *didlib.DID) error {
 	pubKeyHex := "046d94c84a7096c572b83d44df576e1ffb3573123f62099f8d4fa19de806bd4d5939d36f91cc5e69398b5709f184abae4c128664b024bddfd09585de74bd85cdbf"
 	pubk := &did.DocPublicKey{
 		ID:           claimerDid,
@@ -78,7 +104,7 @@ func createDID(service *did.Service, claimerDid *didlib.DID) error {
 		PublicKeyHex: &pubKeyHex,
 		Controller:   claimerDid,
 	}
-	doc, err := did.InitializeNewDocument(claimerDid, pubk, true, true)
+	doc, err := ethuri.InitializeNewDocument(claimerDid, pubk, true, true)
 	if err != nil {
 		return err
 	}
@@ -90,15 +116,14 @@ func TestClaimSaveAndProof(t *testing.T) {
 	if err != nil {
 		t.Errorf("can not get db connection: %v", err)
 	}
-	db.DropTable(&did.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
-	err = db.AutoMigrate(&did.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
 	if err != nil {
 		t.Errorf("error running migrations: %v", err)
 	}
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI, db := initEthURIService(t)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, rootService, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -110,7 +135,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("couldn't parse did: %v", err)
 	}
 
-	if err := createDID(didService, claimerDid); err != nil {
+	if err := createDID(ethURI, claimerDid); err != nil {
 		t.Errorf("couldn't add the did: %v", err)
 	}
 

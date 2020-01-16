@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
+	log "github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"github.com/ockam-network/did"
@@ -20,11 +22,9 @@ const (
 	defaultResolverPort = 8080
 	uniResolverURL      = "http://%v:%v/1.0/identifiers/%v"
 
-	reqMaxAtts    = 5
-	reqBaseWaitMs = 100
+	reqMaxAtts    = 3
+	reqBaseWaitMs = 50
 )
-
-// TODO: Add caching
 
 // UniversalResolverResponse is the response from the universal resolver
 type UniversalResolverResponse struct {
@@ -94,7 +94,7 @@ func (h *HTTPUniversalResolver) Resolve(d *did.DID) (*Document, error) {
 			return doc, nil
 		}
 
-		if err != nil && err != ErrResolverCacheNotFound {
+		if err != nil && errors.Cause(err) != ErrResolverCacheDIDNotFound {
 			return nil, errors.Wrap(err, "resolve.get")
 		}
 	}
@@ -130,6 +130,13 @@ func (h *HTTPUniversalResolver) RawResolve(d *did.DID) (*UniversalResolverRespon
 		reqBaseWaitMs,
 	)
 	if err != nil {
+		cause := errors.Cause(err)
+		if strings.Contains(strings.ToLower(cause.Error()),
+			"resolve problem for") {
+			log.Infof("Resolver err: %v", cause.Error())
+			return nil, ErrResolverDIDNotFound
+		}
+
 		return nil, errors.Wrap(err, "resolve.sendrequest")
 	}
 

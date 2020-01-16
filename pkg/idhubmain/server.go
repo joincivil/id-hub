@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/joincivil/id-hub/pkg/auth"
+	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -28,8 +29,19 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 	// db.LogMode(true)
 
 	// DID init
-	didPersister := initDidPersister(db)
-	didService := initDidService(didPersister)
+	// Universal Resolver
+	resolver, err := initHTTPUniversalResolver(config)
+	if err != nil {
+		log.Fatalf("error initializing universal resolver")
+	}
+	// EthURI Resolver
+	ethURIResolver, err := initEthURIResolver(db)
+	if err != nil {
+		log.Fatalf("error initializing ethuri resolver")
+	}
+	// TODO(PN): Adding ethuri resolver during transition of enterprise clients
+	// to other DID methods. Once this occurs, should remove it.
+	didService := initDidService([]did.Resolver{resolver, ethURIResolver})
 
 	// Claims init
 	treePersister := initTreePersister(db)
@@ -83,7 +95,11 @@ func RunServer() error {
 		handler.ErrorPresenter(
 			func(ctx context.Context, e error) *gqlerror.Error {
 				err := errors.Cause(e)
-				log.Errorf("gql error: err: %+v, cause: %+v", e, err)
+				if err == did.ErrResolverDIDNotFound {
+					log.Errorf("gql error: err: %v, cause: %v", e, err)
+				} else {
+					log.Errorf("gql error: err: %+v, cause: %+v", e, err)
+				}
 				return gqlgen.DefaultErrorPresenter(ctx, err)
 			},
 		),

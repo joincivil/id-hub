@@ -10,7 +10,7 @@ import (
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
-	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
@@ -21,7 +21,7 @@ func setupConnection() (*gorm.DB, error) {
 		return nil, err
 	}
 	err = db.AutoMigrate(
-		&did.PostgresDocument{},
+		&ethuri.PostgresDocument{},
 		&claimsstore.SignedClaimPostgres{},
 		&claimsstore.Node{},
 		&claimsstore.RootCommit{},

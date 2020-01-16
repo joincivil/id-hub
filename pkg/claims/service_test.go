@@ -17,19 +17,26 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	"github.com/multiformats/go-multihash"
 	didlib "github.com/ockam-network/did"
 )
 
+func initDIDService(db *gorm.DB) (*did.Service, *ethuri.Service) {
+	persister := ethuri.NewPostgresPersister(db)
+	ethURIService := ethuri.NewService(persister)
+	return did.NewService([]did.Resolver{ethURIService}), ethURIService
+}
+
 func setupConnection() (*gorm.DB, error) {
 	db, err := testutils.GetTestDBConnection()
 	if err != nil {
 		return nil, err
 	}
-	db.DropTable(&did.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
-	err = db.AutoMigrate(&did.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +106,7 @@ func TestCreateTreeForDIDWithPks(t *testing.T) {
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, _ := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -186,8 +192,7 @@ func TestCreateTreeForDID(t *testing.T) {
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -220,11 +225,11 @@ func TestCreateTreeForDID(t *testing.T) {
 
 	docPubKey.ID = did.CopyDID(userDID)
 	docPubKey.Controller = did.CopyDID(userDID)
-	didDoc, err := did.InitializeNewDocument(userDID, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(userDID, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURI.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 
@@ -243,8 +248,7 @@ func TestClaimContent(t *testing.T) {
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -266,11 +270,11 @@ func TestClaimContent(t *testing.T) {
 	}
 	docPubKey.ID = signerDid
 	docPubKey.Controller = did.CopyDID(signerDid)
-	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(signerDid, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURI.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 
@@ -357,8 +361,7 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	defer cleaner()
 
 	// Setup
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -382,11 +385,11 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	}
 	docPubKey.ID = signerDid
 	docPubKey.Controller = did.CopyDID(signerDid)
-	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(signerDid, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURI.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 
@@ -430,8 +433,7 @@ func TestGenerateProof(t *testing.T) {
 	defer cleaner()
 
 	// Setup
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, rootService, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -455,11 +457,11 @@ func TestGenerateProof(t *testing.T) {
 	}
 	docPubKey.ID = signerDid
 	docPubKey.Controller = did.CopyDID(signerDid)
-	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(signerDid, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURI.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 
@@ -585,8 +587,7 @@ func TestClaimLicense(t *testing.T) {
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
+	didService, ethURI := initDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, _, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
@@ -608,14 +609,14 @@ func TestClaimLicense(t *testing.T) {
 	}
 	docPubKey.ID = signerDid
 	docPubKey.Controller = did.CopyDID(signerDid)
-	didDoc, err := did.InitializeNewDocument(signerDid, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(signerDid, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURI.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
-	subjDid, _ := did.GenerateEthURIDID()
+	subjDid, _ := ethuri.GenerateEthURIDID()
 
 	license := makeLicenseCredential(signerDid, subjDid)
 	err = claims.AddProof(license, didDoc.PublicKeys[0].ID, key)

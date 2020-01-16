@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
@@ -23,8 +24,9 @@ func setupConnection() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.DropTable(&did.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
-	err = db.AutoMigrate(&did.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{},
+		&claimsstore.Node{}, &claimsstore.RootCommit{}).Error
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +34,8 @@ func setupConnection() (*gorm.DB, error) {
 	return db, nil
 }
 
-func addPubKey(didService *did.Service, pubKey *ecdsa.PublicKey, doc *did.Document) error {
+func addPubKey(ethURI *ethuri.Service, pubKey *ecdsa.PublicKey,
+	doc *did.Document) error {
 	pubBytes := crypto.FromECDSAPub(pubKey)
 	pub := hex.EncodeToString(pubBytes)
 	docPubKey := &did.DocPublicKey{
@@ -48,7 +51,7 @@ func addPubKey(didService *did.Service, pubKey *ecdsa.PublicKey, doc *did.Docume
 		return err
 	}
 
-	if err := didService.SaveDocument(doc); err != nil {
+	if err := ethURI.SaveDocument(doc); err != nil {
 		return err
 	}
 	return nil
@@ -62,9 +65,9 @@ func TestParseJWT(t *testing.T) {
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
 
-	didPersister := did.NewPostgresPersister(db)
-	didService := did.NewService(didPersister)
-
+	didPersister := ethuri.NewPostgresPersister(db)
+	ethURIRes := ethuri.NewService(didPersister)
+	didService := did.NewService([]did.Resolver{ethURIRes})
 	didJWTService := didjwt.NewService(didService)
 
 	userDIDs := "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4d7785c"
@@ -88,11 +91,11 @@ func TestParseJWT(t *testing.T) {
 
 	docPubKey.ID = did.CopyDID(userDID)
 	docPubKey.Controller = did.CopyDID(userDID)
-	didDoc, err := did.InitializeNewDocument(userDID, docPubKey, true, true)
+	didDoc, err := ethuri.InitializeNewDocument(userDID, docPubKey, true, true)
 	if err != nil {
 		t.Errorf("error making the did doc: %v", err)
 	}
-	if err := didService.SaveDocument(didDoc); err != nil {
+	if err := ethURIRes.SaveDocument(didDoc); err != nil {
 		t.Errorf("error saving the did doc: %v", err)
 	}
 
@@ -102,7 +105,7 @@ func TestParseJWT(t *testing.T) {
 	}
 	pubKey2 := privateKey2.Public().(*ecdsa.PublicKey)
 
-	err = addPubKey(didService, pubKey2, didDoc)
+	err = addPubKey(ethURIRes, pubKey2, didDoc)
 	if err != nil {
 		t.Errorf("error adding pubkey: %v", err)
 	}
@@ -113,7 +116,7 @@ func TestParseJWT(t *testing.T) {
 	}
 	pubKey3 := privateKey3.Public().(*ecdsa.PublicKey)
 
-	err = addPubKey(didService, pubKey3, didDoc)
+	err = addPubKey(ethURIRes, pubKey3, didDoc)
 	if err != nil {
 		t.Errorf("error adding pubkey: %v", err)
 	}
