@@ -22,8 +22,8 @@ const (
 	defaultResolverPort = 8080
 	uniResolverURL      = "http://%v:%v/1.0/identifiers/%v"
 
-	reqMaxAtts    = 5
-	reqBaseWaitMs = 100
+	reqMaxAtts    = 3
+	reqBaseWaitMs = 50
 )
 
 // UniversalResolverResponse is the response from the universal resolver
