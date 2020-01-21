@@ -2,6 +2,7 @@ package idhubmain
 
 import (
 	"github.com/ethereum/go-ethereum"
+	log "github.com/golang/glog"
 	"github.com/iden3/go-iden3-core/db"
 	"github.com/joincivil/go-common/pkg/eth"
 	"github.com/joincivil/go-common/pkg/lock"
@@ -22,7 +23,16 @@ func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimss
 
 func initRootService(config *utils.IDHubConfig, ethHelper *eth.Helper,
 	treeStore db.Storage, persister *claimsstore.RootCommitsPGPersister) (*claims.RootService, error) {
-	rootCommitter, err := claims.NewRootCommitter(ethHelper, ethHelper.Blockchain.(ethereum.TransactionReader), config.RootCommitsAddress)
+	if config.RootCommitsAddress == "" {
+		log.Errorf("No root commits address set, disabling root commits access")
+		return nil, nil
+	}
+
+	rootCommitter, err := claims.NewRootCommitter(
+		ethHelper,
+		ethHelper.Blockchain.(ethereum.TransactionReader),
+		config.RootCommitsAddress,
+	)
 	if err != nil {
 		return nil, err
 	}
