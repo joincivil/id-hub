@@ -149,6 +149,10 @@ func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential,
 
 // GenerateProof returns a proof that the content credential is in the tree and on the blockchain
 func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID) (*MTProof, error) {
+	if s.rootService == nil {
+		return nil, errors.New("Unable to generate proof, no root service initialized")
+	}
+
 	lastRootCommit, err := s.rootService.GetLatest()
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.rootService.GetLatest")
