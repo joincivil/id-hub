@@ -90,10 +90,11 @@ func (s *Service) resolveProcess(payload interface{}) interface{} {
 
 	doc, err := p.r.Resolve(p.d)
 	if err == nil && doc != nil {
+		log.Infof("resolved: %T, did: %v", p.r, p.d.String())
 		return doc
 	}
 
-	log.Infof("%v -> err: %v", p.d.String(), err)
+	log.Infof("unresolved: %T, did: %v err: %v", p.r, p.d.String(), err)
 	return nil
 }
 
