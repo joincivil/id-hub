@@ -221,7 +221,7 @@ workflows:
           filters:
             branches:
               only:
-                - png/coveralls-support
+                - png/more-tests
                 - master
       - setup-gcp:
           context: gcp-common
