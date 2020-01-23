@@ -170,3 +170,122 @@ func TestInputClaimToContentCredentialProofSlice(t *testing.T) {
 	}
 	t.Logf("proof type = %T\n", cc.Proof)
 }
+
+func TestInputClaimToContentCredentialNoClaim(t *testing.T) {
+	in := &graphql.ClaimSaveRequestInput{}
+	cc, err := graphql.InputClaimToContentCredential(in)
+	if err == nil {
+		t.Errorf("Should have had error converting claim to content credential: err: %v", err)
+	}
+	if cc != nil {
+		t.Errorf("Should have returned a nil content credential")
+	}
+}
+
+func TestInputClaimToContentCredentialWithClaimStruct(t *testing.T) {
+	now := time.Now()
+	opinion := false
+
+	in := &graphql.ClaimSaveRequestInput{
+		Claim: &graphql.ClaimInput{
+			Context: []string{
+				"https://www.w3.org/2018/credentials/v1",
+				"https://id.civil.co/credentials/contentcredential/v1",
+			},
+			Type: []string{
+				"VerifiableCredential",
+				"ContentCredential",
+			},
+			CredentialSubject: &graphql.ClaimCredentialSubjectInput{
+				ID: "did:web:civil.co",
+				Metadata: &graphql.ArticleMetadataInput{
+					Title:               utils.StrToPtr("Test Title"),
+					RevisionContentHash: utils.StrToPtr(""),
+					RevisionContentURL:  utils.StrToPtr(""),
+					CanonicalURL:        utils.StrToPtr(""),
+					Slug:                utils.StrToPtr(""),
+					Description:         utils.StrToPtr(""),
+					PrimaryTag:          utils.StrToPtr(""),
+					Opinion:             &opinion,
+					CivilSchemaVersion:  utils.StrToPtr(""),
+					RevisionDate:        utils.StrToPtr("2019-11-18T17:18:10Z"),
+					OriginalPublishDate: utils.StrToPtr("2019-11-18T17:18:10Z"),
+					Contributors: []*graphql.ArticleMetadataContributorInput{
+						{
+							Name: utils.StrToPtr("Eric Martin"),
+							Role: utils.StrToPtr("author"),
+						},
+					},
+					Images: []*graphql.ArticleMetadataImageInput{
+						{
+							URL:  utils.StrToPtr("http://civil.co/img.jpg"),
+							Hash: utils.StrToPtr("iamahash"),
+							W:    utils.IntToPtr(10),
+							H:    utils.IntToPtr(10),
+						},
+					},
+				},
+			},
+			CredentialSchema: &graphql.ClaimCredentialSchemaInput{
+				ID:   "https://id.civil.co/credentials/schemas/v1/metadata.json",
+				Type: "JsonSchemaValidator2018",
+			},
+			Proof: []*graphql.LinkedDataProofInput{
+				{
+					Type:       utils.StrToPtr("EcdsaSecp256k1Signature2019"),
+					Creator:    utils.StrToPtr("did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485#keys-1"),
+					Created:    &now,
+					ProofValue: utils.StrToPtr("80ed91bd852ba71ef230b74acb66375fe1516c6e282cb202fe10dcf6c0cc14934c179b88a3da16e3737283cd597732936bc51631bdc2596edc2d82d65d9610f900"),
+				},
+			},
+			Issuer:       "did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485#keys-1",
+			IssuanceDate: "2019-11-18T17:21:09.613186712Z",
+		},
+	}
+	cc, err := graphql.InputClaimToContentCredential(in)
+	if err != nil {
+		t.Errorf("Should have had no error converting claim to content credential: err: %v", err)
+	}
+	if cc == nil {
+		t.Errorf("Should have returned a non-nil content credential")
+	}
+}
+
+func TestInputClaimToContentCredentialWithClaimStructNoSubject(t *testing.T) {
+	now := time.Now()
+
+	in := &graphql.ClaimSaveRequestInput{
+		Claim: &graphql.ClaimInput{
+			Context: []string{
+				"https://www.w3.org/2018/credentials/v1",
+				"https://id.civil.co/credentials/contentcredential/v1",
+			},
+			Type: []string{
+				"VerifiableCredential",
+				"ContentCredential",
+			},
+			CredentialSubject: nil,
+			CredentialSchema: &graphql.ClaimCredentialSchemaInput{
+				ID:   "https://id.civil.co/credentials/schemas/v1/metadata.json",
+				Type: "JsonSchemaValidator2018",
+			},
+			Proof: []*graphql.LinkedDataProofInput{
+				{
+					Type:       utils.StrToPtr("EcdsaSecp256k1Signature2019"),
+					Creator:    utils.StrToPtr("did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485#keys-1"),
+					Created:    &now,
+					ProofValue: utils.StrToPtr("80ed91bd852ba71ef230b74acb66375fe1516c6e282cb202fe10dcf6c0cc14934c179b88a3da16e3737283cd597732936bc51631bdc2596edc2d82d65d9610f900"),
+				},
+			},
+			Issuer:       "did:ethuri:c81773d7-fc03-44eb-b28e-6eff2c291485#keys-1",
+			IssuanceDate: "2019-11-18T17:21:09.613186712Z",
+		},
+	}
+	cc, err := graphql.InputClaimToContentCredential(in)
+	if err == nil {
+		t.Errorf("Should have had error converting claim to content credential: err: %v", err)
+	}
+	if cc != nil {
+		t.Errorf("Should have returned a nil content credential")
+	}
+}
