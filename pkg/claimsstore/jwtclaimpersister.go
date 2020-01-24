@@ -49,18 +49,18 @@ func NewJWTClaimPGPersister(db *gorm.DB, didJWTService *didjwt.Service) *JWTClai
 }
 
 // AddJWT adds a new jwt claim to the db
-func (p *JWTClaimPGPersister) AddJWT(tokenString string, senderDID *didlib.DID) (string, error) {
+func (p *JWTClaimPGPersister) AddJWT(tokenString string, senderDID *didlib.DID) (*jwt.Token, string, error) {
 	token, err := p.didJWTService.ParseJWT(tokenString)
 	if err != nil {
-		return "", errors.Wrap(err, "addJWT failed to parse token")
+		return nil, "", errors.Wrap(err, "addJWT failed to parse token")
 	}
 	hash, err := hashJWT(tokenString)
 	if err != nil {
-		return "", errors.Wrap(err, "addJWT failed to hash token")
+		return nil, "", errors.Wrap(err, "addJWT failed to hash token")
 	}
 	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
 	if !ok {
-		return "", errors.New("invalid claims type")
+		return nil, "", errors.New("invalid claims type")
 	}
 
 	claim := &JWTClaimPostgres{
@@ -71,10 +71,10 @@ func (p *JWTClaimPGPersister) AddJWT(tokenString string, senderDID *didlib.DID) 
 	}
 
 	if err := p.db.Create(claim).Error; err != nil {
-		return "", errors.Wrap(err, "addJWT failed to save token to db")
+		return nil, "", errors.Wrap(err, "addJWT failed to save token to db")
 	}
 
-	return claim.Hash, nil
+	return token, claim.Hash, nil
 }
 
 // GetJWTByHash returns a jwt from it's hash

@@ -4,7 +4,12 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
+
 	"github.com/joincivil/id-hub/pkg/claimtypes"
+	"github.com/joincivil/id-hub/pkg/didjwt"
+	didlib "github.com/ockam-network/did"
 )
 
 // CanonicalizeCredential removes the proof and returns json bytes
@@ -27,4 +32,19 @@ func CanonicalizeCredential(cred *claimtypes.ContentCredential) ([]byte, error) 
 		IssuanceDate:      cred.IssuanceDate,
 	}
 	return json.Marshal(temp)
+}
+
+func getIssuerDIDfromToken(token *jwt.Token) (*didlib.DID, error) {
+	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
+
+	if !ok {
+		return nil, errors.New("invalids claims type on JWT")
+	}
+
+	issuer, err := didlib.Parse(claims.Issuer)
+	if err != nil {
+		return nil, errors.Wrap(err, "AddJWTClaim error parsing issuer did")
+	}
+
+	return issuer, nil
 }
