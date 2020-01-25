@@ -16,6 +16,8 @@ const (
 	ContentCredentialDocType uint32 = iota
 	// LicenseCredentialDocType is an enum value that differentiates license credentials from other documents
 	LicenseCredentialDocType uint32 = iota
+	// JWTDocType is an enum value that differentiates jwts from other documents
+	JWTDocType uint32 = iota
 )
 
 // ClaimRegisteredDocument is a claim type for registering other claims like signed claims in the merkle tree

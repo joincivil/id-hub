@@ -83,7 +83,7 @@ func TestAddJWT(t *testing.T) {
 		t.Errorf("error creating token string: %v", err)
 	}
 
-	hash, err := jwtClaimPersister.AddJWT(tokenS, senderDID)
+	_, hash, err := jwtClaimPersister.AddJWT(tokenS, senderDID)
 	if err != nil {
 		t.Errorf("error adding the jwt: %v", err)
 	}

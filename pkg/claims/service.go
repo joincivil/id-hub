@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jinzhu/gorm"
-	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 
 	log "github.com/golang/glog"
@@ -27,6 +26,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
+	"github.com/joincivil/id-hub/pkg/utils"
 
 	didlib "github.com/ockam-network/did"
 )
@@ -104,7 +104,7 @@ func (s *Service) getLastRootClaim(claim claimtypes.Credential,
 			"getLastRootClaim NodePersister.GetLatestRootClaimInSnapshot failed to get last root for did")
 	}
 
-	didMT, err := s.buildDIDMt(signerDID)
+	didMT, err := s.BuildDIDMt(signerDID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "getLastRootClaim.buildDIDMt")
 	}
@@ -137,10 +137,9 @@ func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential,
 	if err != nil {
 		return nil, errors.Wrap(err, "makeContentClaimFromCred json.Marshal")
 	}
-	hash := crypto.Keccak256(claimJSON)
-	mhash, err := multihash.EncodeName(hash, "keccak-256")
+	mhash, err := utils.CreateMultihash(claimJSON)
 	if err != nil {
-		return nil, errors.Wrap(err, "makeContentClaimFromCred multihash.EncodeName")
+		return nil, errors.Wrap(err, "makeContentClaimFromCred error creating multihash")
 	}
 	hash34 := [34]byte{}
 	copy(hash34[:], mhash)
@@ -184,7 +183,7 @@ func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID
 		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
 	}
 
-	didMt, err := s.buildDIDMt(claimer)
+	didMt, err := s.BuildDIDMt(claimer)
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +243,17 @@ func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID
 
 }
 
-func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
-	didMt, err := s.buildDIDMt(userDid)
+// BuildDIDMt takes a did and returns a merkle tree with that tree as a prefix
+func (s *Service) BuildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error) {
+	didStringOnlyMethodID := did.MethodIDOnly(userDid)
+	bid := []byte(didStringOnlyMethodID)
+	didStore := s.treeStore.WithPrefix(bid)
+	return merkletree.NewMerkleTree(didStore, 150)
+}
+
+// AddNewRootClaim adds a new root claim for a did in the root tree
+func (s *Service) AddNewRootClaim(userDid *didlib.DID) error {
+	didMt, err := s.BuildDIDMt(userDid)
 	if err != nil {
 		return err
 	}
@@ -281,13 +289,6 @@ func (s *Service) addNewRootClaim(userDid *didlib.DID) error {
 	return nil
 }
 
-func (s *Service) buildDIDMt(userDid *didlib.DID) (*merkletree.MerkleTree, error) {
-	didStringOnlyMethodID := did.MethodIDOnly(userDid)
-	bid := []byte(didStringOnlyMethodID)
-	didStore := s.treeStore.WithPrefix(bid)
-	return merkletree.NewMerkleTree(didStore, 150)
-}
-
 // CreateTreeForDIDWithPks creates a new merkle tree for the did and
 // registers a slice of public key that can be used for signing with this did
 // Can also be used to add additional key claims to the userDID MT
@@ -296,7 +297,7 @@ func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.
 		return errors.New("at least one public key required")
 	}
 
-	didMt, err := s.buildDIDMt(userDid)
+	didMt, err := s.BuildDIDMt(userDid)
 	if err != nil {
 		return err
 	}
@@ -319,7 +320,7 @@ func (s *Service) CreateTreeForDIDWithPks(userDid *didlib.DID, signPks []*ecdsa.
 	}
 
 	if addRoot {
-		return s.addNewRootClaim(userDid)
+		return s.AddNewRootClaim(userDid)
 	}
 
 	return nil
@@ -362,7 +363,7 @@ func (s *Service) verifyCredential(cred claimtypes.Credential) (bool, error) {
 		return false, err
 	}
 
-	signerMt, err := s.buildDIDMt(signerDid)
+	signerMt, err := s.BuildDIDMt(signerDid)
 	if err != nil {
 		return false, errors.Wrap(err, "verifyCredential.buildDIDMt")
 	}
@@ -400,7 +401,7 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	}
 
 	// for a content claim the signer should also be the issuer and holder
-	didMt, err := s.buildDIDMt(signerDid)
+	didMt, err := s.BuildDIDMt(signerDid)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.builddidMt")
 	}
@@ -433,7 +434,7 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.add")
 	}
-	err = s.addNewRootClaim(signerDid)
+	err = s.AddNewRootClaim(signerDid)
 	if err != nil {
 		return errors.Wrap(err, "claimcontent.addnewrootclaim")
 	}
@@ -443,7 +444,7 @@ func (s *Service) ClaimContent(cred *claimtypes.ContentCredential) error {
 
 // RevokeClaim adds a revocation to the registered doc associated with a credential
 func (s *Service) RevokeClaim(cred claimtypes.Credential, claimer *didlib.DID) error {
-	didMt, err := s.buildDIDMt(claimer)
+	didMt, err := s.BuildDIDMt(claimer)
 	if err != nil {
 		return errors.Wrap(err, "revokeclaim.builddidMt")
 	}
@@ -460,7 +461,7 @@ func (s *Service) RevokeClaim(cred claimtypes.Credential, claimer *didlib.DID) e
 		return errors.Wrap(err, "RevokeClaim.add")
 	}
 
-	err = s.addNewRootClaim(claimer)
+	err = s.AddNewRootClaim(claimer)
 	if err != nil {
 		return errors.Wrap(err, "RevokeClaim.addnewrootclaim")
 	}
@@ -470,7 +471,7 @@ func (s *Service) RevokeClaim(cred claimtypes.Credential, claimer *didlib.DID) e
 
 // ClaimLicense adds a license claim to the claimers claim tree
 func (s *Service) ClaimLicense(cred *claimtypes.LicenseCredential, claimer *didlib.DID) error {
-	didMt, err := s.buildDIDMt(claimer)
+	didMt, err := s.BuildDIDMt(claimer)
 	if err != nil {
 		return errors.Wrap(err, "claimlicense.builddidMt")
 	}
@@ -506,7 +507,7 @@ func (s *Service) ClaimLicense(cred *claimtypes.LicenseCredential, claimer *didl
 	if err != nil {
 		return errors.Wrap(err, "ClaimLicense.add")
 	}
-	err = s.addNewRootClaim(claimer)
+	err = s.AddNewRootClaim(claimer)
 	if err != nil {
 		return errors.Wrap(err, "ClaimLicense.addnewrootclaim")
 	}
@@ -586,7 +587,7 @@ func (s *Service) ClaimsToContentCredentials(clms []merkletree.Claim) (
 
 // GetMerkleTreeClaimsForDid returns all the claims in a DID's merkletree
 func (s *Service) GetMerkleTreeClaimsForDid(userDid *didlib.DID) ([]merkletree.Claim, error) {
-	didMt, err := s.buildDIDMt(userDid)
+	didMt, err := s.BuildDIDMt(userDid)
 	if err != nil {
 		return nil, err
 	}
@@ -600,7 +601,7 @@ func (s *Service) GetRootMerkleTreeClaims() ([]merkletree.Claim, error) {
 
 // GetDIDRoot returns the root hash of a dids tree
 func (s *Service) GetDIDRoot(did *didlib.DID) (*merkletree.Hash, error) {
-	didMt, err := s.buildDIDMt(did)
+	didMt, err := s.BuildDIDMt(did)
 	if err != nil {
 		return nil, err
 	}
