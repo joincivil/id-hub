@@ -159,3 +159,23 @@ func (s *JWTService) GetJWTSforDID(userDID *didlib.DID) ([]*jwt.Token, error) {
 	}
 	return tokens, nil
 }
+
+// GenerateProof creates a proof from a jwt
+func (s *JWTService) GenerateProof(tokenString string) (*MTProof, error) {
+	token, err := s.didJWTService.ParseJWT(tokenString)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof couldn't parse token")
+	}
+
+	issuer, err := getIssuerDIDfromToken(token)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof error parsing issuer did")
+	}
+
+	regDocClaim, err := s.makeRegisteredDocClaimFromJWT(tokenString, issuer)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof couldn't make reg doc claim")
+	}
+
+	return s.claimService.GenerateProofRegistedDocument(regDocClaim, issuer)
+}

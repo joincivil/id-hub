@@ -60,12 +60,7 @@ func (r *queryResolver) ClaimProof(ctx context.Context, in *ClaimProofRequestInp
 		return nil, errors.Wrap(err, "error converting claim to credential")
 	}
 
-	requesterDid, err := didlib.Parse(in.Did)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing did")
-	}
-
-	proof, err := r.ClaimService.GenerateProof(cc, requesterDid)
+	proof, err := r.ClaimService.GenerateProof(cc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error generating proof that claim is in tree")
 	}
