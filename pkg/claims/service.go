@@ -91,12 +91,8 @@ func (s *Service) generateProofAndNonRevokeFromEntry(entry *merkletree.Entry,
 	return proof, revoke, nil
 }
 
-func (s *Service) getLastRootClaim(claim claimtypes.Credential,
+func (s *Service) getLastRootClaim(signerDID *didlib.DID,
 	rootSnapShotTree *merkletree.MerkleTree) (*claimtypes.ClaimSetRootKeyDID, *merkletree.MerkleTree, error) {
-	signerDID, err := s.getSignerDID(claim)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "getLastRootClaim.getSignerDID")
-	}
 
 	lastRootClaimForDID, err := s.treeStore.NodePersister.GetLatestRootClaimInSnapshot(signerDID, rootSnapShotTree)
 	if err != nil {
@@ -146,30 +142,26 @@ func (s *Service) makeContentClaimFromCred(claim claimtypes.Credential,
 	return claimtypes.NewClaimRegisteredDocument(hash34, claimer, claimtypes.ContentCredentialDocType)
 }
 
-// GenerateProof returns a proof that the content credential is in the tree and on the blockchain
-func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID) (*MTProof, error) {
+// GenerateProofRegistedDocument creates a proof for any registered document
+func (s *Service) GenerateProofRegistedDocument(rdClaim *claimtypes.ClaimRegisteredDocument,
+	issuer *didlib.DID) (*MTProof, error) {
 	if s.rootService == nil {
 		return nil, errors.New("Unable to generate proof, no root service initialized")
 	}
 
 	lastRootCommit, err := s.rootService.GetLatest()
 	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.rootService.GetLatest")
+		return nil, errors.Wrap(err, "GenerateProofRegistedDocument.rootService.GetLatest")
 	}
 
 	lastRootSnapshot, err := s.getRootSnapshot(lastRootCommit)
 	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.getRootSnapshot")
+		return nil, errors.Wrap(err, "GenerateProofRegistedDocument.getRootSnapshot")
 	}
 
-	latestRootClaim, didTreeSnapshot, err := s.getLastRootClaim(claim, lastRootSnapshot)
+	latestRootClaim, didTreeSnapshot, err := s.getLastRootClaim(issuer, lastRootSnapshot)
 	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim")
-	}
-
-	rdClaim, err := s.makeContentClaimFromCred(claim, claimer)
-	if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.makeContentClaimFromCred")
+		return nil, errors.Wrap(err, "GenerateProofRegistedDocument.getLastRootClaim")
 	}
 
 	entry := rdClaim.Entry()
@@ -180,10 +172,10 @@ func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID
 			Existence: false,
 		}
 	} else if err != nil {
-		return nil, errors.Wrap(err, "GenerateProof.generateProofAndNonRevokeFromEntry")
+		return nil, errors.Wrap(err, "GenerateProofRegistedDocument.generateProofAndNonRevokeFromEntry")
 	}
 
-	didMt, err := s.BuildDIDMt(claimer)
+	didMt, err := s.BuildDIDMt(issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +205,11 @@ func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID
 			Root:                   *lastRootSnapshot.RootKey(),
 			DIDRoot:                *didTreeSnapshot.RootKey(),
 			CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
-			DID:                    claimer.String(),
+			DID:                    issuer.String(),
 		}, nil
 	}
 
-	rootClaimNoAnchor, _, err := s.getLastRootClaim(claim, s.rootMt)
+	rootClaimNoAnchor, _, err := s.getLastRootClaim(issuer, s.rootMt)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof.getLastRootClaim failed for current root tree")
 	}
@@ -238,9 +230,23 @@ func (s *Service) GenerateProof(claim claimtypes.Credential, claimer *didlib.DID
 		Root:                   *s.rootMt.RootKey(),
 		DIDRoot:                *didMt.RootKey(),
 		CommitterAddress:       common.HexToAddress(lastRootCommit.CommitterAddress),
-		DID:                    claimer.String(),
+		DID:                    issuer.String(),
 	}, nil
+}
 
+// GenerateProof returns a proof that the content credential is in the tree and on the blockchain
+func (s *Service) GenerateProof(claim claimtypes.Credential) (*MTProof, error) {
+	signerDID, err := s.getSignerDID(claim)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.getSignerDID")
+	}
+
+	rdClaim, err := s.makeContentClaimFromCred(claim, signerDID)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateProof.makeContentClaimFromCred")
+	}
+
+	return s.GenerateProofRegistedDocument(rdClaim, signerDID)
 }
 
 // BuildDIDMt takes a did and returns a merkle tree with that tree as a prefix
