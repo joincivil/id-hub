@@ -15,6 +15,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/joincivil/go-common/pkg/article"
+	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
@@ -47,6 +48,7 @@ type ResolverRoot interface {
 	DidDocPublicKey() DidDocPublicKeyResolver
 	DidDocService() DidDocServiceResolver
 	DidDocument() DidDocumentResolver
+	Edge() EdgeResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -179,6 +181,17 @@ type ComplexityRoot struct {
 		DocRaw func(childComplexity int) int
 	}
 
+	Edge struct {
+		Data  func(childComplexity int) int
+		From  func(childComplexity int) int
+		Hash  func(childComplexity int) int
+		JWT   func(childComplexity int) int
+		Proof func(childComplexity int) int
+		Time  func(childComplexity int) int
+		To    func(childComplexity int) int
+		Type  func(childComplexity int) int
+	}
+
 	LinkedDataProof struct {
 		Created    func(childComplexity int) int
 		Creator    func(childComplexity int) int
@@ -189,6 +202,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddEdge   func(childComplexity int, edgeJwt *string) int
 		ClaimSave func(childComplexity int, in *ClaimSaveRequestInput) int
 		Version   func(childComplexity int) int
 	}
@@ -197,6 +211,7 @@ type ComplexityRoot struct {
 		ClaimGet   func(childComplexity int, in *ClaimGetRequestInput) int
 		ClaimProof func(childComplexity int, in *ClaimProofRequestInput) int
 		DidGet     func(childComplexity int, in *DidGetRequestInput) int
+		FindEdges  func(childComplexity int, fromDid string) int
 		Version    func(childComplexity int) int
 	}
 
@@ -239,15 +254,25 @@ type DidDocumentResolver interface {
 
 	Controller(ctx context.Context, obj *did.Document) (*string, error)
 }
+type EdgeResolver interface {
+	From(ctx context.Context, obj *claimsstore.JWTClaimPostgres) (string, error)
+	To(ctx context.Context, obj *claimsstore.JWTClaimPostgres) (*string, error)
+
+	Time(ctx context.Context, obj *claimsstore.JWTClaimPostgres) (string, error)
+
+	Proof(ctx context.Context, obj *claimsstore.JWTClaimPostgres) ([]Proof, error)
+}
 type MutationResolver interface {
 	Version(ctx context.Context) (string, error)
 	ClaimSave(ctx context.Context, in *ClaimSaveRequestInput) (*ClaimSaveResponse, error)
+	AddEdge(ctx context.Context, edgeJwt *string) (*claimsstore.JWTClaimPostgres, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
 	DidGet(ctx context.Context, in *DidGetRequestInput) (*DidGetResponse, error)
 	ClaimGet(ctx context.Context, in *ClaimGetRequestInput) (*ClaimGetResponse, error)
 	ClaimProof(ctx context.Context, in *ClaimProofRequestInput) (*ClaimProofResponse, error)
+	FindEdges(ctx context.Context, fromDid string) ([]*claimsstore.JWTClaimPostgres, error)
 }
 
 type executableSchema struct {
@@ -797,6 +822,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DidSaveResponse.DocRaw(childComplexity), true
 
+	case "Edge.data":
+		if e.complexity.Edge.Data == nil {
+			break
+		}
+
+		return e.complexity.Edge.Data(childComplexity), true
+
+	case "Edge.from":
+		if e.complexity.Edge.From == nil {
+			break
+		}
+
+		return e.complexity.Edge.From(childComplexity), true
+
+	case "Edge.hash":
+		if e.complexity.Edge.Hash == nil {
+			break
+		}
+
+		return e.complexity.Edge.Hash(childComplexity), true
+
+	case "Edge.jwt":
+		if e.complexity.Edge.JWT == nil {
+			break
+		}
+
+		return e.complexity.Edge.JWT(childComplexity), true
+
+	case "Edge.proof":
+		if e.complexity.Edge.Proof == nil {
+			break
+		}
+
+		return e.complexity.Edge.Proof(childComplexity), true
+
+	case "Edge.time":
+		if e.complexity.Edge.Time == nil {
+			break
+		}
+
+		return e.complexity.Edge.Time(childComplexity), true
+
+	case "Edge.to":
+		if e.complexity.Edge.To == nil {
+			break
+		}
+
+		return e.complexity.Edge.To(childComplexity), true
+
+	case "Edge.type":
+		if e.complexity.Edge.Type == nil {
+			break
+		}
+
+		return e.complexity.Edge.Type(childComplexity), true
+
 	case "LinkedDataProof.created":
 		if e.complexity.LinkedDataProof.Created == nil {
 			break
@@ -838,6 +919,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LinkedDataProof.Type(childComplexity), true
+
+	case "Mutation.addEdge":
+		if e.complexity.Mutation.AddEdge == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addEdge_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddEdge(childComplexity, args["edgeJWT"].(*string)), true
 
 	case "Mutation.claimSave":
 		if e.complexity.Mutation.ClaimSave == nil {
@@ -893,6 +986,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.DidGet(childComplexity, args["in"].(*DidGetRequestInput)), true
+
+	case "Query.findEdges":
+		if e.complexity.Query.FindEdges == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findEdges_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindEdges(childComplexity, args["fromDID"].(string)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -1260,11 +1365,60 @@ input LinkedDataProofInput {
 
 scalar AnyValue
 scalar Time`},
+	&ast.Source{Name: "jwt.graphql", Input: `# DID specific schema
+
+extend type Query {
+    # Find edges
+    # returns an array of Edges
+    findEdges(fromDID: String!): [Edge!]!
+}
+
+extend type Mutation {
+    # Add and edge.
+    #
+    # Arguments
+    #
+    # edgeJWT: JWT with the following mandatory fields: iss, sub, type, iat. Optional: tag,claim,encPriv,encShar
+    addEdge(edgeJWT: String): Edge
+}
+
+type Edge {
+    # keccak256 multihash of the JWT
+    hash: ID!
+    # original JWT of the edge
+    jwt: String!
+    # from field of the edge. "iss" on the JWT
+    from: String!
+    # to field of the edge. "sub" on the JWT
+    to: String
+    # type of the edge. "type" on the JWT
+    type: String
+    # date of the issuance of the edge. "iat" on the JWT
+    time: String!
+    # Data of the edge, can be unencrypted or encrypted. "data" on the JWT
+    data: String
+    proof: [Proof]
+}
+`},
 )
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addEdge_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["edgeJWT"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["edgeJWT"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_claimSave_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1333,6 +1487,20 @@ func (ec *executionContext) field_Query_didGet_args(ctx context.Context, rawArgs
 		}
 	}
 	args["in"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findEdges_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["fromDID"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fromDID"] = arg0
 	return args, nil
 }
 
@@ -4028,6 +4196,290 @@ func (ec *executionContext) _DidSaveResponse_docRaw(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Edge_hash(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_jwt(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JWT, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_from(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Edge().From(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_to(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Edge().To(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_type(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_time(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Edge().Time(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_data(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Edge_proof(ctx context.Context, field graphql.CollectedField, obj *claimsstore.JWTClaimPostgres) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Edge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Edge().Proof(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]Proof)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOProof2ᚕgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐProof(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _LinkedDataProof_type(ctx context.Context, field graphql.CollectedField, obj *linkeddata.Proof) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -4310,6 +4762,47 @@ func (ec *executionContext) _Mutation_claimSave(ctx context.Context, field graph
 	return ec.marshalOClaimSaveResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimSaveResponse(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_addEdge(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addEdge_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddEdge(rctx, args["edgeJWT"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*claimsstore.JWTClaimPostgres)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOEdge2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -4468,6 +4961,50 @@ func (ec *executionContext) _Query_claimProof(ctx context.Context, field graphql
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalOClaimProofResponse2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐClaimProofResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_findEdges(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_findEdges_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FindEdges(rctx, args["fromDID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*claimsstore.JWTClaimPostgres)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNEdge2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7049,6 +7586,92 @@ func (ec *executionContext) _DidSaveResponse(ctx context.Context, sel ast.Select
 	return out
 }
 
+var edgeImplementors = []string{"Edge"}
+
+func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj *claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, edgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Edge")
+		case "hash":
+			out.Values[i] = ec._Edge_hash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "jwt":
+			out.Values[i] = ec._Edge_jwt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "from":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Edge_from(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "to":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Edge_to(ctx, field, obj)
+				return res
+			})
+		case "type":
+			out.Values[i] = ec._Edge_type(ctx, field, obj)
+		case "time":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Edge_time(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "data":
+			out.Values[i] = ec._Edge_data(ctx, field, obj)
+		case "proof":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Edge_proof(ctx, field, obj)
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var linkedDataProofImplementors = []string{"LinkedDataProof", "Proof"}
 
 func (ec *executionContext) _LinkedDataProof(ctx context.Context, sel ast.SelectionSet, obj *linkeddata.Proof) graphql.Marshaler {
@@ -7105,6 +7728,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "claimSave":
 			out.Values[i] = ec._Mutation_claimSave(ctx, field)
+		case "addEdge":
+			out.Values[i] = ec._Mutation_addEdge(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7176,6 +7801,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_claimProof(ctx, field)
+				return res
+			})
+		case "findEdges":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findEdges(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "__type":
@@ -7596,6 +8235,71 @@ func (ec *executionContext) marshalNDidDocPublicKey2githubᚗcomᚋjoincivilᚋi
 
 func (ec *executionContext) marshalNDidDocService2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋdidᚐDocService(ctx context.Context, sel ast.SelectionSet, v did.DocService) graphql.Marshaler {
 	return ec._DidDocService(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEdge2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx context.Context, sel ast.SelectionSet, v claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	return ec._Edge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEdge2ᚕᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx context.Context, sel ast.SelectionSet, v []*claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEdge2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNEdge2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx context.Context, sel ast.SelectionSet, v *claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Edge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	return graphql.UnmarshalID(v)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -8463,6 +9167,17 @@ func (ec *executionContext) marshalODidGetResponse2ᚖgithubᚗcomᚋjoincivil�
 	return ec._DidGetResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOEdge2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx context.Context, sel ast.SelectionSet, v claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	return ec._Edge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOEdge2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋclaimsstoreᚐJWTClaimPostgres(ctx context.Context, sel ast.SelectionSet, v *claimsstore.JWTClaimPostgres) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Edge(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
 	return graphql.UnmarshalInt(v)
 }
@@ -8495,6 +9210,53 @@ func (ec *executionContext) marshalOLinkedDataProof2ᚖgithubᚗcomᚋjoincivil�
 		return graphql.Null
 	}
 	return ec._LinkedDataProof(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐProof(ctx context.Context, sel ast.SelectionSet, v Proof) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Proof(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProof2ᚕgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐProof(ctx context.Context, sel ast.SelectionSet, v []Proof) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOProof2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐProof(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

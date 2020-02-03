@@ -31,6 +31,7 @@ var (
 type Resolver struct {
 	DidService   *did.Service
 	ClaimService *claims.Service
+	JWTService   *claims.JWTService
 }
 
 // Version returns the version of the GraphQL API

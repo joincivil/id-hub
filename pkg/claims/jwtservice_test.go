@@ -111,7 +111,7 @@ func TestJWTService(t *testing.T) {
 		t.Errorf("unable to create jwt string: %v", err)
 	}
 
-	err = jwtService.AddJWTClaim(tokenS, senderDID)
+	_, err = jwtService.AddJWTClaim(tokenS, senderDID)
 
 	if err != nil {
 		t.Errorf("failed to add jwt: %v", err)

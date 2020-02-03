@@ -2,6 +2,7 @@ schema:
   - base.graphql
   - did.graphql
   - claim.graphql
+  - jwt.graphql
 
 exec:
   filename: exec_gen.go
@@ -60,3 +61,6 @@ models:
   ArticleMetadataImage:
     model:
       - github.com/joincivil/go-common/pkg/article.Image
+  Edge:
+    model:
+      - github.com/joincivil/id-hub/pkg/claimsstore.JWTClaimPostgres
