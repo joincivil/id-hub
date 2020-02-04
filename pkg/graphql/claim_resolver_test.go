@@ -112,17 +112,25 @@ func createDID(service *ethuri.Service, claimerDid *didlib.DID) error {
 }
 
 func TestClaimSaveAndProof(t *testing.T) {
+	// Setup the DB and tables
 	db, err := testutils.GetTestDBConnection()
 	if err != nil {
 		t.Errorf("can not get db connection: %v", err)
 	}
 	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
-	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
+	err = db.AutoMigrate(
+		&ethuri.PostgresDocument{},
+		&claimsstore.SignedClaimPostgres{},
+		&claimsstore.Node{},
+		&claimsstore.RootCommit{},
+	).Error
 	if err != nil {
 		t.Errorf("error running migrations: %v", err)
 	}
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
+
+	// Init the claim service
 	didService, ethURI, db := initEthURIService(t)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
 	claimService, rootService, err := makeService(db, didService, signedClaimStore)
@@ -130,6 +138,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("can not set up services: %v", err)
 	}
 
+	// Create and store the DID
 	claimerDid, err := didlib.Parse("did:ethuri:cc4ef0ec-bd37-46e6-8419-3164c325205f")
 	if err != nil {
 		t.Errorf("couldn't parse did: %v", err)
@@ -139,6 +148,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 		t.Errorf("couldn't add the did: %v", err)
 	}
 
+	// Init the resolver
 	resolver := &graphql.Resolver{
 		DidService:   didService,
 		ClaimService: claimService,
@@ -171,6 +181,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 	queries := resolver.Query()
 	mutations := resolver.Mutation()
 
+	// Save the claim, should get an error on authorization
 	_, err = mutations.ClaimSave(context.Background(), claimSaveInput)
 	if err == nil {
 		t.Errorf("should have errored on auth")
@@ -181,6 +192,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 	c = context.WithValue(c, auth.DidCtxKey, claimerDid.String())
 	c = context.WithValue(c, auth.SignatureCtxKey, signature)
 
+	// Save the claim, should not get an error
 	claimSaveRes, err := mutations.ClaimSave(c, claimSaveInput)
 	if err != nil {
 		t.Errorf("unexpected err save the claim: %v", err)
@@ -202,6 +214,7 @@ func TestClaimSaveAndProof(t *testing.T) {
 		Did:       claimerDid.String(),
 	}
 
+	// Generate the claim proof
 	proofResponse, err := queries.ClaimProof(c, proofInput)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
@@ -209,5 +222,20 @@ func TestClaimSaveAndProof(t *testing.T) {
 
 	if len(proofResponse.Claim.Proof.([]interface{})) != 3 {
 		t.Errorf("wrong number of proofs on claim")
+	}
+
+	// Get the claim
+	claimGetInput := &graphql.ClaimGetRequestInput{
+		Did: claimerDid.String(),
+	}
+	getResp, err := queries.ClaimGet(c, claimGetInput)
+	if err != nil {
+		t.Errorf("should not have gotten error with claim get")
+	}
+	if getResp == nil {
+		t.Errorf("should have gotten a non-nil response")
+	}
+	if len(getResp.Claims) <= 0 {
+		t.Errorf("should have gotten more than one claim")
 	}
 }

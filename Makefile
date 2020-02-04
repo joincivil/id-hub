@@ -168,7 +168,7 @@ cover-integration: test-integration ## Runs unit tests, code coverage, and runs 
 
 .PHONY: to-coveralls
 to-coveralls: ## Pushes coverage data to Coveralls
-	@goveralls -covermode=atomic -coverprofile=coverage.txt -service=circle-ci -repotoken=$(COVERALLS_TOKEN) -v -race
+	@goveralls -ignore='pkg/graphql/*_gen.go' -covermode=atomic -coverprofile=coverage.txt -service=circle-ci -repotoken=$(COVERALLS_TOKEN) -v -race
 
 .PHONY: clean
 clean: ## go clean and clean up of artifacts.
