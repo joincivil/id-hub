@@ -22,6 +22,8 @@ type IDHubConfig struct {
 	EthereumDefaultPrivateKey string `split_words:"true" desc:"Private key to use when sending Ethereum transactions"`
 	EthAPIURL                 string `envconfig:"eth_api_url" desc:"Ethereum API address"`
 
+	CronConfig string `envconfig:"cron_config" desc:"Cron config string * * * * *"`
+
 	PersisterType             ccfg.PersisterType `ignored:"true"`
 	PersisterTypeName         string             `split_words:"true" required:"true" desc:"Sets the persister type to use"`
 	PersisterPostgresAddress  string             `split_words:"true" desc:"If persister type is Postgresql, sets the address"`
