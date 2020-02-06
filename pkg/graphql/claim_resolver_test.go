@@ -17,6 +17,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/did/ethuri"
+	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
@@ -83,7 +84,7 @@ func initEthURIService(t *testing.T) (*did.Service, *ethuri.Service, *gorm.DB) {
 }
 
 func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimsstore.SignedClaimPGPersister) (
-	*claims.Service, *claims.RootService, error) {
+	*claims.Service, *claims.RootService, *claims.JWTService, error) {
 	nodepersister := claimsstore.NewNodePGPersisterWithDB(db)
 	treeStore := claimsstore.NewPGStore(nodepersister)
 	rootCommitStore := claimsstore.NewRootCommitsPGPersister(db)
@@ -93,7 +94,10 @@ func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimss
 	rootService, _ := claims.NewRootService(treeStore, committer, rootCommitStore)
 
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
-	return claimService, rootService, err
+	didJWTService := didjwt.NewService(didService)
+	jwtStore := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
+	jwtService := claims.NewJWTService(didJWTService, jwtStore, claimService)
+	return claimService, rootService, jwtService, err
 }
 
 func createDID(service *ethuri.Service, claimerDid *didlib.DID) error {
@@ -111,23 +115,39 @@ func createDID(service *ethuri.Service, claimerDid *didlib.DID) error {
 	return service.SaveDocument(doc)
 }
 
-func TestClaimSaveAndProof(t *testing.T) {
+func setupResolver(t *testing.T) (*graphql.Resolver, *claims.RootService, *ethuri.Service, error) {
 	db, err := testutils.GetTestDBConnection()
 	if err != nil {
-		t.Errorf("can not get db connection: %v", err)
+		return nil, nil, nil, err
 	}
-	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{}, &claimsstore.SignedClaimPostgres{})
 	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
 	if err != nil {
-		t.Errorf("error running migrations: %v", err)
+		return nil, nil, nil, err
 	}
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
 	didService, ethURI, db := initEthURIService(t)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := makeService(db, didService, signedClaimStore)
+	claimService, rootService, jwtService, err := makeService(db, didService, signedClaimStore)
 	if err != nil {
-		t.Errorf("can not set up services: %v", err)
+		return nil, nil, nil, err
+	}
+
+	resolver := &graphql.Resolver{
+		DidService:   didService,
+		ClaimService: claimService,
+		JWTService:   jwtService,
+	}
+
+	return resolver, rootService, ethURI, nil
+}
+
+func TestClaimSaveAndProof(t *testing.T) {
+	resolver, rootService, ethURI, err := setupResolver(t)
+
+	if err != nil {
+		t.Errorf("couldn't set up resolver")
 	}
 
 	claimerDid, err := didlib.Parse("did:ethuri:cc4ef0ec-bd37-46e6-8419-3164c325205f")
@@ -137,11 +157,6 @@ func TestClaimSaveAndProof(t *testing.T) {
 
 	if err := createDID(ethURI, claimerDid); err != nil {
 		t.Errorf("couldn't add the did: %v", err)
-	}
-
-	resolver := &graphql.Resolver{
-		DidService:   didService,
-		ClaimService: claimService,
 	}
 
 	cred := &claimtypes.ContentCredential{}

@@ -32,48 +32,48 @@ func NewJWTService(didJWTService *didjwt.Service,
 }
 
 // AddJWTClaim adds a new jwt claim to it's issuers tree
-func (s *JWTService) AddJWTClaim(tokenString string, senderDID *didlib.DID) error {
+func (s *JWTService) AddJWTClaim(tokenString string, senderDID *didlib.DID) (*jwt.Token, error) {
 	token, hash, err := s.jwtPersister.AddJWT(tokenString, senderDID)
 	if err != nil {
-		return errors.Wrap(err, "AddJWTClaim error adding JWT to db")
+		return nil, errors.Wrap(err, "AddJWTClaim error adding JWT to db")
 	}
 
 	issuer, err := getIssuerDIDfromToken(token)
 	if err != nil {
-		return errors.Wrap(err, "AddJWTClaim error parsing issuer did")
+		return nil, errors.Wrap(err, "AddJWTClaim error parsing issuer did")
 	}
 
 	didMT, err := s.claimService.BuildDIDMt(issuer)
 	if err != nil {
-		return errors.Wrap(err, "AddJWTClaim error building didmt")
+		return nil, errors.Wrap(err, "AddJWTClaim error building didmt")
 	}
 
 	hashb, err := hex.DecodeString(hash)
 	if err != nil {
-		return errors.Wrap(err, "claimcontent.decodestring")
+		return nil, errors.Wrap(err, "claimcontent.decodestring")
 	}
 	if len(hashb) > 34 {
-		return errors.New("hash hex string is the wrong size")
+		return nil, errors.New("hash hex string is the wrong size")
 	}
 	hashb34 := [34]byte{}
 	copy(hashb34[:], hashb)
 
 	claim, err := claimtypes.NewClaimRegisteredDocument(hashb34, issuer, claimtypes.JWTDocType)
 	if err != nil {
-		return errors.Wrap(err, "AddJWTClaim error creating registered document claim")
+		return nil, errors.Wrap(err, "AddJWTClaim error creating registered document claim")
 	}
 
 	err = didMT.Add(claim.Entry())
 	if err != nil {
-		return errors.Wrap(err, "AddJWTClaim add claim to did mt")
+		return nil, errors.Wrap(err, "AddJWTClaim add claim to did mt")
 	}
 
 	err = s.claimService.AddNewRootClaim(issuer)
 	if err != nil {
-		return errors.Wrap(err, "claimcontent.addnewrootclaim")
+		return nil, errors.Wrap(err, "claimcontent.addnewrootclaim")
 	}
 
-	return nil
+	return token, nil
 }
 
 func (s *JWTService) makeRegisteredDocClaimFromJWT(token string,

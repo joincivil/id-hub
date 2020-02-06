@@ -14,15 +14,52 @@ import (
 
 // JWTClaimPostgres is a model for storing jwt type vcs
 type JWTClaimPostgres struct {
-	JWT    string `gorm:"not null"`
-	Issuer string `gorm:"not null;index:jwtissuer"`
-	Sender string `gorm:"not null;index:jwtsender"`
-	Hash   string `gorm:"primary_key"`
+	JWT      string `gorm:"not null"`
+	Issuer   string `gorm:"not null;index:jwtissuer"`
+	Subject  string
+	Sender   string `gorm:"not null;index:jwtsender"`
+	Hash     string `gorm:"primary_key"`
+	Data     string
+	Type     string
+	IssuedAt int64
 }
 
 // TableName sets the name of the table in the db
 func (JWTClaimPostgres) TableName() string {
 	return "jwt_claims"
+}
+
+// TokenToJWTClaimPostgres turns a jwt token into the db model
+func TokenToJWTClaimPostgres(token *jwt.Token) (*JWTClaimPostgres, error) {
+	hash, err := hashJWT(token.Raw)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to hash token")
+	}
+
+	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
+	if !ok {
+		return nil, errors.New("invalid claims type")
+	}
+
+	typ, ok := token.Header["typ"]
+	if !ok {
+		return nil, errors.New("no type on jwt")
+	}
+
+	typS, ok := typ.(string)
+	if !ok {
+		return nil, errors.New("type is not a string")
+	}
+
+	return &JWTClaimPostgres{
+		JWT:      token.Raw,
+		Issuer:   claims.Issuer,
+		Hash:     hash,
+		Data:     claims.Data,
+		Subject:  claims.Subject,
+		IssuedAt: claims.IssuedAt,
+		Type:     typS,
+	}, nil
 }
 
 func hashJWT(token string) (string, error) {
@@ -54,21 +91,14 @@ func (p *JWTClaimPGPersister) AddJWT(tokenString string, senderDID *didlib.DID) 
 	if err != nil {
 		return nil, "", errors.Wrap(err, "addJWT failed to parse token")
 	}
-	hash, err := hashJWT(tokenString)
+
+	claim, err := TokenToJWTClaimPostgres(token)
+
 	if err != nil {
-		return nil, "", errors.Wrap(err, "addJWT failed to hash token")
-	}
-	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
-	if !ok {
-		return nil, "", errors.New("invalid claims type")
+		return nil, "", errors.Wrap(err, "addJWT failed to make model from token")
 	}
 
-	claim := &JWTClaimPostgres{
-		JWT:    tokenString,
-		Issuer: claims.Issuer,
-		Sender: senderDID.String(),
-		Hash:   hash,
-	}
+	claim.Sender = senderDID.String()
 
 	if err := p.db.Create(claim).Error; err != nil {
 		return nil, "", errors.Wrap(err, "addJWT failed to save token to db")

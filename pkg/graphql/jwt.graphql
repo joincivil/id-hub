@@ -1,0 +1,38 @@
+# DID specific schema
+
+extend type Query {
+    # Find edges
+    # returns an array of Edges
+    findEdges(in: FindEdgesInput): [Edge!]!
+}
+
+extend type Mutation {
+    # Add and edge.
+    #
+    # Arguments
+    #
+    # edgeJWT: JWT with the following mandatory fields: iss, sub, type, iat. Optional: tag,claim,encPriv,encShar
+    addEdge(edgeJWT: String): Edge
+}
+
+input FindEdgesInput {
+    fromDID: String
+}
+
+type Edge {
+    # keccak256 multihash of the JWT
+    hash: ID!
+    # original JWT of the edge
+    jwt: String!
+    # from field of the edge. "iss" on the JWT
+    from: String!
+    # to field of the edge. "sub" on the JWT
+    to: String
+    # type of the edge. "type" on the JWT
+    type: String
+    # date of the issuance of the edge. "iat" on the JWT
+    time: String!
+    # Data of the edge, can be unencrypted or encrypted. "data" on the JWT
+    data: String
+    proof: [Proof]
+}
