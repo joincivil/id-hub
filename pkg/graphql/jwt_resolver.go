@@ -19,8 +19,11 @@ func (r *Resolver) Edge() EdgeResolver {
 }
 
 // FindEdges returns all edges for a did
-func (r *queryResolver) FindEdges(ctx context.Context, fromDid string) ([]*claimsstore.JWTClaimPostgres, error) {
-	d, err := didlib.Parse(fromDid)
+func (r *queryResolver) FindEdges(ctx context.Context, in *FindEdgesInput) ([]*claimsstore.JWTClaimPostgres, error) {
+	if in.FromDid == nil {
+		return nil, errors.New("currently only supports searching by fromdid")
+	}
+	d, err := didlib.Parse(*in.FromDid)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing did in claim get")
 	}

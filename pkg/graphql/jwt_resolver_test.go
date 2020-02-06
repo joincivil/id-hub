@@ -10,6 +10,7 @@ import (
 	ctime "github.com/joincivil/go-common/pkg/time"
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	"github.com/joincivil/id-hub/pkg/graphql"
 	didlib "github.com/ockam-network/did"
 )
 
@@ -80,7 +81,13 @@ func TestAddEdge(t *testing.T) {
 		t.Errorf("error committing root: %v", err)
 	}
 
-	edges, err := queries.FindEdges(c, claimerDid.String())
+	didS := claimerDid.String()
+
+	in := &graphql.FindEdgesInput{
+		FromDid: &didS,
+	}
+
+	edges, err := queries.FindEdges(c, in)
 	if err != nil {
 		t.Errorf("error finding edges for did: %v", err)
 	}

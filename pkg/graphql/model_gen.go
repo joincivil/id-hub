@@ -105,6 +105,10 @@ type DidGetRequestInput struct {
 	Did *string `json:"did"`
 }
 
+type FindEdgesInput struct {
+	FromDid *string `json:"fromDID"`
+}
+
 type LinkedDataProofInput struct {
 	Type       *string    `json:"type"`
 	Creator    *string    `json:"creator"`

@@ -211,7 +211,7 @@ type ComplexityRoot struct {
 		ClaimGet   func(childComplexity int, in *ClaimGetRequestInput) int
 		ClaimProof func(childComplexity int, in *ClaimProofRequestInput) int
 		DidGet     func(childComplexity int, in *DidGetRequestInput) int
-		FindEdges  func(childComplexity int, fromDid string) int
+		FindEdges  func(childComplexity int, in *FindEdgesInput) int
 		Version    func(childComplexity int) int
 	}
 
@@ -272,7 +272,7 @@ type QueryResolver interface {
 	DidGet(ctx context.Context, in *DidGetRequestInput) (*DidGetResponse, error)
 	ClaimGet(ctx context.Context, in *ClaimGetRequestInput) (*ClaimGetResponse, error)
 	ClaimProof(ctx context.Context, in *ClaimProofRequestInput) (*ClaimProofResponse, error)
-	FindEdges(ctx context.Context, fromDid string) ([]*claimsstore.JWTClaimPostgres, error)
+	FindEdges(ctx context.Context, in *FindEdgesInput) ([]*claimsstore.JWTClaimPostgres, error)
 }
 
 type executableSchema struct {
@@ -997,7 +997,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.FindEdges(childComplexity, args["fromDID"].(string)), true
+		return e.complexity.Query.FindEdges(childComplexity, args["in"].(*FindEdgesInput)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -1370,7 +1370,7 @@ scalar Time`},
 extend type Query {
     # Find edges
     # returns an array of Edges
-    findEdges(fromDID: String!): [Edge!]!
+    findEdges(in: FindEdgesInput): [Edge!]!
 }
 
 extend type Mutation {
@@ -1380,6 +1380,10 @@ extend type Mutation {
     #
     # edgeJWT: JWT with the following mandatory fields: iss, sub, type, iat. Optional: tag,claim,encPriv,encShar
     addEdge(edgeJWT: String): Edge
+}
+
+input FindEdgesInput {
+    fromDID: String
 }
 
 type Edge {
@@ -1493,14 +1497,14 @@ func (ec *executionContext) field_Query_didGet_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_findEdges_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["fromDID"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+	var arg0 *FindEdgesInput
+	if tmp, ok := rawArgs["in"]; ok {
+		arg0, err = ec.unmarshalOFindEdgesInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐFindEdgesInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["fromDID"] = arg0
+	args["in"] = arg0
 	return args, nil
 }
 
@@ -4989,7 +4993,7 @@ func (ec *executionContext) _Query_findEdges(ctx context.Context, field graphql.
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().FindEdges(rctx, args["fromDID"].(string))
+		return ec.resolvers.Query().FindEdges(rctx, args["in"].(*FindEdgesInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6800,6 +6804,24 @@ func (ec *executionContext) unmarshalInputDidGetRequestInput(ctx context.Context
 		case "did":
 			var err error
 			it.Did, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFindEdgesInput(ctx context.Context, obj interface{}) (FindEdgesInput, error) {
+	var it FindEdgesInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "fromDID":
+			var err error
+			it.FromDid, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -9178,6 +9200,18 @@ func (ec *executionContext) marshalOEdge2ᚖgithubᚗcomᚋjoincivilᚋidᚑhub�
 	return ec._Edge(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOFindEdgesInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐFindEdgesInput(ctx context.Context, v interface{}) (FindEdgesInput, error) {
+	return ec.unmarshalInputFindEdgesInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOFindEdgesInput2ᚖgithubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐFindEdgesInput(ctx context.Context, v interface{}) (*FindEdgesInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOFindEdgesInput2githubᚗcomᚋjoincivilᚋidᚑhubᚋpkgᚋgraphqlᚐFindEdgesInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
 	return graphql.UnmarshalInt(v)
 }
@@ -9279,7 +9313,7 @@ func (ec *executionContext) unmarshalOString2ᚕstring(ctx context.Context, v in
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
-		res[i], err = ec.unmarshalOString2string(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -9293,7 +9327,7 @@ func (ec *executionContext) marshalOString2ᚕstring(ctx context.Context, sel as
 	}
 	ret := make(graphql.Array, len(v))
 	for i := range v {
-		ret[i] = ec.marshalOString2string(ctx, sel, v[i])
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
 	}
 
 	return ret
