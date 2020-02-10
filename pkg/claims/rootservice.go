@@ -58,6 +58,18 @@ func (s *RootService) CommitRoot() error {
 	return s.persister.Save(rootCommit)
 }
 
+// GetCurrent returns the current root
+func (s *RootService) GetCurrent() (string, error) {
+	rootStore := s.treeStore.WithPrefix(claimsstore.PrefixRootMerkleTree)
+
+	rootMt, err := merkletree.NewMerkleTree(rootStore, 150)
+	if err != nil {
+		return "", err
+	}
+
+	return rootMt.RootKey().Hex(), nil
+}
+
 // GetLatest returns the latest committed root
 func (s *RootService) GetLatest() (*claimsstore.RootCommit, error) {
 	return s.persister.GetLatest()

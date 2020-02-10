@@ -31,6 +31,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.9
 	github.com/ockam-network/did v0.1.3
 	github.com/pkg/errors v0.8.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
