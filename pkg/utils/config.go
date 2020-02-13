@@ -18,9 +18,9 @@ const (
 // variables.
 type IDHubConfig struct {
 	GqlPort                   int    `required:"true" desc:"Sets the ID Hub GraphQL port"`
-	RootCommitsAddress        string `split_words:"true" desc:"address where root commits are stored"`
-	EthereumDefaultPrivateKey string `split_words:"true" desc:"Private key to use when sending Ethereum transactions"`
-	EthAPIURL                 string `envconfig:"eth_api_url" desc:"Ethereum API address"`
+	RootCommitsAddress        string `required:"true" split_words:"true" desc:"address where root commits are stored"`
+	EthereumDefaultPrivateKey string `required:"true" split_words:"true" desc:"Private key to use when sending Ethereum transactions"`
+	EthAPIURL                 string `required:"true" envconfig:"eth_api_url" desc:"Ethereum API address"`
 
 	CronConfig string `envconfig:"cron_config" desc:"Cron config string * * * * *"`
 

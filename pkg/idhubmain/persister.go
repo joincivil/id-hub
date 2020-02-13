@@ -3,6 +3,7 @@ package idhubmain
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/hedgehog"
 )
 
 func initNodePersister(db *gorm.DB) *claimsstore.NodePGPersister {
@@ -29,4 +30,10 @@ func initRootClaimPersister(db *gorm.DB) *claimsstore.RootCommitsPGPersister {
 		claimsstore.RootCommit{},
 	)
 	return persister
+}
+
+func initHedgehog(db *gorm.DB) {
+	db.AutoMigrate(
+		hedgehog.DataVaultItem{},
+	)
 }

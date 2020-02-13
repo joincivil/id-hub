@@ -3,6 +3,8 @@ package idhubmain
 import (
 	"context"
 	"fmt"
+	"github.com/jinzhu/gorm"
+	"github.com/joincivil/id-hub/pkg/hedgehog"
 	"net/http"
 
 	log "github.com/golang/glog"
@@ -17,16 +19,18 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/rs/cors"
+
 	"github.com/vektah/gqlparser/gqlerror"
 )
 
-func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
-	// init GORM
-	db, err := initGorm(config)
-	if err != nil {
-		log.Fatalf("error initializing gorm")
+var (
+	validCorsOrigins = []string{
+		"*",
 	}
-	// db.LogMode(true)
+)
+
+func initResolver(db *gorm.DB, config *utils.IDHubConfig) *graphql.Resolver {
 
 	// DID init
 	// Universal Resolver
@@ -77,13 +81,31 @@ func initResolver(config *utils.IDHubConfig) *graphql.Resolver {
 func RunServer() error {
 	config := populateConfig()
 
-	resolver := initResolver(config)
+	// init GORM
+	db, err := initGorm(config)
+	if err != nil {
+		log.Fatalf("error initializing gorm")
+	}
+	// db.LogMode(true)
+
+	resolver := initResolver(db, config)
+	initHedgehog(db)
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   validCorsOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+		Debug:            true,
+	})
+	router.Use(cors.Handler)
 
 	// Setup the ID Hub auth middleware
 	router.Use(auth.Middleware())
@@ -117,6 +139,8 @@ func RunServer() error {
 	)
 
 	gqlURL := fmt.Sprintf(":%v", config.GqlPort)
+
+	hedgehog.AddRoutes(hedgehog.Dependencies{Router: router, Db: db})
 
 	log.Infof("Starting up GraphQL services at %v", gqlURL)
 	return http.ListenAndServe(gqlURL, router)

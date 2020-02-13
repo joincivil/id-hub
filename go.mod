@@ -9,6 +9,8 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20191001013358-cfbb681360f0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/trifles v0.0.0-20190809233526-a06f71cd0619 // indirect
+	github.com/didip/tollbooth v4.0.2+incompatible
+	github.com/didip/tollbooth_chi v0.0.0-20170928041846-6ab5f3083f3d
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-redsync/redsync v1.3.1
@@ -30,16 +32,21 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/multiformats/go-multihash v0.0.9
 	github.com/ockam-network/did v0.1.3
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/cron/v3 v3.0.0
+	github.com/rs/cors v1.7.0
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.22.1
 	github.com/vektah/gqlparser v1.1.2
-	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
-	golang.org/x/sys v0.0.0-20200106162015-b016eb3dc98e // indirect
+	golang.org/x/crypto v0.0.0-20200210222208-86ce3cb69678 // indirect
+	golang.org/x/mod v0.2.0 // indirect
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
+	golang.org/x/sys v0.0.0-20200212091648-12a6c2dcc1e4 // indirect
+	golang.org/x/tools v0.0.0-20200213153358-0abbfa5d31cd // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
 
