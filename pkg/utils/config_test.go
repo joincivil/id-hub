@@ -33,6 +33,19 @@ func setEnvironmentVariables() {
 		"IDHUB_REDIS_HOSTS",
 		"localhost:6379",
 	)
+	_ = os.Setenv(
+		"IDHUB_ROOT_COMMITS_ADDRESS",
+		"0x6A6E04938d66Df5717ec4774E0ca181077e842ed",
+	)
+	_ = os.Setenv(
+		"IDHUB_ETHEREUM_DEFAULT_PRIVATE_KEY",
+		"0x",
+	)
+	_ = os.Setenv(
+		"IDHUB_ETH_API_URL",
+		"0x",
+	)
+
 }
 
 func TestIDHubConfig(t *testing.T) {
