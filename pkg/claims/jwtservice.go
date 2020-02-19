@@ -9,6 +9,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	"github.com/joincivil/id-hub/pkg/nats"
 	"github.com/joincivil/id-hub/pkg/utils"
 	didlib "github.com/ockam-network/did"
 	"github.com/pkg/errors"
@@ -19,15 +20,18 @@ type JWTService struct {
 	didJWTService *didjwt.Service
 	jwtPersister  *claimsstore.JWTClaimPGPersister
 	claimService  *Service
+	natsService   nats.NatsInterface
 }
 
 // NewJWTService creates a new instance of the service
 func NewJWTService(didJWTService *didjwt.Service,
-	jwtPersister *claimsstore.JWTClaimPGPersister, claimService *Service) *JWTService {
+	jwtPersister *claimsstore.JWTClaimPGPersister,
+	claimService *Service, natsService nats.NatsInterface) *JWTService {
 	return &JWTService{
 		didJWTService: didJWTService,
 		jwtPersister:  jwtPersister,
 		claimService:  claimService,
+		natsService:   natsService,
 	}
 }
 
@@ -70,7 +74,12 @@ func (s *JWTService) AddJWTClaim(tokenString string, senderDID *didlib.DID) (*jw
 
 	err = s.claimService.AddNewRootClaim(issuer)
 	if err != nil {
-		return nil, errors.Wrap(err, "claimcontent.addnewrootclaim")
+		return nil, errors.Wrap(err, "AddJWTClaim.addnewrootclaim")
+	}
+
+	err = s.natsService.PublishAdd(token)
+	if err != nil {
+		return nil, errors.Wrap(err, "AddJWTClaim couldn't publish to nats")
 	}
 
 	return token, nil
@@ -119,6 +128,11 @@ func (s *JWTService) RevokeJWTClaim(tokenString string) error {
 	err = s.claimService.AddNewRootClaim(issuer)
 	if err != nil {
 		return errors.Wrap(err, "RevokeJWTClaim.addnewrootclaim")
+	}
+
+	err = s.natsService.PublishRevoke(token)
+	if err != nil {
+		return errors.Wrap(err, "RevokeJWTClaim couldn't publish to nats")
 	}
 
 	return nil

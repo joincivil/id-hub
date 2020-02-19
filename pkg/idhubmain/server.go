@@ -12,6 +12,7 @@ import (
 
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -43,14 +44,22 @@ func initResolver(db *gorm.DB, config *utils.IDHubConfig) *graphql.Resolver {
 	if err != nil {
 		log.Fatalf("error initializing ethuri resolver")
 	}
+
+	sc, err := initializeNats(config)
+	if err != nil {
+		log.Fatalf("error initializing nats: %v", err)
+	}
+
 	// TODO(PN): Adding ethuri resolver during transition of enterprise clients
 	// to other DID methods. Once this occurs, should remove it.
 	didService := initDidService([]did.Resolver{resolver, ethURIResolver})
+	didJWTService := didjwt.NewService(didService)
 
 	// Claims init
 	treePersister := initTreePersister(db)
 	signedClaimPersister := initSignedClaimPersister(db)
 	rootPersister := initRootClaimPersister(db)
+	jwtClaimPersister := iniJWTClaimPersister(db, didJWTService)
 	ethHelper, err := initETHHelper(config)
 	if err != nil {
 		log.Fatalf("error initializing eth helper: %v", err)
@@ -71,9 +80,17 @@ func initResolver(db *gorm.DB, config *utils.IDHubConfig) *graphql.Resolver {
 		log.Fatalf("error initializing claims service")
 	}
 
+	jwtService := initJWTClaimService(
+		didJWTService,
+		jwtClaimPersister,
+		claimsService,
+		sc,
+	)
+
 	return &graphql.Resolver{
 		DidService:   didService,
 		ClaimService: claimsService,
+		JWTService:   jwtService,
 	}
 }
 
@@ -138,6 +155,8 @@ func RunServer() error {
 		queryHandler,
 	)
 
+	router.Handle("/", handler.Playground("GraphQL playground",
+		fmt.Sprintf("/%v/%v", "v1", "query")))
 	gqlURL := fmt.Sprintf(":%v", config.GqlPort)
 
 	hedgehog.AddRoutes(hedgehog.Dependencies{Router: router, Db: db})
