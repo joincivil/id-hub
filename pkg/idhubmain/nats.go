@@ -3,11 +3,11 @@ package idhubmain
 import (
 	"fmt"
 
-	"github.com/joincivil/id-hub/pkg/nats"
+	"github.com/joincivil/id-hub/pkg/pubsub"
 	"github.com/joincivil/id-hub/pkg/utils"
 	stand "github.com/nats-io/nats-streaming-server/server"
 	"github.com/nats-io/nats-streaming-server/stores"
-	_ "github.com/nats-io/nats-streaming-server/stores/pqdeadlines"
+	_ "github.com/nats-io/nats-streaming-server/stores/pqdeadlines" // need to include in build in order for nats to connect to postgres
 	stan "github.com/nats-io/stan.go"
 )
 
@@ -15,7 +15,7 @@ const (
 	clientID = "id-hub-1"
 )
 
-func initializeNats(config *utils.IDHubConfig) (*nats.Service, error) {
+func initializeNats(config *utils.IDHubConfig) (*pubsub.NatsService, error) {
 	opts := stand.GetDefaultOptions()
 	opts.StoreType = stores.TypeSQL
 	sourceString := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -40,5 +40,5 @@ func initializeNats(config *utils.IDHubConfig) (*nats.Service, error) {
 		return nil, err
 	}
 
-	return nats.NewService(sc, config.NatsPrefix), nil
+	return pubsub.NewNatsService(sc, config.NatsPrefix), nil
 }

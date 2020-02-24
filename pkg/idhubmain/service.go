@@ -10,7 +10,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/didjwt"
-	"github.com/joincivil/id-hub/pkg/nats"
+	"github.com/joincivil/id-hub/pkg/pubsub"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
@@ -25,7 +25,7 @@ func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimss
 
 func initJWTClaimService(didJWTService *didjwt.Service,
 	jwtPersister *claimsstore.JWTClaimPGPersister,
-	claimService *claims.Service, natsService *nats.Service) *claims.JWTService {
+	claimService *claims.Service, natsService *pubsub.NatsService) *claims.JWTService {
 	return claims.NewJWTService(didJWTService, jwtPersister, claimService, natsService)
 }
 

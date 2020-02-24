@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -115,7 +114,6 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) (
 		}
 
 	} else {
-		fmt.Println("always error?")
 		return nil, errors.New("could not verify signature, no did or public keys")
 	}
 

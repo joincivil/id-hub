@@ -81,7 +81,7 @@ func TestJWTService(t *testing.T) {
 
 	jwtClaimPersister := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
 
-	jwtService := claims.NewJWTService(didJWTService, jwtClaimPersister, claimService, &testutils.FakeNatsService{})
+	jwtService := claims.NewJWTService(didJWTService, jwtClaimPersister, claimService, &testutils.FakePubSubService{})
 
 	senderDIDs := "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1"
 	senderDID, _ := didlib.Parse(senderDIDs)

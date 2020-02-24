@@ -9,7 +9,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
-	"github.com/joincivil/id-hub/pkg/nats"
+	"github.com/joincivil/id-hub/pkg/pubsub"
 	"github.com/joincivil/id-hub/pkg/utils"
 	didlib "github.com/ockam-network/did"
 	"github.com/pkg/errors"
@@ -20,13 +20,13 @@ type JWTService struct {
 	didJWTService *didjwt.Service
 	jwtPersister  *claimsstore.JWTClaimPGPersister
 	claimService  *Service
-	natsService   nats.NatsInterface
+	natsService   pubsub.Interface
 }
 
 // NewJWTService creates a new instance of the service
 func NewJWTService(didJWTService *didjwt.Service,
 	jwtPersister *claimsstore.JWTClaimPGPersister,
-	claimService *Service, natsService nats.NatsInterface) *JWTService {
+	claimService *Service, natsService pubsub.Interface) *JWTService {
 	return &JWTService{
 		didJWTService: didJWTService,
 		jwtPersister:  jwtPersister,

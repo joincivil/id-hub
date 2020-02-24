@@ -1,4 +1,4 @@
-package nats
+package pubsub
 
 import (
 	"fmt"
@@ -10,24 +10,22 @@ import (
 	stan "github.com/nats-io/stan.go"
 )
 
-type NatsInterface interface {
-	PublishAdd(*jwt.Token) error
-	PublishRevoke(*jwt.Token) error
-}
-
-type Service struct {
+// NatsService Implements the pubsub interface with nats
+type NatsService struct {
 	NatsClient    stan.Conn
 	SubjectPrefix string
 }
 
-func NewService(sc stan.Conn, sp string) *Service {
-	return &Service{
+// NewNatsService instantiates the nats service
+func NewNatsService(sc stan.Conn, sp string) *NatsService {
+	return &NatsService{
 		NatsClient:    sc,
 		SubjectPrefix: sp,
 	}
 }
 
-func (s *Service) PublishAdd(token *jwt.Token) error {
+// PublishAdd publishes that a token has been added to the stream
+func (s *NatsService) PublishAdd(token *jwt.Token) error {
 	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
 	if !ok {
 		return errors.New("invalid claims type")
@@ -48,7 +46,8 @@ func (s *Service) PublishAdd(token *jwt.Token) error {
 	return nil
 }
 
-func (s *Service) PublishRevoke(token *jwt.Token) error {
+// PublishRevoke publishes that a token has been revoked to the stream
+func (s *NatsService) PublishRevoke(token *jwt.Token) error {
 	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
 	if !ok {
 		return errors.New("invalid claims type")
