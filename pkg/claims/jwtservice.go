@@ -20,13 +20,13 @@ type JWTService struct {
 	didJWTService *didjwt.Service
 	jwtPersister  *claimsstore.JWTClaimPGPersister
 	claimService  *Service
-	natsService   pubsub.Interface
+	natsService   pubsub.PublisherInterface
 }
 
 // NewJWTService creates a new instance of the service
 func NewJWTService(didJWTService *didjwt.Service,
 	jwtPersister *claimsstore.JWTClaimPGPersister,
-	claimService *Service, natsService pubsub.Interface) *JWTService {
+	claimService *Service, natsService pubsub.PublisherInterface) *JWTService {
 	return &JWTService{
 		didJWTService: didJWTService,
 		jwtPersister:  jwtPersister,

@@ -3,9 +3,10 @@ package idhubmain
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/hedgehog"
-	"net/http"
 
 	log "github.com/golang/glog"
 	"github.com/pkg/errors"
