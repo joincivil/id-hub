@@ -175,10 +175,6 @@ clean: ## go clean and clean up of artifacts.
 	@$(GOCLEAN) ./... || true
 	@rm coverage.txt || true
 
-.PHONY: migrate-nats
-migrate-nats:
-	@$(GORUN) ./cmd/migrateNats/main.go
-
 ## Some magic from http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
 help:

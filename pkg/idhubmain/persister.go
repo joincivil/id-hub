@@ -39,7 +39,7 @@ func initHedgehog(db *gorm.DB) {
 	)
 }
 
-func iniJWTClaimPersister(db *gorm.DB, didJWTService *didjwt.Service) *claimsstore.JWTClaimPGPersister {
+func initJWTClaimPersister(db *gorm.DB, didJWTService *didjwt.Service) *claimsstore.JWTClaimPGPersister {
 	persister := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
 	db.AutoMigrate(
 		claimsstore.JWTClaimPostgres{},

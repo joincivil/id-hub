@@ -16,6 +16,10 @@ const (
 )
 
 func initializeNats(config *utils.IDHubConfig) (*pubsub.NatsService, error) {
+	err := runMigration(config)
+	if err != nil {
+		return nil, err
+	}
 	opts := stand.GetDefaultOptions()
 	opts.StoreType = stores.TypeSQL
 	sourceString := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -30,7 +34,7 @@ func initializeNats(config *utils.IDHubConfig) (*pubsub.NatsService, error) {
 
 	opts.ID = config.NatsID
 
-	_, err := stand.RunServerWithOpts(opts, nil)
+	_, err = stand.RunServerWithOpts(opts, nil)
 	if err != nil {
 		return nil, err
 	}

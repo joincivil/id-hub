@@ -42,9 +42,6 @@ jobs:
               sleep 1
             done
             echo Failed waiting for Postgres && exit 1
-      - run:
-        name: nats postgres migration
-        command: make migrate-nats
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}

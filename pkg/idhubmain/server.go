@@ -60,7 +60,7 @@ func initResolver(db *gorm.DB, config *utils.IDHubConfig) *graphql.Resolver {
 	treePersister := initTreePersister(db)
 	signedClaimPersister := initSignedClaimPersister(db)
 	rootPersister := initRootClaimPersister(db)
-	jwtClaimPersister := iniJWTClaimPersister(db, didJWTService)
+	jwtClaimPersister := initJWTClaimPersister(db, didJWTService)
 	ethHelper, err := initETHHelper(config)
 	if err != nil {
 		log.Fatalf("error initializing eth helper: %v", err)

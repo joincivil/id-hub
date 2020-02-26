@@ -4,12 +4,10 @@ import (
 	"io/ioutil"
 
 	log "github.com/golang/glog"
+	"github.com/joincivil/id-hub/pkg/utils"
 )
 
-// RunMigration runs the nats server migration
-func RunMigration() error {
-	config := populateConfig()
-
+func runMigration(config *utils.IDHubConfig) error {
 	// init GORM
 	db, err := initGorm(config)
 	if err != nil {
@@ -23,7 +21,7 @@ func RunMigration() error {
 
 	migrationS := string(migration)
 	if err := db.Exec(migrationS).Error; err != nil {
-		log.Errorf("error executing sql script: err: %v", err)
+		log.Fatalf("error executing sql script: err: %v", err)
 	}
 
 	return nil
