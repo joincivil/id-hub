@@ -9,6 +9,8 @@ import (
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/did"
+	"github.com/joincivil/id-hub/pkg/didjwt"
+	"github.com/joincivil/id-hub/pkg/pubsub"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
@@ -19,6 +21,12 @@ func initDidService(resolvers []did.Resolver) *did.Service {
 func initClaimsService(treeStore *claimsstore.PGStore, signedClaimStore *claimsstore.SignedClaimPGPersister,
 	didService *did.Service, rootService *claims.RootService, dlock lock.DLock) (*claims.Service, error) {
 	return claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
+}
+
+func initJWTClaimService(didJWTService *didjwt.Service,
+	jwtPersister *claimsstore.JWTClaimPGPersister,
+	claimService *claims.Service, natsService *pubsub.NatsService) *claims.JWTService {
+	return claims.NewJWTService(didJWTService, jwtPersister, claimService, natsService)
 }
 
 func initRootService(config *utils.IDHubConfig, ethHelper *eth.Helper,

@@ -37,6 +37,10 @@ type IDHubConfig struct {
 
 	RedisHosts []string `split_words:"true" desc:"List of Redis host:port for caching and locking"`
 
+	NatsPersisterDriver string `split_words:"true" desc:"the driver for nats persistence"`
+	NatsID              string `envconfig:"nats_id" desc:"the id of the nats server"`
+	NatsPrefix          string `split_words:"true" desc:"the prefix for every nats message"`
+
 	DidUniversalResolverHost *string `split_words:"true" desc:"Sets the host for the universal DID resolver"`
 	DidUniversalResolverPort *int    `split_words:"true" desc:"Sets the port for the universal DID resolver"`
 }

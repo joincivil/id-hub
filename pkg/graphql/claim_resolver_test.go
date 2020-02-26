@@ -96,7 +96,7 @@ func makeService(db *gorm.DB, didService *did.Service, signedClaimStore *claimss
 	claimService, err := claims.NewService(treeStore, signedClaimStore, didService, rootService, dlock)
 	didJWTService := didjwt.NewService(didService)
 	jwtStore := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
-	jwtService := claims.NewJWTService(didJWTService, jwtStore, claimService)
+	jwtService := claims.NewJWTService(didJWTService, jwtStore, claimService, &testutils.FakePubSubService{})
 	return claimService, rootService, jwtService, err
 }
 

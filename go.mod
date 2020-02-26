@@ -26,11 +26,12 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/lib/pq v1.2.0 // indirect
 	github.com/machinebox/graphql v0.2.2
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/multiformats/go-multihash v0.0.9
+	github.com/nats-io/nats-streaming-server v0.17.0
+	github.com/nats-io/stan.go v0.6.0
 	github.com/ockam-network/did v0.1.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.8.1
@@ -42,11 +43,8 @@ require (
 	github.com/urfave/cli v1.22.1
 	github.com/vektah/gqlparser v1.1.2
 	golang.org/x/crypto v0.0.0-20200210222208-86ce3cb69678 // indirect
-	golang.org/x/mod v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 	golang.org/x/sys v0.0.0-20200212091648-12a6c2dcc1e4 // indirect
-	golang.org/x/tools v0.0.0-20200213153358-0abbfa5d31cd // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
 

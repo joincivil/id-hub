@@ -3,6 +3,7 @@ package idhubmain
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
+	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/hedgehog"
 )
 
@@ -36,4 +37,12 @@ func initHedgehog(db *gorm.DB) {
 	db.AutoMigrate(
 		hedgehog.DataVaultItem{},
 	)
+}
+
+func initJWTClaimPersister(db *gorm.DB, didJWTService *didjwt.Service) *claimsstore.JWTClaimPGPersister {
+	persister := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
+	db.AutoMigrate(
+		claimsstore.JWTClaimPostgres{},
+	)
+	return persister
 }

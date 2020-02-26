@@ -43,7 +43,6 @@ func Middleware() func(http.Handler) http.Handler {
 			reqTs := r.Header.Get(reqTsHeader)
 			signature := r.Header.Get(signatureHeader)
 			did := r.Header.Get(didHeader)
-
 			// didKey is optional
 			if reqTs == "" && signature == "" {
 				log.Infof("No auth headers found")
@@ -100,7 +99,6 @@ func ForContext(ctx context.Context, ds *did.Service, pks []did.DocPublicKey) (
 	if ok {
 		gracePeriod = gp
 	}
-
 	// If did and key found, then pull doc for DID to check the signature
 	// If no did and key passed, then check incoming list of pks to check signature
 	if didStr != "" {
