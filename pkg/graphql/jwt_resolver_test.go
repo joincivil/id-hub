@@ -2,6 +2,7 @@ package graphql_test
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -82,9 +83,10 @@ func TestAddEdge(t *testing.T) {
 	}
 
 	didS := claimerDid.String()
+	fmt.Println(didS)
 
 	in := &graphql.FindEdgesInput{
-		FromDid: &didS,
+		FromDid: []*string{&didS},
 	}
 
 	edges, err := queries.FindEdges(c, in)
@@ -95,8 +97,4 @@ func TestAddEdge(t *testing.T) {
 	if len(edges) != 1 {
 		t.Errorf("wrong number of edges expected: 1 got: %v", len(edges))
 	}
-}
-
-func TestProof(t *testing.T) {
-
 }

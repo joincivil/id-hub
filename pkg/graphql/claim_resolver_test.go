@@ -120,8 +120,11 @@ func setupResolver(t *testing.T) (*graphql.Resolver, *claims.RootService, *ethur
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{}, &claimsstore.SignedClaimPostgres{})
-	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}).Error
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{},
+		&claimsstore.Node{}, &claimsstore.SignedClaimPostgres{},
+		&claimsstore.JWTClaimPostgres{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{},
+		&claimsstore.JWTClaimPostgres{}).Error
 	if err != nil {
 		return nil, nil, nil, err
 	}

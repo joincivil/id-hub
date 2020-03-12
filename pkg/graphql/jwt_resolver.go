@@ -20,30 +20,21 @@ func (r *Resolver) Edge() EdgeResolver {
 
 // FindEdges returns all edges for a did
 func (r *queryResolver) FindEdges(ctx context.Context, in *FindEdgesInput) ([]*claimsstore.JWTClaimPostgres, error) {
-	if in.FromDid == nil {
-		return nil, errors.New("currently only supports searching by fromdid")
-	}
-	d, err := didlib.Parse(*in.FromDid)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing did in claim get")
-	}
-
-	tokens, err := r.JWTService.GetJWTSforDID(d)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting tokens for did")
-	}
-
-	claims := []*claimsstore.JWTClaimPostgres{}
-
-	for _, v := range tokens {
-		claim, err := claimsstore.TokenToJWTClaimPostgres(v)
-		if err != nil {
-			return claims, errors.Wrap(err, "FindEdges could not convert token to model")
+	issuers := []string{}
+	subjects := []string{}
+	for _, v := range in.FromDid {
+		if v != nil {
+			issuers = append(issuers, *v)
 		}
-		claims = append(claims, claim)
 	}
 
-	return claims, nil
+	for _, v := range in.ToDid {
+		if v != nil {
+			subjects = append(subjects, *v)
+		}
+	}
+
+	return r.JWTService.GetJWTSforSubjectsOrIssuers(issuers, subjects)
 }
 
 // AddEdge add a new edge

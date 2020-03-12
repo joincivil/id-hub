@@ -17,6 +17,26 @@ import (
 	didlib "github.com/ockam-network/did"
 )
 
+func makeDID(id *didlib.DID, key *ecdsa.PublicKey, ethURIRes *ethuri.Service) error {
+	pubBytes := crypto.FromECDSAPub(key)
+	pub := hex.EncodeToString(pubBytes)
+	docPubKey := &did.DocPublicKey{
+		Type:         linkeddata.SuiteTypeSecp256k1Verification,
+		PublicKeyHex: &pub,
+	}
+
+	docPubKey.ID = did.CopyDID(id)
+	docPubKey.Controller = did.CopyDID(id)
+	didDoc, err := ethuri.InitializeNewDocument(id, docPubKey, false, true)
+	if err != nil {
+		return err
+	}
+	if err := ethURIRes.SaveDocument(didDoc); err != nil {
+		return err
+	}
+	return nil
+}
+
 func TestAddJWT(t *testing.T) {
 	db, err := setupConnection()
 	if err != nil {
@@ -51,27 +71,52 @@ func TestAddJWT(t *testing.T) {
 	}
 	pubKey := secKey.Public().(*ecdsa.PublicKey)
 
-	pubBytes := crypto.FromECDSAPub(pubKey)
-	pub := hex.EncodeToString(pubBytes)
-	docPubKey := &did.DocPublicKey{
-		Type:         linkeddata.SuiteTypeSecp256k1Verification,
-		PublicKeyHex: &pub,
+	err = makeDID(userDID, pubKey, ethURIRes)
+	if err != nil {
+		t.Errorf("error creating did doc: %v", err)
 	}
 
-	docPubKey.ID = did.CopyDID(userDID)
-	docPubKey.Controller = did.CopyDID(userDID)
-	didDoc, err := ethuri.InitializeNewDocument(userDID, docPubKey, false, true)
+	secKey2, err := crypto.HexToECDSA("6639112124e9903c6ca9397078a1508bb333a71908b0c467c14aa5882dcb59a8")
 	if err != nil {
-		t.Errorf("error making the did doc: %v", err)
+		t.Errorf("error making private key: %v", err)
 	}
-	if err := ethURIRes.SaveDocument(didDoc); err != nil {
-		t.Errorf("error saving the did doc: %v", err)
+
+	pubKey = secKey2.Public().(*ecdsa.PublicKey)
+
+	err = makeDID(senderDID, pubKey, ethURIRes)
+	if err != nil {
+		t.Errorf("error creating did doc: %v", err)
 	}
 
 	claims := &didjwt.VCClaimsJWT{
 		Data: "",
 		StandardClaims: jwt.StandardClaims{
-			Issuer: "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c",
+			Issuer:  "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c",
+			Subject: "did:ethuri:abcdefghijklmnopqrstuvwxyz",
+		},
+	}
+
+	claim2 := &didjwt.VCClaimsJWT{
+		Data: "",
+		StandardClaims: jwt.StandardClaims{
+			Issuer:  "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c",
+			Subject: "did:ethuri:zyxwt",
+		},
+	}
+
+	claim3 := &didjwt.VCClaimsJWT{
+		Data: "",
+		StandardClaims: jwt.StandardClaims{
+			Issuer:  "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1",
+			Subject: "did:ethuri:abcdefghijklmnopqrstuvwxyz",
+		},
+	}
+
+	claim4 := &didjwt.VCClaimsJWT{
+		Data: "",
+		StandardClaims: jwt.StandardClaims{
+			Issuer:  "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1",
+			Subject: "did:ethuri:zyxwt",
 		},
 	}
 
@@ -84,6 +129,45 @@ func TestAddJWT(t *testing.T) {
 	}
 
 	_, hash, err := jwtClaimPersister.AddJWT(tokenS, senderDID)
+	if err != nil {
+		t.Errorf("error adding the jwt: %v", err)
+	}
+
+	token = jwt.NewWithClaims(jwt.SigningMethodES256, claim2)
+
+	tokenS, err = token.SignedString(secKey)
+
+	if err != nil {
+		t.Errorf("error creating token string: %v", err)
+	}
+
+	_, _, err = jwtClaimPersister.AddJWT(tokenS, senderDID)
+	if err != nil {
+		t.Errorf("error adding the jwt: %v", err)
+	}
+
+	token = jwt.NewWithClaims(jwt.SigningMethodES256, claim3)
+
+	tokenS, err = token.SignedString(secKey2)
+
+	if err != nil {
+		t.Errorf("error creating token string: %v", err)
+	}
+
+	_, _, err = jwtClaimPersister.AddJWT(tokenS, senderDID)
+	if err != nil {
+		t.Errorf("error adding the jwt: %v", err)
+	}
+
+	token = jwt.NewWithClaims(jwt.SigningMethodES256, claim4)
+
+	tokenS, err = token.SignedString(secKey2)
+
+	if err != nil {
+		t.Errorf("error creating token string: %v", err)
+	}
+
+	_, _, err = jwtClaimPersister.AddJWT(tokenS, senderDID)
 	if err != nil {
 		t.Errorf("error adding the jwt: %v", err)
 	}
@@ -101,5 +185,15 @@ func TestAddJWT(t *testing.T) {
 
 	if claims.Issuer != "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c" {
 		t.Errorf("wrong issuer returned from token")
+	}
+
+	retrievedTokens, err := jwtClaimPersister.GetJWTBySubjectsOrIssuers([]string{"did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c"}, []string{"did:ethuri:abcdefghijklmnopqrstuvwxyz"})
+
+	if err != nil {
+		t.Errorf("error retrieving tokens: %v", err)
+	}
+
+	if len(retrievedTokens) != 3 {
+		t.Errorf("wrong number of tokens returned")
 	}
 }

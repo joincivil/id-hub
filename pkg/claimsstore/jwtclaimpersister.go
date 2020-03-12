@@ -131,3 +131,28 @@ func (p *JWTClaimPGPersister) GetJWTByMultihash(mHash string) (*jwt.Token, error
 	}
 	return p.didJWTService.ParseJWT(jwtClaim.JWT)
 }
+
+// GetJWTBySubjectsOrIssuers takes a list of subjects
+// and a list of issuers and returns all dids that match either
+func (p *JWTClaimPGPersister) GetJWTBySubjectsOrIssuers(issuers []string,
+	subjs []string) ([]*JWTClaimPostgres, error) {
+	creds := []*JWTClaimPostgres{}
+	if len(issuers) > 0 {
+		tx := p.db.Where("issuer IN (?)", issuers)
+		if len(subjs) > 0 {
+			tx = tx.Or("subject IN (?)", subjs)
+		}
+		if err := tx.Find(&creds).Error; err != nil {
+			return nil, errors.Wrap(err, "GetJWTBySubjectsAndIssuers failed to find credentials")
+		}
+		return creds, nil
+	} else if len(subjs) > 0 {
+		if err := p.db.Where("subject IN (?)", subjs).Find(&creds).Error; err != nil {
+			return nil, errors.Wrap(err, "GetJWTBySubjectsAndIssuers failed to find credentials")
+		}
+		return creds, nil
+	}
+
+	return nil, errors.New("No subjects or issuers")
+
+}

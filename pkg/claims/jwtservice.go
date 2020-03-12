@@ -138,6 +138,11 @@ func (s *JWTService) RevokeJWTClaim(tokenString string) error {
 	return nil
 }
 
+// GetJWTSforSubjectsOrIssuers gets the token by subjects or issuers
+func (s *JWTService) GetJWTSforSubjectsOrIssuers(issuers []string, subjects []string) ([]*claimsstore.JWTClaimPostgres, error) {
+	return s.jwtPersister.GetJWTBySubjectsOrIssuers(issuers, subjects)
+}
+
 // GetJWTSforDID returns all jwt claims for a DID
 func (s *JWTService) GetJWTSforDID(userDID *didlib.DID) ([]*jwt.Token, error) {
 	claims, err := s.claimService.GetMerkleTreeClaimsForDid(userDID)
