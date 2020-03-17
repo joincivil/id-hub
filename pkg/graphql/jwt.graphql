@@ -16,7 +16,8 @@ extend type Mutation {
 }
 
 input FindEdgesInput {
-    fromDID: String
+    fromDID: [String]
+    toDID: [String]
 }
 
 type Edge {

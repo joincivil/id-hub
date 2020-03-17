@@ -106,7 +106,8 @@ type DidGetRequestInput struct {
 }
 
 type FindEdgesInput struct {
-	FromDid *string `json:"fromDID"`
+	FromDid []*string `json:"fromDID"`
+	ToDid   []*string `json:"toDID"`
 }
 
 type LinkedDataProofInput struct {
