@@ -42,7 +42,7 @@ func (s *JWTService) AddJWTClaim(tokenString string, senderDID *didlib.DID) (*jw
 		return nil, errors.Wrap(err, "AddJWTClaim error adding JWT to db")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := GetIssuerDIDfromToken(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "AddJWTClaim error parsing issuer did")
 	}
@@ -103,7 +103,7 @@ func (s *JWTService) RevokeJWTClaim(tokenString string) error {
 		return errors.Wrap(err, "RevokeJWTClaim couldn't parse token")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := GetIssuerDIDfromToken(token)
 	if err != nil {
 		return errors.Wrap(err, "RevokeJWTClaim error parsing issuer did")
 	}
@@ -186,7 +186,7 @@ func (s *JWTService) GenerateProof(tokenString string) (*MTProof, error) {
 		return nil, errors.Wrap(err, "GenerateProof couldn't parse token")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := GetIssuerDIDfromToken(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof error parsing issuer did")
 	}

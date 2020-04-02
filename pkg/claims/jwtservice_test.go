@@ -1,7 +1,6 @@
 package claims_test
 
 import (
-	"crypto/ecdsa"
 	"encoding/hex"
 	"testing"
 
@@ -14,65 +13,21 @@ import (
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
-	"github.com/joincivil/id-hub/pkg/did"
-	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/didjwt"
-	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
 
-func addDID(ethURI *ethuri.Service, cService *claims.Service) (*didlib.DID, *ecdsa.PrivateKey, error) {
-	userDIDs := "did:ethuri:86ce6c71-27e6-4e0d-83dd-b60fe4df7785c"
-	userDID, err := didlib.Parse(userDIDs)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	secKey, err := crypto.HexToECDSA("79156abe7fe2fd433dc9df969286b96666489bac508612d0e16593e944c4f69f")
-	if err != nil {
-		return nil, nil, err
-	}
-	pubKey := secKey.Public().(*ecdsa.PublicKey)
-
-	pubBytes := crypto.FromECDSAPub(pubKey)
-	pub := hex.EncodeToString(pubBytes)
-	docPubKey := &did.DocPublicKey{
-		Type:         linkeddata.SuiteTypeSecp256k1Verification,
-		PublicKeyHex: &pub,
-	}
-
-	docPubKey.ID = did.CopyDID(userDID)
-	docPubKey.Controller = did.CopyDID(userDID)
-	didDoc, err := ethuri.InitializeNewDocument(userDID, docPubKey, false, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := ethURI.SaveDocument(didDoc); err != nil {
-		return nil, nil, err
-	}
-
-	err = cService.CreateTreeForDIDWithPks(&didDoc.ID,
-		[]*ecdsa.PublicKey{pubKey})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return userDID, secKey, nil
-
-}
-
 func TestJWTService(t *testing.T) {
-	db, err := setupConnection()
+	db, err := testutils.SetupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := initDIDService(db)
+	didService, ethURI := testutils.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := makeService(db, didService, signedClaimStore)
+	claimService, rootService, err := testutils.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -86,7 +41,7 @@ func TestJWTService(t *testing.T) {
 	senderDIDs := "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1"
 	senderDID, _ := didlib.Parse(senderDIDs)
 
-	userDID, secKey, err := addDID(ethURI, claimService)
+	userDID, secKey, err := testutils.AddDID(ethURI, claimService)
 
 	if err != nil {
 		t.Errorf("failed to add userdid: %v", err)

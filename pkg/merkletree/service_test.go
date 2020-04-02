@@ -1,4 +1,4 @@
-package claims_test
+package merkletree_test
 
 import (
 	"encoding/hex"
@@ -6,38 +6,34 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	mt "github.com/joincivil/id-hub/pkg/merkletree"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	"github.com/joincivil/id-hub/pkg/utils"
-	didlib "github.com/ockam-network/did"
 )
 
 func TestMerkletreeService(t *testing.T) {
-	db, err := setupConnection()
+	db, err := testutils.SetupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := initDIDService(db)
+	didService, ethURI := testutils.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := makeService(db, didService, signedClaimStore)
+	claimService, rootService, err := testutils.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
 
 	didJWTService := didjwt.NewService(didService)
 
-	merkleTreeService := claims.NewMerkleTreeService(didJWTService, claimService)
+	merkleTreeService := mt.NewService(didJWTService, claimService)
 
-	senderDIDs := "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1"
-	senderDID, _ := didlib.Parse(senderDIDs)
-
-	userDID, secKey, err := addDID(ethURI, claimService)
+	userDID, secKey, err := testutils.AddDID(ethURI, claimService)
 
 	if err != nil {
 		t.Errorf("failed to add userdid: %v", err)
@@ -62,7 +58,7 @@ func TestMerkletreeService(t *testing.T) {
 		t.Errorf("unable to create jwt string: %v", err)
 	}
 
-	_, err = merkleTreeService.AddEntry(tokenS, senderDID)
+	_, err = merkleTreeService.AddEntry(tokenS)
 
 	if err != nil {
 		t.Errorf("failed to add jwt: %v", err)

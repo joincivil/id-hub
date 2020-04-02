@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"os"
 
-	log "github.com/golang/glog"
-
-	ctime "github.com/joincivil/go-common/pkg/time"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/ethereum/go-ethereum/crypto"
+	log "github.com/golang/glog"
+	ctime "github.com/joincivil/go-common/pkg/time"
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/did/ethuri"
+	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
 	"github.com/urfave/cli"
 )
@@ -28,6 +28,7 @@ func RunCLI() error {
 		*cmdGenerateDID(),
 		*cmdGenerateNewKey(),
 		*cmdGenerateGqlCreds(),
+		*cmdSignDummyJWT(),
 	}
 
 	return app.Run(os.Args)
@@ -235,6 +236,67 @@ func cmdGenerateGqlCreds() *cli.Command {
 		Flags: []cli.Flag{
 			privKeyHexFlag,
 			didKeyFlag,
+		},
+		Action: cmdFn,
+	}
+
+}
+
+func cmdSignDummyJWT() *cli.Command {
+	privKeyHexFlag := cli.StringFlag{
+		Name:     "privatekey, k",
+		Usage:    "Sets the private key to use to sign",
+		Required: true,
+	}
+	didKeyFlag := cli.StringFlag{
+		Name:     "did, d",
+		Usage:    "Sets the DID to use when generating the jwt",
+		Required: true,
+	}
+	dataFlag := cli.StringFlag{
+		Name:     "data, b",
+		Usage:    "Sets some arbitrary data on the token",
+		Required: false,
+	}
+
+	cmdFn := func(c *cli.Context) error {
+		thedid := c.String("did")
+		key := c.String("privatekey")
+		data := c.String("data")
+
+		k, err := crypto.HexToECDSA(key)
+		if err != nil {
+			return err
+		}
+
+		claims := &didjwt.VCClaimsJWT{
+			Data: data,
+			StandardClaims: jwt.StandardClaims{
+				Issuer: thedid,
+			},
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+
+		tokenS, err := token.SignedString(k)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("did:\n%v\n", thedid)
+		fmt.Printf("token:\n%v\n", tokenS)
+
+		return nil
+	}
+
+	return &cli.Command{
+		Name:    "signtestjwt",
+		Aliases: []string{"j"},
+		Usage:   "Generates a jwt signed by a did",
+		Flags: []cli.Flag{
+			privKeyHexFlag,
+			didKeyFlag,
+			dataFlag,
 		},
 		Action: cmdFn,
 	}

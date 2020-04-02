@@ -7,15 +7,15 @@ import (
 
 // MTProof is
 type MTProof struct {
-	ExistsInDIDMTProof     string // HEX
-	NotRevokedInDIDMTProof string // HEX
-	DIDRootExistsProof     string // HEX
-	DIDRootExistsVersion   uint32 // The version of the claim in the tree, this is needed to verify the proof
-	BlockNumber            int64
-	ContractAddress        common.Address
-	TXHash                 common.Hash
-	Root                   merkletree.Hash
-	DIDRoot                merkletree.Hash
-	CommitterAddress       common.Address
-	DID                    string
+	ExistsInDIDMTProof     string          `json:"entryExistsInIssuerTree"`     // HEX
+	NotRevokedInDIDMTProof string          `json:"entryNotRevokedInIssuerTree"` // HEX
+	DIDRootExistsProof     string          `json:"issuerRootExistsInRelayTree"` // HEX
+	DIDRootExistsVersion   uint32          `json:"issuerRootVersion"`           // The version of the claim in the tree, this is needed to verify the proof
+	BlockNumber            int64           `json:"blockNumber"`
+	ContractAddress        common.Address  `json:"contractAddress"`
+	TXHash                 common.Hash     `json:"txHash"`
+	Root                   merkletree.Hash `json:"relayTreeRoot"`
+	DIDRoot                merkletree.Hash `json:"issuerTreeRoot"`
+	CommitterAddress       common.Address  `json:"relayAddress"`
+	DID                    string          `json:"issuer"`
 }

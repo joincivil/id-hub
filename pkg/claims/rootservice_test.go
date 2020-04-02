@@ -49,7 +49,7 @@ func addNewRootClaim(mt *merkletree.MerkleTree, userDid *didlib.DID) error {
 }
 
 func TestRootServiceCommitRoot(t *testing.T) {
-	db, err := setupConnection()
+	db, err := testutils.SetupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}

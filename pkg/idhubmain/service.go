@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	log "github.com/golang/glog"
 	"github.com/iden3/go-iden3-core/db"
+	"github.com/jinzhu/gorm"
 	"github.com/joincivil/go-common/pkg/eth"
 	"github.com/joincivil/go-common/pkg/lock"
 	"github.com/joincivil/id-hub/pkg/claims"
@@ -45,4 +46,62 @@ func initRootService(config *utils.IDHubConfig, ethHelper *eth.Helper,
 		return nil, err
 	}
 	return claims.NewRootService(treeStore, rootCommitter, persister)
+}
+
+func initServices(db *gorm.DB, config *utils.IDHubConfig) (*claims.JWTService, *did.Service, *claims.Service, *didjwt.Service) {
+	// DID init
+	// Universal Resolver
+	resolver, err := initHTTPUniversalResolver(config)
+	if err != nil {
+		log.Fatalf("error initializing universal resolver")
+	}
+	// EthURI Resolver
+	ethURIResolver, err := initEthURIResolver(db)
+	if err != nil {
+		log.Fatalf("error initializing ethuri resolver")
+	}
+
+	sc, err := initializeNats(config)
+	if err != nil {
+		log.Fatalf("error initializing nats: %v", err)
+	}
+
+	// TODO(PN): Adding ethuri resolver during transition of enterprise clients
+	// to other DID methods. Once this occurs, should remove it.
+	didService := initDidService([]did.Resolver{resolver, ethURIResolver})
+	didJWTService := didjwt.NewService(didService)
+
+	// Claims init
+	treePersister := initTreePersister(db)
+	signedClaimPersister := initSignedClaimPersister(db)
+	rootPersister := initRootClaimPersister(db)
+	jwtClaimPersister := initJWTClaimPersister(db, didJWTService)
+	ethHelper, err := initETHHelper(config)
+	if err != nil {
+		log.Fatalf("error initializing eth helper: %v", err)
+	}
+	rootService, err := initRootService(config, ethHelper, treePersister, rootPersister)
+	if err != nil {
+		log.Fatalf("error initializing root service: %v", err)
+	}
+	dlock := initDLock(config)
+	claimsService, err := initClaimsService(
+		treePersister,
+		signedClaimPersister,
+		didService,
+		rootService,
+		dlock,
+	)
+	if err != nil {
+		log.Fatalf("error initializing claims service")
+	}
+
+	jwtService := initJWTClaimService(
+		didJWTService,
+		jwtClaimPersister,
+		claimsService,
+		sc,
+	)
+
+	return jwtService, didService, claimsService, didJWTService
 }

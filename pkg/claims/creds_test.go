@@ -85,7 +85,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 	}
 
 	// Setup DB
-	db, err := setupConnection()
+	db, err := testutils.SetupConnection()
 	if err != nil {
 		t.Fatalf("error setting up the db: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := makeService(db, didService, signedClaimStore)
+	claimService, err := testutils.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Fatalf("error setting up service: %v", err)
 	}

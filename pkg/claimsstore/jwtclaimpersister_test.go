@@ -38,7 +38,7 @@ func makeDID(id *didlib.DID, key *ecdsa.PublicKey, ethURIRes *ethuri.Service) er
 }
 
 func TestAddJWT(t *testing.T) {
-	db, err := setupConnection()
+	db, err := testutils.SetupConnection()
 	if err != nil {
 		t.Errorf("failed to set up db connection")
 	}

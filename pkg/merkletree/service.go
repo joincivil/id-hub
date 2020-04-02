@@ -1,7 +1,8 @@
-package claims
+package merkletree
 
 import (
 	"github.com/dgrijalva/jwt-go"
+	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/utils"
@@ -9,29 +10,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-// MerkleTreeService is a service for registering JWT claims
-type MerkleTreeService struct {
+// Service is a service for registering JWT claims
+type Service struct {
 	didJWTService *didjwt.Service
-	claimService  *Service
+	claimService  *claims.Service
 }
 
-// NewMerkleTreeService creates a new instance of the service
-func NewMerkleTreeService(didJWTService *didjwt.Service,
-	claimService *Service) *MerkleTreeService {
-	return &MerkleTreeService{
+// NewService creates a new instance of the service
+func NewService(didJWTService *didjwt.Service,
+	claimService *claims.Service) *Service {
+	return &Service{
 		didJWTService: didJWTService,
 		claimService:  claimService,
 	}
 }
 
 // AddEntry adds a new jwt claim to it's issuers tree
-func (s *MerkleTreeService) AddEntry(tokenString string, senderDID *didlib.DID) (*jwt.Token, error) {
+func (s *Service) AddEntry(tokenString string) (*jwt.Token, error) {
 	token, err := s.didJWTService.ParseJWT(tokenString)
 	if err != nil {
 		return nil, errors.Wrap(err, "AddEntry failed to parse token")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := claims.GetIssuerDIDfromToken(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "AddEntry error parsing issuer did")
 	}
@@ -70,7 +71,7 @@ func (s *MerkleTreeService) AddEntry(tokenString string, senderDID *didlib.DID) 
 	return token, nil
 }
 
-func (s *MerkleTreeService) makeRegisteredDocClaimFromJWT(token string,
+func (s *Service) makeRegisteredDocClaimFromJWT(token string,
 	issuer *didlib.DID) (*claimtypes.ClaimRegisteredDocument, error) {
 	hash, err := utils.CreateMultihash([]byte(token))
 	if err != nil {
@@ -82,13 +83,13 @@ func (s *MerkleTreeService) makeRegisteredDocClaimFromJWT(token string,
 }
 
 // RevokeEntry takes a token and revokes it in the merkle tree
-func (s *MerkleTreeService) RevokeEntry(tokenString string) error {
+func (s *Service) RevokeEntry(tokenString string) error {
 	token, err := s.didJWTService.ParseJWT(tokenString)
 	if err != nil {
 		return errors.Wrap(err, "RevokeJWTClaim couldn't parse token")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := claims.GetIssuerDIDfromToken(token)
 	if err != nil {
 		return errors.Wrap(err, "RevokeJWTClaim error parsing issuer did")
 	}
@@ -116,16 +117,17 @@ func (s *MerkleTreeService) RevokeEntry(tokenString string) error {
 	}
 
 	return nil
+
 }
 
 // GenerateProof creates a proof from a jwt
-func (s *MerkleTreeService) GenerateProof(tokenString string) (*MTProof, error) {
+func (s *Service) GenerateProof(tokenString string) (*claims.MTProof, error) {
 	token, err := s.didJWTService.ParseJWT(tokenString)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof couldn't parse token")
 	}
 
-	issuer, err := getIssuerDIDfromToken(token)
+	issuer, err := claims.GetIssuerDIDfromToken(token)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateProof error parsing issuer did")
 	}
