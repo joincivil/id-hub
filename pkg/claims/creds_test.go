@@ -29,6 +29,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
+	"github.com/joincivil/id-hub/pkg/testinits"
 
 	didlib "github.com/ockam-network/did"
 )
@@ -85,7 +86,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 	}
 
 	// Setup DB
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Fatalf("error setting up the db: %v", err)
 	}
@@ -94,7 +95,7 @@ func TestCredentialsAndGqlClaimSave(t *testing.T) {
 	didPersister := did.NewPostgresPersister(db)
 	didService := did.NewService(didPersister)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Fatalf("error setting up service: %v", err)
 	}

@@ -6,25 +6,28 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/iden3/go-iden3-core/merkletree"
+	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/didjwt"
 	mt "github.com/joincivil/id-hub/pkg/merkletree"
+	"github.com/joincivil/id-hub/pkg/testinits"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	"github.com/joincivil/id-hub/pkg/utils"
 )
 
 func TestMerkletreeService(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, rootService, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -33,7 +36,7 @@ func TestMerkletreeService(t *testing.T) {
 
 	merkleTreeService := mt.NewService(didJWTService, claimService)
 
-	userDID, secKey, err := testutils.AddDID(ethURI, claimService)
+	userDID, secKey, err := testinits.AddDID(ethURI, claimService)
 
 	if err != nil {
 		t.Errorf("failed to add userdid: %v", err)
@@ -151,4 +154,17 @@ func TestMerkletreeService(t *testing.T) {
 	if err == nil {
 		t.Errorf("it should error if the claim is revoked")
 	}
+}
+
+func setupConnection() (*gorm.DB, error) {
+	db, err := testutils.GetTestDBConnection()
+	if err != nil {
+		return nil, err
+	}
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}, &claimsstore.JWTClaimPostgres{}).Error
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

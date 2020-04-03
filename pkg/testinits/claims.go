@@ -1,4 +1,4 @@
-package testutils
+package testinits
 
 import (
 	"math/big"

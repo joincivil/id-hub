@@ -14,20 +14,21 @@ import (
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	"github.com/joincivil/id-hub/pkg/testinits"
 	"github.com/joincivil/id-hub/pkg/testutils"
 )
 
 func TestJWTService(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, rootService, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -41,7 +42,7 @@ func TestJWTService(t *testing.T) {
 	senderDIDs := "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1"
 	senderDID, _ := didlib.Parse(senderDIDs)
 
-	userDID, secKey, err := testutils.AddDID(ethURI, claimService)
+	userDID, secKey, err := testinits.AddDID(ethURI, claimService)
 
 	if err != nil {
 		t.Errorf("failed to add userdid: %v", err)

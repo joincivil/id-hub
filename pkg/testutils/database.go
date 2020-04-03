@@ -5,8 +5,6 @@ import (
 	"os"
 
 	"github.com/jinzhu/gorm"
-	"github.com/joincivil/id-hub/pkg/claimsstore"
-	"github.com/joincivil/id-hub/pkg/did/ethuri"
 
 	// load postgres specific dialect
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -70,19 +68,5 @@ func GetTestDBConnection() (*gorm.DB, error) {
 		db.LogMode(true)
 	}
 
-	return db, nil
-}
-
-// SetupConnection returns a db instance
-func SetupConnection() (*gorm.DB, error) {
-	db, err := GetTestDBConnection()
-	if err != nil {
-		return nil, err
-	}
-	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
-	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}, &claimsstore.JWTClaimPostgres{}).Error
-	if err != nil {
-		return nil, err
-	}
 	return db, nil
 }

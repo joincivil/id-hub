@@ -9,6 +9,7 @@ import (
 	"github.com/joincivil/id-hub/pkg/merkletree"
 )
 
+// RunMerkleTreeServer starts the merkle tree service server
 func RunMerkleTreeServer() error {
 	config := populateConfig()
 

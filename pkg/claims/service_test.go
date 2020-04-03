@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/go-iden3-core/merkletree"
+	"github.com/jinzhu/gorm"
 	"github.com/joincivil/go-common/pkg/article"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
@@ -16,10 +17,24 @@ import (
 	"github.com/joincivil/id-hub/pkg/did"
 	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/linkeddata"
+	"github.com/joincivil/id-hub/pkg/testinits"
 	"github.com/joincivil/id-hub/pkg/testutils"
 	"github.com/multiformats/go-multihash"
 	didlib "github.com/ockam-network/did"
 )
+
+func setupConnection() (*gorm.DB, error) {
+	db, err := testutils.GetTestDBConnection()
+	if err != nil {
+		return nil, err
+	}
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}, &claimsstore.JWTClaimPostgres{}).Error
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
 
 func makeContentCredential(issuerDID *didlib.DID) *claimtypes.ContentCredential {
 	subj := claimtypes.ContentCredentialSubject{
@@ -65,16 +80,16 @@ func makeLicenseCredential(issuerDID *didlib.DID, subjectDID *didlib.DID) *claim
 }
 
 func TestCreateTreeForDIDWithPks(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, _ := testutils.InitDIDService(db)
+	didService, _ := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, _, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, _, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -151,16 +166,16 @@ func TestCreateTreeForDIDWithPks(t *testing.T) {
 }
 
 func TestCreateTreeForDID(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, _, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, _, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -207,16 +222,16 @@ func TestCreateTreeForDID(t *testing.T) {
 }
 
 func TestClaimContent(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, _, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, _, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -318,7 +333,7 @@ func TestClaimContent(t *testing.T) {
 }
 
 func TestClaimsToContentCredentials(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
@@ -327,9 +342,9 @@ func TestClaimsToContentCredentials(t *testing.T) {
 	defer cleaner()
 
 	// Setup
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, _, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, _, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -390,7 +405,7 @@ func TestClaimsToContentCredentials(t *testing.T) {
 }
 
 func TestGenerateProof(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
@@ -399,9 +414,9 @@ func TestGenerateProof(t *testing.T) {
 	defer cleaner()
 
 	// Setup
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, rootService, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, rootService, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
@@ -546,16 +561,16 @@ func TestGenerateProof(t *testing.T) {
 }
 
 func TestClaimLicense(t *testing.T) {
-	db, err := testutils.SetupConnection()
+	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
 	}
 
 	cleaner := testutils.DeleteCreatedEntities(db)
 	defer cleaner()
-	didService, ethURI := testutils.InitDIDService(db)
+	didService, ethURI := testinits.InitDIDService(db)
 	signedClaimStore := claimsstore.NewSignedClaimPGPersister(db)
-	claimService, _, err := testutils.MakeService(db, didService, signedClaimStore)
+	claimService, _, err := testinits.MakeService(db, didService, signedClaimStore)
 	if err != nil {
 		t.Errorf("error setting up service: %v", err)
 	}
