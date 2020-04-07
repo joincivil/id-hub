@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	"github.com/joincivil/id-hub/pkg/utils"
 	"github.com/multiformats/go-multihash"
 	didlib "github.com/ockam-network/did"
 	"github.com/pkg/errors"
@@ -31,7 +31,7 @@ func (JWTClaimPostgres) TableName() string {
 
 // TokenToJWTClaimPostgres turns a jwt token into the db model
 func TokenToJWTClaimPostgres(token *jwt.Token) (*JWTClaimPostgres, error) {
-	hash, err := hashJWT(token.Raw)
+	hash, err := utils.MultiHashString(token.Raw)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to hash token")
 	}
@@ -60,15 +60,6 @@ func TokenToJWTClaimPostgres(token *jwt.Token) (*JWTClaimPostgres, error) {
 		IssuedAt: claims.IssuedAt,
 		Type:     typS,
 	}, nil
-}
-
-func hashJWT(token string) (string, error) {
-	hash := crypto.Keccak256([]byte(token))
-	mHash, err := multihash.EncodeName(hash, "keccak-256")
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(mHash), nil
 }
 
 // JWTClaimPGPersister is a postgres persister for JWT claims

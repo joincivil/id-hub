@@ -1,24 +1,23 @@
-package claims_test
+package merkletree_test
 
 import (
 	"encoding/hex"
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/go-iden3-core/merkletree"
-	"github.com/multiformats/go-multihash"
-	didlib "github.com/ockam-network/did"
-
-	"github.com/joincivil/id-hub/pkg/claims"
+	"github.com/jinzhu/gorm"
 	"github.com/joincivil/id-hub/pkg/claimsstore"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
+	"github.com/joincivil/id-hub/pkg/did/ethuri"
 	"github.com/joincivil/id-hub/pkg/didjwt"
+	mt "github.com/joincivil/id-hub/pkg/merkletree"
 	"github.com/joincivil/id-hub/pkg/testinits"
 	"github.com/joincivil/id-hub/pkg/testutils"
+	"github.com/joincivil/id-hub/pkg/utils"
 )
 
-func TestJWTService(t *testing.T) {
+func TestMerkletreeService(t *testing.T) {
 	db, err := setupConnection()
 	if err != nil {
 		t.Errorf("error setting up the db: %v", err)
@@ -35,12 +34,7 @@ func TestJWTService(t *testing.T) {
 
 	didJWTService := didjwt.NewService(didService)
 
-	jwtClaimPersister := claimsstore.NewJWTClaimPGPersister(db, didJWTService)
-
-	jwtService := claims.NewJWTService(didJWTService, jwtClaimPersister, claimService, &testutils.FakePubSubService{})
-
-	senderDIDs := "did:ethuri:e7ab0c43-d9fe-4a61-87a3-3fa99ce879e1"
-	senderDID, _ := didlib.Parse(senderDIDs)
+	merkleTreeService := mt.NewService(didJWTService, claimService)
 
 	userDID, secKey, err := testinits.AddDID(ethURI, claimService)
 
@@ -67,23 +61,13 @@ func TestJWTService(t *testing.T) {
 		t.Errorf("unable to create jwt string: %v", err)
 	}
 
-	_, err = jwtService.AddJWTClaim(tokenS, senderDID)
+	_, err = merkleTreeService.AddEntry(tokenS)
 
 	if err != nil {
 		t.Errorf("failed to add jwt: %v", err)
 	}
 
-	usersTokens, err := jwtService.GetJWTSforDID(userDID)
-
-	if err != nil {
-		t.Errorf("failed to fetch tokens: %v", err)
-	}
-
-	if len(usersTokens) != 1 {
-		t.Errorf("wrong number of tokens returned got: %v, expected: %v", len(usersTokens), 1)
-	}
-
-	proofBeforeCommit, err := jwtService.GenerateProof(tokenS)
+	proofBeforeCommit, err := merkleTreeService.GenerateProof(tokenS)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
@@ -97,7 +81,7 @@ func TestJWTService(t *testing.T) {
 		t.Errorf("error committing root: %v", err)
 	}
 
-	proof, err := jwtService.GenerateProof(tokenS)
+	proof, err := merkleTreeService.GenerateProof(tokenS)
 	if err != nil {
 		t.Errorf("error generating proof: %v", err)
 	}
@@ -136,8 +120,7 @@ func TestJWTService(t *testing.T) {
 		t.Errorf("couldn't get root of did tree: %v", err)
 	}
 
-	hash := crypto.Keccak256([]byte(tokenS))
-	mhash, _ := multihash.EncodeName(hash, "keccak-256")
+	mhash, _ := utils.CreateMultihash([]byte(tokenS))
 	hash34 := [34]byte{}
 	copy(hash34[:], mhash)
 
@@ -162,14 +145,26 @@ func TestJWTService(t *testing.T) {
 		t.Errorf("couldn't verify root tree proof")
 	}
 
-	err = jwtService.RevokeJWTClaim(tokenS)
+	err = merkleTreeService.RevokeEntry(tokenS)
 	if err != nil {
 		t.Errorf("couldn't revoke claim")
 	}
 
-	_, err = jwtService.GenerateProof(tokenS)
+	_, err = merkleTreeService.GenerateProof(tokenS)
 	if err == nil {
 		t.Errorf("it should error if the claim is revoked")
 	}
+}
 
+func setupConnection() (*gorm.DB, error) {
+	db, err := testutils.GetTestDBConnection()
+	if err != nil {
+		return nil, err
+	}
+	db.DropTable(&ethuri.PostgresDocument{}, &claimsstore.RootCommit{}, &claimsstore.Node{})
+	err = db.AutoMigrate(&ethuri.PostgresDocument{}, &claimsstore.SignedClaimPostgres{}, &claimsstore.Node{}, &claimsstore.RootCommit{}, &claimsstore.JWTClaimPostgres{}).Error
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

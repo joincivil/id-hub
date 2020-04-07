@@ -34,7 +34,8 @@ func CanonicalizeCredential(cred *claimtypes.ContentCredential) ([]byte, error) 
 	return json.Marshal(temp)
 }
 
-func getIssuerDIDfromToken(token *jwt.Token) (*didlib.DID, error) {
+// GetIssuerDIDfromToken returns the issuer did from a jwt
+func GetIssuerDIDfromToken(token *jwt.Token) (*didlib.DID, error) {
 	claims, ok := token.Claims.(*didjwt.VCClaimsJWT)
 
 	if !ok {

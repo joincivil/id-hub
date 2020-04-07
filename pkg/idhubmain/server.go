@@ -13,7 +13,6 @@ import (
 
 	"github.com/joincivil/id-hub/pkg/auth"
 	"github.com/joincivil/id-hub/pkg/did"
-	"github.com/joincivil/id-hub/pkg/didjwt"
 	"github.com/joincivil/id-hub/pkg/graphql"
 	"github.com/joincivil/id-hub/pkg/utils"
 
@@ -34,65 +33,32 @@ var (
 
 func initResolver(db *gorm.DB, config *utils.IDHubConfig) *graphql.Resolver {
 
-	// DID init
-	// Universal Resolver
-	resolver, err := initHTTPUniversalResolver(config)
-	if err != nil {
-		log.Fatalf("error initializing universal resolver")
-	}
-	// EthURI Resolver
-	ethURIResolver, err := initEthURIResolver(db)
-	if err != nil {
-		log.Fatalf("error initializing ethuri resolver")
-	}
-
-	sc, err := initializeNats(config)
-	if err != nil {
-		log.Fatalf("error initializing nats: %v", err)
-	}
-
-	// TODO(PN): Adding ethuri resolver during transition of enterprise clients
-	// to other DID methods. Once this occurs, should remove it.
-	didService := initDidService([]did.Resolver{resolver, ethURIResolver})
-	didJWTService := didjwt.NewService(didService)
-
-	// Claims init
-	treePersister := initTreePersister(db)
-	signedClaimPersister := initSignedClaimPersister(db)
-	rootPersister := initRootClaimPersister(db)
-	jwtClaimPersister := initJWTClaimPersister(db, didJWTService)
-	ethHelper, err := initETHHelper(config)
-	if err != nil {
-		log.Fatalf("error initializing eth helper: %v", err)
-	}
-	rootService, err := initRootService(config, ethHelper, treePersister, rootPersister)
-	if err != nil {
-		log.Fatalf("error initializing root service: %v", err)
-	}
-	dlock := initDLock(config)
-	claimsService, err := initClaimsService(
-		treePersister,
-		signedClaimPersister,
-		didService,
-		rootService,
-		dlock,
-	)
-	if err != nil {
-		log.Fatalf("error initializing claims service")
-	}
-
-	jwtService := initJWTClaimService(
-		didJWTService,
-		jwtClaimPersister,
-		claimsService,
-		sc,
-	)
+	jwtService, didService, claimsService, _ := initServices(db, config)
 
 	return &graphql.Resolver{
 		DidService:   didService,
 		ClaimService: claimsService,
 		JWTService:   jwtService,
 	}
+}
+
+func basicHTTPSetup() chi.Router {
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   validCorsOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+		Debug:            true,
+	})
+	router.Use(cors.Handler)
+	return router
 }
 
 // RunServer runs the ID Hub service
@@ -109,21 +75,7 @@ func RunServer() error {
 	resolver := initResolver(db, config)
 	initHedgehog(db)
 
-	router := chi.NewRouter()
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
-
-	cors := cors.New(cors.Options{
-		AllowedOrigins:   validCorsOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           300,
-		Debug:            true,
-	})
-	router.Use(cors.Handler)
+	router := basicHTTPSetup()
 
 	// Setup the ID Hub auth middleware
 	router.Use(auth.Middleware())
