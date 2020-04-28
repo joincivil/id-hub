@@ -1,7 +1,6 @@
 package merkletree
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"github.com/joincivil/id-hub/pkg/claims"
 	"github.com/joincivil/id-hub/pkg/claimtypes"
 	"github.com/joincivil/id-hub/pkg/didjwt"
@@ -25,50 +24,59 @@ func NewService(didJWTService *didjwt.Service,
 	}
 }
 
-// AddEntry adds a new jwt claim to it's issuers tree
-func (s *Service) AddEntry(tokenString string) (*jwt.Token, error) {
+func (s *Service) getIssuer(tokenString string) (*didlib.DID, error) {
 	token, err := s.didJWTService.ParseJWT(tokenString)
 	if err != nil {
 		return nil, errors.Wrap(err, "AddEntry failed to parse token")
 	}
 
-	issuer, err := claims.GetIssuerDIDfromToken(token)
+	return claims.GetIssuerDIDfromToken(token)
+}
+
+// AddEntry adds a new jwt claim to it's issuers tree
+func (s *Service) AddEntry(tokenString string, sender string) (string, error) {
+	issuer, err := s.getIssuer(tokenString)
+	claimtype := claimtypes.JWTDocType
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry error parsing issuer did")
+		issuer, err = didlib.Parse(sender)
+		claimtype = claimtypes.RawDataDocType
+		if err != nil {
+			return "", errors.Wrap(err, "AddEntry unable to parse did from token or sender")
+		}
 	}
 
 	didMT, err := s.claimService.BuildDIDMt(issuer)
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry error building didmt")
+		return "", errors.Wrap(err, "AddEntry error building didmt")
 	}
 
 	hash, err := utils.CreateMultihash([]byte(tokenString))
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry couldn't create hash of token")
+		return "", errors.Wrap(err, "AddEntry couldn't create hash of token")
 	}
 
 	if len(hash) > 34 {
-		return nil, errors.New("hash hex string is the wrong size")
+		return "", errors.New("hash hex string is the wrong size")
 	}
 	hashb34 := [34]byte{}
 	copy(hashb34[:], hash)
 
-	claim, err := claimtypes.NewClaimRegisteredDocument(hashb34, issuer, claimtypes.JWTDocType)
+	claim, err := claimtypes.NewClaimRegisteredDocument(hashb34, issuer, claimtype)
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry error creating registered document claim")
+		return "", errors.Wrap(err, "AddEntry error creating registered document claim")
 	}
 
 	err = didMT.Add(claim.Entry())
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry add claim to did mt")
+		return "", errors.Wrap(err, "AddEntry add claim to did mt")
 	}
 
 	err = s.claimService.AddNewRootClaim(issuer)
 	if err != nil {
-		return nil, errors.Wrap(err, "AddEntry.addnewrootclaim")
+		return "", errors.Wrap(err, "AddEntry.addnewrootclaim")
 	}
 
-	return token, nil
+	return tokenString, nil
 }
 
 func (s *Service) makeRegisteredDocClaimFromJWT(token string,
