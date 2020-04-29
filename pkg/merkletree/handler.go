@@ -24,6 +24,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 	var p = struct {
 		Credential string `json:"credential"`
+		Sender     string `json:"sender"`
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -32,7 +33,7 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.service.AddEntry(p.Credential)
+	_, err = h.service.AddEntry(p.Credential, p.Sender)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

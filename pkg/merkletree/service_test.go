@@ -61,7 +61,7 @@ func TestMerkletreeService(t *testing.T) {
 		t.Errorf("unable to create jwt string: %v", err)
 	}
 
-	_, err = merkleTreeService.AddEntry(tokenS)
+	_, err = merkleTreeService.AddEntry(tokenS, userDID.String())
 
 	if err != nil {
 		t.Errorf("failed to add jwt: %v", err)
